@@ -621,7 +621,7 @@ void TextEditor::renderPanScrollIndicator() {
 //
 
 static bool latchButton(const char* label, bool* value, const ImVec2& size) {
-	bool changed = false;
+	auto changed = false;
 	ImVec4* colors = ImGui::GetStyle().Colors;
 
 	if (*value) {
@@ -772,8 +772,11 @@ void TextEditor::renderFindReplace(ImVec2 pos, float width) {
 		ImGui::SameLine();
 
 		if (ImGui::Button("x", ImVec2(optionWidth, 0.0f))) {
-			findReplaceVisible = false;
-			focusOnEditor = true;
+			closeFindReplace();
+		}
+
+		if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+			closeFindReplace();
 		}
 
 		if (!readOnly) {
@@ -920,6 +923,11 @@ void TextEditor::handleKeyboardInputs() {
 			} else {
 				handleCharacter('\t');
 			}
+		}
+
+		// handle escape key
+		else if (!findReplaceVisible && ImGui::IsKeyPressed(ImGuiKey_Escape) && cursors.hasMultiple()) {
+			cursors.clearAdditional();
 		}
 
 		// handle regular text
@@ -1100,7 +1108,8 @@ void TextEditor::handleMouseInteractions() {
 						}
 					}
 
-					// select word if it wasn't a bracketed section
+					// select "word" if it wasn't a bracketed section
+					// includes whitespace and operator sequences as well
 					if (!handled && !document.isEndOfLine(glyphCoordinate)) {
 						auto start = document.findWordStart(glyphCoordinate);
 						auto end = document.findWordEnd(glyphCoordinate);
@@ -1564,8 +1573,39 @@ void TextEditor::replaceTextInAllCursors(const std::string_view& text) {
 //
 
 void TextEditor::openFindReplace() {
+	// get main cursor location
+	auto cursor = cursors.getMain();
+
+	// see if we have a current selection that's on one line
+	if (cursor.hasSelection()) {
+		if (cursor.getSelectionStart().line == cursor.getSelectionEnd().line) {
+			// use it as the default search
+			findText = document.getSectionText(cursor.getSelectionStart(), cursor.getSelectionEnd());
+		}
+
+	} else {
+		// if cursor is inside "real" word, use that as the default
+		auto start = document.findWordStart(cursor.getSelectionStart(), true);
+		auto end = document.findWordEnd(cursor.getSelectionStart(), true);
+
+		if (start != end) {
+			findText = document.getSectionText(start, end);
+		}
+	}
+
 	findReplaceVisible = true;
 	focusOnFind = true;
+}
+
+
+//
+//	TextEditor::closeFindReplace
+//
+
+void TextEditor::closeFindReplace() {
+	findReplaceVisible = false;
+	focusOnFind = false;
+	focusOnEditor = true;
 }
 
 
@@ -2857,9 +2897,12 @@ void TextEditor::Cursors::update() {
 			}
 		}
 
-		// find current cursor
+		// find main and current cursor
 		for (size_t c = 0; c < size(); c++) {
-			if (at(c).isCurrent()) {
+			if (at(c).isMain()) {
+				main = c;
+
+			} else if (at(c).isCurrent()) {
 				current = c;
 			}
 		}
@@ -3320,7 +3363,7 @@ TextEditor::Coordinate TextEditor::Document::getEndOfLine(Coordinate from) const
 //	TextEditor::Document::findWordStart
 //
 
-TextEditor::Coordinate TextEditor::Document::findWordStart(Coordinate from) const {
+TextEditor::Coordinate TextEditor::Document::findWordStart(Coordinate from, bool wordOnly) const {
 	auto& line = at(from.line);
 	auto lineSize = line.size();
 
@@ -3336,7 +3379,7 @@ TextEditor::Coordinate TextEditor::Document::findWordStart(Coordinate from) cons
 
 		auto firstCharacter = line[index].codepoint;
 
-		if (CodePoint::isWhiteSpace(firstCharacter)) {
+		if (!wordOnly && CodePoint::isWhiteSpace(firstCharacter)) {
 			while (index > 0 && CodePoint::isWhiteSpace(line[index - 1].codepoint)) {
 				index--;
 			}
@@ -3347,7 +3390,7 @@ TextEditor::Coordinate TextEditor::Document::findWordStart(Coordinate from) cons
 			}
 
 		} else {
-			while (index > 0 && !CodePoint::isWord(line[index - 1].codepoint) && !CodePoint::isWhiteSpace(line[index - 1].codepoint)) {
+			while (!wordOnly && index > 0 && !CodePoint::isWord(line[index - 1].codepoint) && !CodePoint::isWhiteSpace(line[index - 1].codepoint)) {
 				index--;
 			}
 		}
@@ -3361,7 +3404,7 @@ TextEditor::Coordinate TextEditor::Document::findWordStart(Coordinate from) cons
 //	TextEditor::Document::findWordEnd
 //
 
-TextEditor::Coordinate TextEditor::Document::findWordEnd(Coordinate from) const {
+TextEditor::Coordinate TextEditor::Document::findWordEnd(Coordinate from, bool wordOnly) const {
 	auto& line = at(from.line);
 	auto index = getIndex(from);
 	auto size = line.size();
@@ -3372,7 +3415,7 @@ TextEditor::Coordinate TextEditor::Document::findWordEnd(Coordinate from) const 
 	} else {
 		auto firstCharacter = line[index].codepoint;
 
-		if (CodePoint::isWhiteSpace(firstCharacter)) {
+		if (!wordOnly && CodePoint::isWhiteSpace(firstCharacter)) {
 			while (index < size && CodePoint::isWhiteSpace(line[index].codepoint)) {
 				index++;
 			}
@@ -3383,7 +3426,7 @@ TextEditor::Coordinate TextEditor::Document::findWordEnd(Coordinate from) const 
 			}
 
 		} else {
-			while (index < size && !CodePoint::isWord(line[index].codepoint) && !CodePoint::isWhiteSpace(line[index].codepoint)) {
+			while (!wordOnly && index < size && !CodePoint::isWord(line[index].codepoint) && !CodePoint::isWhiteSpace(line[index].codepoint)) {
 				index++;
 			}
 		}

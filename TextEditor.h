@@ -175,7 +175,8 @@ public:
 	inline void ReplaceTextInCurrentCursor(const std::string_view& text) { if (!readOnly) replaceTextInCurrentCursor(text); }
 	inline void ReplaceTextInAllCursors(const std::string_view& text) { if (!readOnly) replaceTextInAllCursors(text); }
 
-	inline void OpenFindReplaceWindow() { findReplaceVisible = true; focusOnFind = true; }
+	inline void OpenFindReplaceWindow() { openFindReplace(); }
+	inline void CloseFindReplaceWindow() { closeFindReplace(); }
 	inline void SetFindButtonLabel(const std::string_view& label) { findButtonLabel = label; }
 	inline void SetFindAllButtonLabel(const std::string_view& label) { findAllButtonLabel = label; }
 	inline void SetReplaceButtonLabel(const std::string_view& label) { replaceButtonLabel = label; }
@@ -716,8 +717,8 @@ protected:
 		inline Coordinate getNextLine(Coordinate from) const { return getRight(getEndOfLine(from)); }
 
 		// search in document
-		Coordinate findWordStart(Coordinate from) const;
-		Coordinate findWordEnd(Coordinate from) const;
+		Coordinate findWordStart(Coordinate from, bool wordOnly=false) const;
+		Coordinate findWordEnd(Coordinate from, bool wordOnly=false) const;
 		bool findText(Coordinate from, const std::string_view& text, bool caseSensitive, bool wholeWord, Coordinate& start, Coordinate& end) const;
 
 		// see if document was updated this frame (can only be called once)
@@ -921,6 +922,7 @@ protected:
 	void replaceTextInAllCursors(const std::string_view& text);
 
 	void openFindReplace();
+	void closeFindReplace();
 	void find();
 	void findNext();
 	void findAll();

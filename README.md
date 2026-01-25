@@ -60,7 +60,7 @@ public API to externally implement these features is however included.
 - Works with latest Dear ImGui version (currently v1.92.5) and does not use deprecated functions.
 - Supports dynamic font sizes (courtesy of Dear ImGui v1.92+). Implemented in example application.
 - Supports UTF-8 encoding with 16/32 bit codepoints (based on Dear ImGui configuration, see below).
-- Is C++17 based (not unreasonable in 2025 I think) although Dear ImGui still uses C++11.
+- Is C++17 based (not unreasonable in 2026 I think) although Dear ImGui still uses C++11.
 - Has no runtime dependencies other than Dear ImGui and the C++17 Standard Template Library (STL).
 - Has full undo/redo capabilities and supports native clipboard with UTF-8 encoded strings.
 - Has extendable syntax highlighting for multiple languages and API for custom languages.
@@ -163,6 +163,7 @@ For a complete example, please see the [example folder](example/).
 	- Alt-Shift-RightArrow (on MacOS) and Ctrl-Shift-RightArrow (on Linux and Windows) grows all selections to outer blocks. First just the content of the block, than including the curly brackets. Continuously hitting the key combination keeps growing the selections.
 	- Alt-Shift-LeftArrow (on MacOS) and Ctrl-Shift-LeftArrow (on Linux and Windows) shrinks all selections to inner blocks. First including the curly brackets, that just the content of the block. Continuously hitting the key combination keeps shrinking the selections.
 	- Left mouse clicking or dragging over line numbers select line(s).
+	- When multiple cursors are active, hitting the ESC key cancels them.
 
 - Clipboard Operations:
 	- Ctrl-X or Shift-Delete cuts selected text or current line if no selection.
@@ -190,6 +191,10 @@ For a complete example, please see the [example folder](example/).
 
 - Find & Replace:
 	- Ctrl-f opens the find and replace window.
+	- If text is selected when Ctrl-f is hit, the selected text is used as the search term if the start and end are on the same line.
+	- Else if the cursor is over a word when Ctrl-f is hit, that word is used as the search term.
+	- In all other cases, the previous search term is used.
+	- When the search and replace window is visible, hitting the ESC button closes it.
 	- Shift-Ctrl-f finds all instances and makes them separate cursors.
 	- Ctrl-g finds next instance of search text.
 
