@@ -23,6 +23,15 @@
 
 
 //
+//	TextEditor::TextEditor
+//
+
+TextEditor::TextEditor() {
+	SetPalette(defaultPalette);
+}
+
+
+//
 //	TextEditor::setText
 //
 
@@ -504,10 +513,11 @@ void TextEditor::renderDecorations() {
 		auto cursorScreenPos = ImGui::GetCursorScreenPos();
 		auto position = ImVec2(ImGui::GetWindowPos().x + decorationOffset, cursorScreenPos.y + glyphSize.y * firstVisibleLine);
 		auto widthInPixels = (decoratorWidth < 0.0f) ? -decoratorWidth * glyphSize.x: decoratorWidth;
-		Decorator decorator{0, widthInPixels, glyphSize.y, glyphSize};
+		Decorator decorator{0, widthInPixels, glyphSize.y, glyphSize, nullptr};
 
 		for (int i = firstVisibleLine; i <= lastVisibleLine; i++) {
 			decorator.line = i;
+			decorator.userData = document.getUserData(i);
 			ImGui::SetCursorScreenPos(position);
 			ImGui::PushID(i);
 			decoratorCallback(decorator);
@@ -2938,8 +2948,8 @@ void TextEditor::Cursors::adjustForDelete(iterator start, Coordinate deleteStart
 
 void TextEditor::Document::setText(const std::string_view& text) {
 	// reset document
-	clear();
-	emplace_back();
+	clearDocument();
+	appendLine();
 	updated = true;
 
 	// process UTF-8 and generate lines of glyphs
@@ -2951,7 +2961,7 @@ void TextEditor::Document::setText(const std::string_view& text) {
 		i = CodePoint::read(i, end, &character);
 
 		if (character == '\n') {
-			emplace_back();
+			appendLine();
 
 		} else if (insertSpacesOnTabs && character == '\t') {
 			auto spaces = ((back().size() / tabSize) + 1) * tabSize - back().size();
@@ -2976,13 +2986,13 @@ void TextEditor::Document::setText(const std::string_view& text) {
 
 void TextEditor::Document::setText(const std::vector<std::string_view>& text) {
 	// reset document
-	clear();
+	clearDocument();
 	updated = true;
 
 	if (text.size()) {
 		// process input UTF-8 and generate lines of glyphs
 		for (auto& line : text) {
-			emplace_back();
+			appendLine();
 			auto i = line.begin();
 			auto end = line.end();
 
@@ -3004,7 +3014,7 @@ void TextEditor::Document::setText(const std::vector<std::string_view>& text) {
 		}
 
 	} else {
-		emplace_back();
+		appendLine();
 	}
 
 	// update maximum column counts
@@ -3032,7 +3042,7 @@ TextEditor::Coordinate TextEditor::Document::insertText(Coordinate start, const 
 
 		if (character == '\n') {
 			// split line
-			insert(line + 1, Line());
+			insertLine(lineNo + 1);
 			line = begin() + lineNo;
 			auto nextLine = begin() + ++lineNo;
 
@@ -3089,19 +3099,17 @@ void TextEditor::Document::deleteText(Coordinate start, Coordinate end) {
 
 	// start and end are on different lines
 	} else {
-		// remove start of last line
-		endLine.erase(endLine.begin(), endLine.begin() + endIndex);
-
-		// remove full lines
-		erase(begin() + start.line + 1, begin() + end.line);
-
 		// remove end of first line
 		startLine.erase(startLine.begin() + startIndex, startLine.end());
 
+		// remove start of last line
+		endLine.erase(endLine.begin(), endLine.begin() + endIndex);
+
 		// join lines
-		auto& nextLine = at(start.line + 1);
-		startLine.insert(startLine.end(), nextLine.begin(), nextLine.end());
-		erase(begin() + start.line + 1);
+		startLine.insert(startLine.end(), endLine.begin(), endLine.end());
+
+		// delete lines
+		deleteLines(start.line + 1, end.line);
 	}
 
 	// mark affected lines for colorization
@@ -3549,6 +3557,41 @@ bool TextEditor::Document::findText(Coordinate from, const std::string_view& tex
 
 
 //
+//	TextEditor::Document::setUserData
+//
+
+void TextEditor::Document::setUserData(int line, void* data) {
+	if (line >= 0 && line < lineCount()) {
+		at(static_cast<size_t>(line)).userData = data;
+	}
+}
+
+
+//
+//	TextEditor::Document::getUserData
+//
+
+void* TextEditor::Document::getUserData(int line) const {
+	if (line >= 0 && line < lineCount()) {
+		return at(static_cast<size_t>(line)).userData;
+
+	} else {
+		return nullptr;
+	}
+}
+
+//
+//	TextEditor::Document::iterateUserData
+//
+
+void TextEditor::Document::iterateUserData(std::function<void(int line, void* data)> callback) const {
+	for (size_t i = 0; i < size(); i++) {
+		callback(static_cast<int>(i), at(i).userData);
+	}
+}
+
+
+//
 //	TextEditor::Document::isWholeWord
 //
 
@@ -3718,6 +3761,62 @@ void TextEditor::Document::normalizeCoordinate(float line, float column, Coordin
 			cursorCoordinate = Coordinate(lineNo, leftDiff <= rightDiff ? leftCol : rightCol);
 		}
 	}
+}
+
+
+//
+//	TextEditor::Document::appendLine
+//
+
+void TextEditor::Document::appendLine() {
+	auto& line = emplace_back();
+
+	if (insertor) {
+		line.userData = insertor(static_cast<int>(size() - 1));
+	}
+}
+
+
+//
+//	TextEditor::Document::insertLine
+//
+
+void TextEditor::Document::insertLine(int offsset) {
+	auto line = insert(begin() + offsset, Line());
+
+	if (insertor) {
+		line->userData = insertor(offsset);
+	}
+}
+
+
+//
+//	TextEditor::Document::deleteLines
+//
+
+void TextEditor::Document::deleteLines(int start, int end) {
+	if (deletor) {
+		for (auto i = start; i <= end; i++) {
+			deletor(i, at(i).userData);
+		}
+	}
+
+	erase(begin() + start, begin() + end);
+}
+
+
+//
+//	TextEditor::Document::clearDocument
+//
+
+void TextEditor::Document::clearDocument() {
+	if (deletor) {
+		for (auto i = 0; i <= lineCount(); i++) {
+			deletor(i, at(i).userData);
+		}
+	}
+
+	clear();
 }
 
 

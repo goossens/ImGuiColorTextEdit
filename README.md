@@ -71,6 +71,7 @@ public API to externally implement these features is however included.
 - Has marker API to specify lines and/or line numbers to highlight and optional show tooltips (see [example](docs/markers.md)).
 - Has optional scrollbar minimap to render cursor, selection and marker locations.
 - Provides middle-mouse pan and scroll functions like CAD programs and browsers.
+- Has API to attach user data to select or all lines (see [example](docs/userData.md)).
 - Has API to decorate each line (useful for debuggers and IDEs) (see [example](docs/lineDecorator.md)).
 - Provides optional and customizable right click context menus for line numbers or text lines (see [example](docs/contextMenus.md))
 - Provides auto completion for paired glyphs (\[, \{, \(, \", \') (can be turned on and off).

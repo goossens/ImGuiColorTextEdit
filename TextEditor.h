@@ -32,7 +32,7 @@
 class TextEditor {
 public:
 	// constructor
-	TextEditor() { SetPalette(defaultPalette); }
+	TextEditor();
 
 	//
 	// Below is the public API
@@ -192,12 +192,32 @@ public:
 	inline void ClearMarkers() { clearMarkers(); }
 	inline bool HasMarkers() const { return markers.size() != 0; }
 
+	// line-based callbacks (line numbers are zero-based)
+	// insertor callbacks are called when lines are added/inserted
+	// deletor callbacks are called when lines are deleted
+	// these callbacks work with user data (see below)
+	// setting either callback to nullptr will deactivate that callback
+	inline void SetInsertor(std::function<void*(int line)> callback) { document.setInsertor(callback); }
+	inline void SetDeletor(std::function<void(int line, void* data)> callback) { document.setDeletor(callback); }
+
+	// line-based user data (line numbers are zero-based)
+	// allowing integrators to associate external data with select lines or all lines
+	// user data is an opaque void* that must be managed externally
+	// user data is also passed to the decorator callback (see below)
+	// user data is attached to a line and additions/insertions/deletions don't effect this
+	// if a line with user data is removed, it won't come back on a redo (yet)
+	// the deletor callback (if specified) is called when a line is deleted (see above)
+	inline void SetUserData(int line, void* data) { document.setUserData(line, data); }
+	inline void* GetUserData(int line) const { return document.getUserData(line); }
+	inline void IterateUserData(std::function<void(int line, void* data)> callback) const { document.iterateUserData(callback); }
+
 	// line-based decoration
 	struct Decorator {
 		int line; // zero-based
 		float width;
 		float height;
 		ImVec2 glyphSize;
+		void* userData;
 	};
 
 	// positive width is number of pixels, negative with is number of glyphs
@@ -667,6 +687,9 @@ protected:
 
 		// do we need to (re)colorize this line
 		bool colorize = true;
+
+		// user data associated with this line
+		void* userData = nullptr;
 	};
 
 	// the document being edited (Lines of Glyphs)
@@ -729,6 +752,15 @@ protected:
 		inline bool isUpdated() { auto result = updated; updated = false; return result; }
 		inline void resetUpdated() { updated = false; }
 
+		// line-based callbacks
+		inline void setInsertor(std::function<void*(int line )> callback) { insertor = callback; }
+		inline void setDeletor(std::function<void(int line, void* data)> callback) { deletor = callback; }
+
+		// access line user data
+		void setUserData(int line, void* data);
+		void* getUserData(int line) const;
+		void iterateUserData(std::function<void(int line, void* data)> callback) const;
+
 		// utility functions
 		bool isWholeWord(Coordinate start, Coordinate end) const;
 		inline bool isEndOfLine(Coordinate from) const { return getIndex(from) == at(from.line).size(); }
@@ -743,6 +775,14 @@ protected:
 		bool insertSpacesOnTabs = false;
 		int maxColumn = 0;
 		bool updated = false;
+
+		std::function<void*(int)> insertor;
+		std::function<void(int, void*)> deletor;
+
+		void appendLine();
+		void insertLine(int line);
+		void deleteLines(int start, int end);
+		void clearDocument();
 	} document;
 
 	// single action to be performed on text as part of a larger transaction
