@@ -403,7 +403,7 @@ void TextDiff::renderSideBySideLine(float x, float y, TextEditor::Line& line) {
 		ImVec2 glyphPos(x + column * glyphSize.x - textScroll, y);
 
 		if (codepoint == '\t') {
-			if (showWhitespaces) {
+			if (showTabs) {
 				const auto x1 = glyphPos.x + glyphSize.x * 0.3f;
 				const auto y1 = glyphPos.y + fontSize * 0.5f;
 				const auto x2 = glyphPos.x + glyphSize.x;
@@ -420,7 +420,7 @@ void TextDiff::renderSideBySideLine(float x, float y, TextEditor::Line& line) {
 			}
 
 		} else if (codepoint == ' ') {
-			if (showWhitespaces) {
+			if (showSpaces) {
 				const auto x1 = glyphPos.x + glyphSize.x * 0.5f;
 				const auto y1 = glyphPos.y + fontSize * 0.5f;
 				drawList->AddCircleFilled(ImVec2(x1, y1), 1.5f, palette.get(Color::whitespace), 4);

@@ -86,7 +86,7 @@ public API to externally implement these features is however included.
 - Has API to filter each line in editor (with full undo support).
 - Tabs to Space (and visa versa) are examples of line filtering.
 - Has API to strip trailing whitespaces.
-- Provides whitespace indicators for tabs and spaces (can be turned on and off).
+- Provides whitespace indicators for tabs and spaces (can be turned on and off individually or collectively).
 - No longer uses regular expressions for colorizing text (see below).
 - Provides an optional companion widget to show source code differences between versions (see below).
 

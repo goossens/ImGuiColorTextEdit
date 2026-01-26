@@ -56,8 +56,12 @@ public:
 	inline bool IsReadOnlyEnabled() const { return readOnly; }
 	inline void SetAutoIndentEnabled(bool value) { autoIndent = value; }
 	inline bool IsAutoIndentEnabled() const { return autoIndent; }
-	inline void SetShowWhitespacesEnabled(bool value) { showWhitespaces = value; }
-	inline bool IsShowWhitespacesEnabled() const { return showWhitespaces; }
+	inline void SetShowWhitespacesEnabled(bool value) { showSpaces = value; showTabs = value; }
+	inline bool IsShowWhitespacesEnabled() const { return showSpaces && showTabs; }
+	inline void SetShowSpacesEnabled(bool value) { showSpaces = value; }
+	inline bool IsShowSpacesEnabled() const { return showSpaces; }
+	inline void SetShowTabsEnabled(bool value) { showTabs = value; }
+	inline bool IsShowTabsEnabled() const { return showTabs; }
 	inline void SetShowLineNumbersEnabled(bool value) { showLineNumbers = value; }
 	inline bool IsShowLineNumbersEnabled() const { return showLineNumbers; }
 	inline void SetShowScrollbarMiniMapEnabled(bool value) { showScrollbarMiniMap = value; }
@@ -1032,7 +1036,8 @@ protected:
 	float lineSpacing = 1.0f;
 	bool readOnly = false;
 	bool autoIndent = true;
-	bool showWhitespaces = true;
+	bool showSpaces = true;
+	bool showTabs = true;
 	bool showLineNumbers = true;
 	bool showScrollbarMiniMap = true;
 	bool showMatchingBrackets = true;

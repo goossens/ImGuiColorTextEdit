@@ -390,7 +390,7 @@ void TextEditor::renderText() {
 			ImVec2 glyphPos{lineScreenPos.x + column * glyphSize.x, lineScreenPos.y};
 
 			if (codepoint == '\t') {
-				if (showWhitespaces) {
+				if (showTabs) {
 					const auto x1 = glyphPos.x + glyphSize.x * 0.3f;
 					const auto y = glyphPos.y + fontSize * 0.5f;
 					const auto x2 = glyphPos.x + glyphSize.x;
@@ -407,7 +407,7 @@ void TextEditor::renderText() {
 				}
 
 			} else if (codepoint == ' ') {
-				if (showWhitespaces) {
+				if (showSpaces) {
 					const auto x = glyphPos.x + glyphSize.x * 0.5f;
 					const auto y = glyphPos.y + fontSize * 0.5f;
 					drawList->AddCircleFilled(ImVec2(x, y), 1.5f, palette.get(Color::whitespace), 4);
