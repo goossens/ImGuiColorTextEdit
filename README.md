@@ -71,9 +71,9 @@ public API to externally implement these features is however included.
 - Has marker API to specify lines and/or line numbers to highlight and optional show tooltips (see [example](docs/markers.md)).
 - Has optional scrollbar minimap to render cursor, selection and marker locations.
 - Provides middle-mouse pan and scroll functions like CAD programs and browsers.
-- Has API to attach user data to select or all lines (see [example](docs/userData.md)).
+- Has API to attach user data to select lines or all lines (see [example](docs/userData.md)).
 - Has API to decorate each line (useful for debuggers and IDEs) (see [example](docs/lineDecorator.md)).
-- Provides optional and customizable right click context menus for line numbers or text lines (see [example](docs/contextMenus.md))
+- Provides optional and customizable right click (control + click on MacOS) context menus for line numbers or text lines (see [example](docs/contextMenus.md))
 - Provides auto completion for paired glyphs (\[, \{, \(, \", \') (can be turned on and off).
 - If auto complete is turned on, accidentally typed closing glyphs are ignored.
 - If auto complete is turned on, selections can be surrounded by paired glyphs.
@@ -125,7 +125,6 @@ For a complete example, please see the [example folder](example/).
 	- Ctrl: this refers to the Command key on MacOS and the Control key on Linux and Windows.
 	- Alt: this refers to the Option key on MacOS and the Alt key on Linux and Windows.
 	- Shift: as you would expect on all platforms.
-	- Super: this refers to the Control key on MacOS (Dear ImGui reverses Command and Control key on that platform).
 	- If a keyboard has a left and right version of these modifiers, the meaning is not different.
 
 - Cursor Movements:
@@ -141,7 +140,7 @@ For a complete example, please see the [example folder](example/).
 - Panning and Scrolling:
 	- The text scrolls automatically when you move the cursor through keyboard actions.
 	- Mouse actions that extend the selections also apply auto scrolling.
-	- The text in the editor can still be scrolled using those bars that were invented in the 1970's.
+	- The text in the editor can still be scrolled using those little bars that were invented in the 1970's.
 	- Devices with scroll wheels or those that simulated vertical and horizontal scroll wheels (like a touch pad, a mouse with a builtin touch pad or a pen) can also scroll the text. This is actually implemented in Dear ImGui (and used by the editor) and must be supported by your backend.
 	- The middle mouse button on a three-button mouse (or whatever is reported by your OS as a middle mouse button event) enters pan or scroll mode mode depending on the configuration. Pan mode is the default and you can switch this to Scroll mode by calling SetMiddleMouseScrollMode(). Calling SetMiddleMousePanMode() switches it back. The example application uses a menu option to toggle modes.
 	- In pan mode, the text is grabbed and dragged as the cursor moves and as long as the middle mouse button is down.
