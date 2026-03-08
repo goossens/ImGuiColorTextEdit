@@ -534,9 +534,10 @@ public:
 		void insert(const std::string_view& word);
 
 		// populate list of suggestions based on provided search term (which is UTF-8 encoded)
+		// limit is maximum number of suggestions returned after they are sorted by relevance
 		// maxSkippedLetters is a the largest number of letters that can be skipped to find the next match
 		// this allows for missing letters (out of order letters are not taken into account)
-		void findSuggestions(std::vector<std::string>& suggestions, const std::string_view& searchTerm, size_t maxSkippedLetters=2);
+		void findSuggestions(std::vector<std::string>& suggestions, const std::string_view& searchTerm, size_t limit=20, size_t maxSkippedLetters=2);
 
 	private:
 		// definition of single node in the word graph
@@ -1112,6 +1113,7 @@ protected:
 		AutoCompleteConfig configuration;
 		AutoCompleteState state;
 		size_t currentSelection = 0;
+		static constexpr float suggestionWidth = 250.0f;
 
 		// support functions
 		void start(Cursors& cursors);

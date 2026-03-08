@@ -802,11 +802,10 @@ void TextEditor::handleKeyboardInputs() {
 		}
 
 		// handle regular text
-		if (io.InputQueueCharacters.Size) {
-			bool ignoreInputs = io.KeyCtrl && !io.KeyAlt;
-
-			if (!ignoreInputs && !readOnly) {
-				for (int i = 0; i < io.InputQueueCharacters.size(); i++) {
+		if (!io.InputQueueCharacters.empty()) {
+	        // ignore Ctrl inputs, but need to allow Alt+Ctrl as some keyboards (e.g. German) use AltGR (which _is_ Alt+Ctrl) to input certain characters
+			if (!(io.KeyCtrl && !io.KeyAlt) && !readOnly) {
+				for (auto i = 0; i < io.InputQueueCharacters.size(); i++) {
 					auto character = io.InputQueueCharacters[i];
 
 					if (character == '\n' || character >= 32) {
@@ -4546,10 +4545,10 @@ void TextEditor::Autocomplete::cancel() {
 //	renderSuggestion
 //
 
-static bool renderSuggestion(const std::string_view& suggestion, const std::string_view& searchTerm, bool selected) {
+static bool renderSuggestion(const std::string_view& suggestion, const std::string_view& searchTerm, float width, bool selected) {
 	// custom widget to render an autocomplete suggestion in the style of Visual Studio Code
 	auto glyphPos = ImGui::GetCursorScreenPos();
-	auto size = ImVec2(250.0f, ImGui::GetFrameHeightWithSpacing());
+	auto size = ImVec2(width, ImGui::GetFrameHeightWithSpacing());
 	auto clicked = ImGui::InvisibleButton("suggestion", size);
 
 	auto drawList = ImGui::GetWindowDrawList();
@@ -4581,7 +4580,7 @@ static bool renderSuggestion(const std::string_view& suggestion, const std::stri
 			ImWchar searchCodePoint;
 			auto next = TextEditor::CodePoint::read(j, searchTermEnd, &searchCodePoint);
 
-			if (searchCodePoint == codepoint) {
+			if (TextEditor::CodePoint::toLower(searchCodePoint) == TextEditor::CodePoint::toLower(codepoint)) {
 				color = ImGui::GetColorU32(ImGuiCol_TextLink);
 				j = next;
 			}
@@ -4680,13 +4679,19 @@ bool TextEditor::Autocomplete::render(Document& document, Cursors& cursors, cons
 		cursorScreenPos.x + textOffset + currentLocation.column * glyphSize.x,
 		cursorScreenPos.y + (currentLocation.line + 1) * glyphSize.y));
 
+	auto suggestions = state.suggestions.size();
+	auto visibleSuggestions = (suggestions == 0) ? 1 : std::min(static_cast<size_t>(10), suggestions);
+	auto& style = ImGui::GetStyle();
+	auto height = ImGui::GetFrameHeightWithSpacing() * visibleSuggestions + style.WindowPadding.y * 2.0f;
+	ImGui::SetNextWindowSize(ImVec2(suggestionWidth, height));
+
 	ImGuiWindowFlags flags =
 		ImGuiWindowFlags_NoFocusOnAppearing |
 		ImGuiWindowFlags_NoNav;
 
 	if (ImGui::BeginPopup("AutoCompleteContextMenu", flags)) {
 		if (ImGui::IsWindowAppearing()) {
-	    	ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+			ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
 		}
 
 		// deactivate popup (if requested)
@@ -4697,15 +4702,25 @@ bool TextEditor::Autocomplete::render(Document& document, Cursors& cursors, cons
 
 		} else {
 			// do we have any suggestions
-			if (state.suggestions.size()) {
-				auto items = std::min(state.suggestions.size(), static_cast<size_t>(10));
+			if (suggestions) {
+				auto items = state.suggestions.size();
 
 				// apply arrow keys to selected suggestion
-				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow) && currentSelection > 0) {
-					currentSelection--;
+				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+					if (currentSelection == 0) {
+						currentSelection = items - 1;
+}
+					 else {
+						currentSelection--;
+					}
 
-				} else if (ImGui::IsKeyPressed(ImGuiKey_DownArrow) && currentSelection < items - 1) {
-					currentSelection++;
+				} else if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+					if (currentSelection == items - 1) {
+						currentSelection = 0;
+
+					} else {
+						currentSelection++;
+					}
 
 				// use selected suggestion if user hit tab of return
 				} else if (ImGui::IsKeyPressed(ImGuiKey_Tab) || ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)) {
@@ -4717,12 +4732,19 @@ bool TextEditor::Autocomplete::render(Document& document, Cursors& cursors, cons
 					result = true;
 				}
 
-				// render top suggestions
+				// render suggestions
 				for (size_t i = 0; i < items; i++) {
 					// ensure unique ID
 					ImGui::PushID(static_cast<int>(i));
 
-					if (renderSuggestion(state.suggestions[i].c_str(), state.searchTerm, i == currentSelection)) {
+					// scroll list to selected item (if required)
+					auto selected = i == currentSelection;
+
+					if (selected) {
+						ImGui::SetScrollHereY(1.0f);
+					}
+
+					if (renderSuggestion(state.suggestions[i].c_str(), state.searchTerm, ImGui::GetContentRegionAvail().x, selected)) {
 						// user clicked on a suggestion, use it
 						currentSelection = i;
 						requestDeactivation = true;
@@ -4838,7 +4860,6 @@ void TextEditor::Trie::insert(const std::string_view& word) {
 	while (i < end) {
 		ImWchar codepoint;
 		i = TextEditor::CodePoint::read(i, end, &codepoint);
-		codepoint = TextEditor::CodePoint::toLower(codepoint);
 
 		if (node->children.find(codepoint) == node->children.end()) {
 			node->children[codepoint] = std::make_unique<Node>();
@@ -4855,7 +4876,7 @@ void TextEditor::Trie::insert(const std::string_view& word) {
 //	TextEditor::Trie::findSuggestions
 //
 
-void TextEditor::Trie::findSuggestions(std::vector<std::string>& suggestions, const std::string_view& searchTerm, size_t maxSkippedLetters) {
+void TextEditor::Trie::findSuggestions(std::vector<std::string>& suggestions, const std::string_view& searchTerm, size_t limit, size_t maxSkippedLetters) {
 	// clear result vector
 	maxSkip = maxSkippedLetters;
 	suggestions.clear();
@@ -4870,7 +4891,7 @@ void TextEditor::Trie::findSuggestions(std::vector<std::string>& suggestions, co
 		while (i < end) {
 			ImWchar codepoint;
 			i = TextEditor::CodePoint::read(i, end, &codepoint);
-			searchCodepoints.emplace_back(TextEditor::CodePoint::toLower(codepoint));
+			searchCodepoints.emplace_back(codepoint);
 		}
 
 		// recursively evaluate nodes
@@ -4882,12 +4903,12 @@ void TextEditor::Trie::findSuggestions(std::vector<std::string>& suggestions, co
 			// sort candidates by cost
 			std::sort(candidates.begin(), candidates.end());
 
-			// remove duplicates which are caused by mutiple paths through word based on skips
+			// remove duplicates which are caused by mutiple paths based on skips
 			auto last = std::unique(candidates.begin(), candidates.end());
 			candidates.erase(last, candidates.end());
 
-			// populate suggestions
-			auto size = std::min(static_cast<size_t>(10), candidates.size());
+			// populate suggestions (applying limit)
+			auto size = std::min(static_cast<size_t>(limit), candidates.size());
 
 			for (size_t j = 0; j < size; j++) {
 				suggestions.emplace_back(candidates[j].node->word);
@@ -4902,21 +4923,38 @@ void TextEditor::Trie::findSuggestions(std::vector<std::string>& suggestions, co
 //
 
 void TextEditor::Trie::evaluateNode(const Node* node, size_t index, size_t cost, size_t skip) {
-	// get next codeword
-	ImWchar codepoint = searchCodepoints[index];
+	// see if that is one of our children (check both lower and uppercase matches)
+	ImWchar codepointLower = TextEditor::CodePoint::toLower(searchCodepoints[index]);
+	Node* childLower = nullptr;
 
-	// see if that is one of our children
-	auto child = (node->children.find(codepoint) != node->children.end()) ? node->children.at(codepoint).get() : nullptr;
+	if (node->children.find(codepointLower) != node->children.end()) {
+		// codepoint found, is this the last one in our searchTerm?
+		childLower = node->children.at(codepointLower).get();
 
-	if (child) {
-		// codeword found, is this the last codepoint in our searchTerm?
 		if (index == searchCodepoints.size() - 1) {
 			// yes, add candidate words to results
-			addCandidates(child, cost);
+			addCandidates(childLower, cost);
 
 		} else {
 			// no, try to find the rest
-			evaluateNode(child, index + 1, cost, maxSkip);
+			evaluateNode(childLower, index + 1, cost, maxSkip);
+		}
+	}
+
+	ImWchar codepointUpper = TextEditor::CodePoint::toUpper(searchCodepoints[index]);
+	Node* childUpper = nullptr;
+
+	if (node->children.find(codepointUpper) != node->children.end()) {
+		// codepoint found, is this the last one in our searchTerm?
+		childUpper = node->children.at(codepointUpper).get();
+
+		if (index == searchCodepoints.size() - 1) {
+			// yes, add candidate words to results
+			addCandidates(childUpper, cost);
+
+		} else {
+			// no, try to find the rest
+			evaluateNode(childUpper, index + 1, cost, maxSkip);
 		}
 	}
 
@@ -4925,7 +4963,7 @@ void TextEditor::Trie::evaluateNode(const Node* node, size_t index, size_t cost,
 		for (auto const& [key, value] : node->children) {
 			auto next = value.get();
 
-			if (next != child) {
+			if (next != childLower && next != childUpper) {
 				evaluateNode(next, index, cost + 1, skip - 1);
 			}
 		}
