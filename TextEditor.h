@@ -202,17 +202,42 @@ public:
 	inline void ClearMarkers() { clearMarkers(); }
 	inline bool HasMarkers() const { return markers.size() != 0; }
 
-	// change callback (called when changes are made (including undo/redo))
-	// passed nullptr deactivates the callback
+	// specify a change callback (called when changes are made (including undo/redo))
 	// the delay parameter specifies a time in miliseconds that the editor will wait for before calling
 	// which helps in case you don't need to track every keystroke
+	// passing nullptr deactivates the callback
 	inline void SetChangeCallback(std::function<void()> callback, int delay=0) {
-		changeCallback = callback;
-		changeCallbackDelay = std::chrono::milliseconds{delay};
+		delayedChangeCallback = callback;
+		delayedChangeDelay = std::chrono::milliseconds{delay};
 	}
 
+	// detailed change report passed to callback below
+	// this callback is different from the one above as is reports every change (not just a summary) and is very detailed
+	// the insert flag states whether the change was an insert (true) or a delete (false)
+	// in case of an overwrite, there will be two actions (first a delete and then an insert)
+	// the start parameters refer to the insert point or the start of the delete
+	// the end parameters refer to the end of the inserted text or the end of the deleted text
+	// the text parameter contains the inserted or deleted text
+	// line, column and index values are zero-based
+	struct Change {
+		bool insert;
+		int startLine;
+		int startColumn;
+		int startIndex;
+		int endLine;
+		int endColumn;
+		int endIndex;
+		std::string text;
+	};
+
+	// specify a transaction callback (live document changes in great detail)
+	// it provides a list of changes made to the document in a single transaction (in the right order)
+	// be carefull with this callback as it gets very verbose (called on every keystroke, delete, cut, paste, undo and redo)
+	// passing nullptr deactivates the callback
+	inline void SetTransactionCallback(std::function<void(std::vector<Change>&)> callback) { transactionCallback = callback; }
+
 	// line-based callbacks (line numbers are zero-based)
-	// insertor callback is called when for each line inserted and the result is used as line specific user data
+	// insertor callback is called when for each line inserted and the result is used as the new line specific user data
 	// deletor callback is called for each line deleted (line specific user data is passed to callback)
 	// setting either callback to nullptr will deactivate that callback
 	inline void SetInsertor(std::function<void*(int line)> callback) { document.setInsertor(callback); }
@@ -308,8 +333,8 @@ public:
 
 	inline void SetPalette(const Palette& newPalette) { paletteBase = newPalette; paletteAlpha = -1.0f; }
 	inline const Palette& GetPalette() const { return paletteBase; }
-	inline static void SetDefaultPalette(const Palette& aValue) { defaultPalette = aValue; }
-	inline static Palette& GetDefaultPalette() { return defaultPalette; }
+	static inline void SetDefaultPalette(const Palette& aValue) { defaultPalette = aValue; }
+	static inline Palette& GetDefaultPalette() { return defaultPalette; }
 
 	static const Palette& GetDarkPalette();
 	static const Palette& GetLightPalette();
@@ -460,8 +485,7 @@ public:
 		// optional opaque void* provided by app when autocomplete was setup
 		void* userData;
 
-		// auto complete suggestions te be provided by app callback
-		// only the first 10 are rendered in the order provided (so app is responsible for sorting)
+		// auto complete suggestions te be provided by app callback (the app is responsible for sorting)
 
 		// the editor does not automatically include language specific keywords or identifiers in the suggestion list
 		// this is left to the application so it can be context specific in case a language server is used
@@ -516,11 +540,11 @@ public:
 	// configure and activate autocomplete (passing nullptr deactivates it)
 	inline void SetAutoCompleteConfig(const AutoCompleteConfig* config) { autocomplete.setConfig(config); }
 
-	// option to specify autocomplete suggestions later (in case a callback takes to long and lookup is handled in a separate thread)
+	// provide autocomplete suggestions asynchronously (in case a callback takes to long and lookup is handled in a separate thread/process)
 	// this call is not threadsafe and must be called from the rendering thread (you must synchronize with your lookup thread yourself)
 	inline void SetAutoCompleteSuggestions(const std::vector<std::string>& suggestions) { autocomplete.setSuggestions(suggestions); }
 
-	// utility class to support autocomplete
+	// utility class to support some autocomplete implementations
 	// this is not used by default but can be used in autocomplete callbacks (see example app)
 	class Trie {
 	public:
@@ -946,7 +970,7 @@ protected:
 		void clearDocument();
 	} document;
 
-	// single action to be performed on text as part of a larger transaction
+	// single action to be performed on the document as part of a larger transaction
 	class Action {
 	public:
 		// action types
@@ -1314,10 +1338,11 @@ protected:
 	bool scrolling = false;
 	ImVec2 scrollStart;
 	bool showPanScrollIndicator = true;
-	std::function<void()> changeCallback;
-	std::chrono::milliseconds changeCallbackDelay;
-	std::chrono::system_clock::time_point changeReportTime;
-	bool changeDetected = false;
+	std::function<void()> delayedChangeCallback;
+	std::chrono::milliseconds delayedChangeDelay;
+	std::chrono::system_clock::time_point delayedChangeReportTime;
+	bool delayedChangeDetected = false;
+	std::function<void(std::vector<Change>&)> transactionCallback;
 
 	// color palette support
 	void updatePalette();

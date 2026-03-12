@@ -246,16 +246,16 @@ void TextEditor::render(const char* title, const ImVec2& size, bool border) {
 	}
 
 	// handle change tracking if there is a change callback in place
-	if (changeCallback) {
-		if (changeDetected) {
-			if (std::chrono::system_clock::now() > changeReportTime) {
-				changeCallback();
-				changeDetected = false;
+	if (delayedChangeCallback) {
+		if (delayedChangeDetected) {
+			if (std::chrono::system_clock::now() > delayedChangeReportTime) {
+				delayedChangeCallback();
+				delayedChangeDetected = false;
 			}
 
 		} else if (transactions.getVersion() != transActionVersion) {
-			changeDetected = true;
-			changeReportTime = std::chrono::system_clock::now() + changeCallbackDelay;
+			delayedChangeDetected = true;
+			delayedChangeReportTime = std::chrono::system_clock::now() + delayedChangeDelay;
 		}
 	}
 
@@ -2109,6 +2109,27 @@ bool TextEditor::endTransaction(std::shared_ptr<Transaction> transaction) {
 		cursors.update();
 		transaction->setAfterState(cursors);
 		transactions.add(transaction);
+		std::vector<Change> changes;
+
+		if (transactionCallback) {
+			for (auto& action : *transaction) {
+				auto& change = changes.emplace_back();
+				change.insert = action.type == Action::Type::insertText;
+
+				change.startLine = static_cast<int>(action.start.line);
+				change.startColumn = static_cast<int>(action.start.column);
+				change.startIndex = static_cast<int>(document.getIndex(action.start));
+
+				change.startLine = static_cast<int>(action.end.line);
+				change.startColumn = static_cast<int>(action.end.column);
+				change.startIndex = static_cast<int>(document.getIndex(action.end));
+
+				change.text = action.text;
+			}
+
+			transactionCallback(changes);
+		}
+
 		return true;
 
 	} else {

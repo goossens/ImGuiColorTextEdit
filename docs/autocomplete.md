@@ -98,8 +98,7 @@ public:
 	// opaque void* provided by app when autocomplete was setup
 	void* userData;
 
-	// auto complete suggestions te be provided by app callback
-	// only the first 10 are rendered in the order provided (so app is responsible for sorting)
+	// auto complete suggestions te be provided by app callback (the app is responsible for sorting)
 
 	// the editor does not automatically include language specific keywords or identifiers in the suggestion list
 	// this is left to the application so it can be context specific in case a language server is used
