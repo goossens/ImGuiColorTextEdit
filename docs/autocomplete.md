@@ -64,6 +64,7 @@ public:
 
 	// if it takes too long, applications should do search in separate thread and
 	// use API to report results (see SetAutoCompleteSuggestions)
+	// callback should set suggestionsPromise to true in this case
 	std::function<void(AutoCompleteState&)> callback;
 
 	// optional opaque void* that must be managed externally but passed to callback
@@ -104,6 +105,10 @@ public:
 	// this is left to the application so it can be context specific in case a language server is used
 	// a pointer to the current language definition is provided so callbacks have easy access
 	std::vector<std::string> suggestions;
+
+	// set this to true if you are building the suggestion list asynchronously and provide it later
+	// this way autocomplete is not cancelled if the suggestion list is empty and the user hits tab or enter
+	bool suggestionsPromise = false;
 };
 ```
 

@@ -692,7 +692,13 @@ void TextEditor::handleKeyboardInputs() {
 
 		// ignore specific keys when autocomplete is active, they will be handled later
 		if (autocomplete.isActive() && autocomplete.isSpecialKeyPressed()) {
-			return;
+			if (autocomplete.hasSuggestions()) {
+				return;
+
+			} else {
+				// this is the exception, cancel autocomplete when special keys are used without any suggestions
+				autocomplete.cancel();
+			}
 		}
 
 		// cursor movements and selections
