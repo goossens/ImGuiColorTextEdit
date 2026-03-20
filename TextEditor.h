@@ -935,7 +935,7 @@ protected:
 		inline void resetUpdated() { updated = false; }
 
 		// line-based callbacks
-		inline void setInsertor(std::function<void*(int line )> callback) { insertor = callback; }
+		inline void setInsertor(std::function<void*(int line)> callback) { insertor = callback; }
 		inline void setDeletor(std::function<void(int line, void* data)> callback) { deletor = callback; }
 
 		// access line user data
