@@ -2821,16 +2821,12 @@ void TextEditor::Document::deleteText(Coordinate start, Coordinate end) {
 	// remove marker
 	startLine.marker = 0;
 
-	// mark affected lines for colorization
-	auto last = (start.line == lineCount() - 1) ? start.line : start.line + 1;
-
-	for (auto line = start.line; line <= last; line++) {
-		at(line).colorize = true;
-	}
+	// mark line and document as changed
+	at(start.line).colorize = true;
+	updated = true;
 
 	// update maximum column counts
-	updateMaximumColumn(start.line, end.line);
-	updated = true;
+	updateMaximumColumn(start.line, start.line);
 }
 
 
