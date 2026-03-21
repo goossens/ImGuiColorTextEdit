@@ -148,6 +148,18 @@ public:
 	inline void GetMainCursor(int& line, int& column) const { return getCursor(line, column, cursors.getMainIndex()); }
 	inline void GetCurrentCursor(int& line, int& column) const { return getCursor(line, column, cursors.getCurrentIndex()); }
 
+	// Alternative API for cursor and selection position using lightweight out struct (line and column are zero-based)
+	struct CursorPosition { int line = 0; int column = 0; };
+	struct CursorSelection { CursorPosition start; CursorPosition end; };
+	inline CursorPosition GetMainCursorPosition() const { CursorPosition p; getCursor(p.line, p.column, cursors.getMainIndex()); return p; }
+	inline CursorPosition GetCurrentCursorPosition() const { CursorPosition p; getCursor(p.line, p.column, cursors.getCurrentIndex()); return p; }
+	inline CursorPosition GetCursorPosition(size_t cursor) const { CursorPosition p; getCursor(p.line, p.column, cursor); return p; }
+	inline CursorSelection GetCursorSelection(size_t cursor) const { CursorSelection s; getCursor(s.start.line, s.start.column, s.end.line, s.end.column, cursor); return s; }
+	inline CursorSelection GetMainCursorSelection() const { return GetCursorSelection(cursors.getMainIndex()); }
+
+	// get the word at a screen position (e.g. from ImGui::GetMousePos()) - uses the origin saved during the last Render() call
+	std::string GetWordAtScreenPos(const ImVec2& screenPos) const;
+
 	// scrolling support
 	enum class Scroll {
 		alignTop,
@@ -1281,6 +1293,7 @@ protected:
 	ImFont* font;
 	float fontSize;
 	ImVec2 glyphSize;
+	ImVec2 lastRenderOrigin;
 	float lineNumberLeftOffset;
 	float lineNumberRightOffset;
 	float decorationOffset;

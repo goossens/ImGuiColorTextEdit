@@ -170,6 +170,7 @@ void TextEditor::render(const char* title, const ImVec2& size, bool border) {
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(palette.get(Color::background)));
 	ImGui::BeginChild(title, size, border, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoNavInputs);
+	lastRenderOrigin = ImGui::GetCursorScreenPos();
 
 	// handle keyboard and mouse inputs
 	handleKeyboardInputs();
@@ -1307,6 +1308,30 @@ std::string TextEditor::getCursorText(size_t cursor) const {
 
 
 //
+//	TextEditor::GetWordAtScreenPos
+//
+
+std::string TextEditor::GetWordAtScreenPos(const ImVec2& screenPos) const {
+	// Convert screen position to local coordinates using the origin saved during last Render()
+	auto local = screenPos - lastRenderOrigin;
+
+	// Convert to text coordinates using the same logic as handleMouseInteractions()
+	Coordinate glyphCoordinate;
+	Coordinate cursorCoordinate;
+	document.normalizeCoordinate(
+		local.y / glyphSize.y,
+		(local.x - textOffset) / glyphSize.x,
+		glyphCoordinate,
+		cursorCoordinate);
+
+	// Find word boundaries and extract text
+	auto start = document.findWordStart(glyphCoordinate);
+	auto end = document.findWordEnd(glyphCoordinate);
+	return document.getSectionText(start, end);
+}
+
+
+//
 //	TextEditor::makeCursorVisible
 //
 
@@ -2355,11 +2380,11 @@ TextEditor::Palette TextEditor::defaultPalette = TextEditor::GetDarkPalette();
 //
 
 TextEditor::Coordinate TextEditor::Cursor::adjustCoordinateForInsert(Coordinate coordinate, Coordinate insertStart, Coordinate insertEnd) {
-	coordinate.line += insertEnd.line - insertStart.line;
-
-	if (end.line == coordinate.line) {
+	if (insertStart.line == coordinate.line) {
 		coordinate.column += insertEnd.column - insertStart.column;
 	}
+
+	coordinate.line += insertEnd.line - insertStart.line;
 
 	return coordinate;
 }
@@ -6220,7 +6245,7 @@ bool TextEditor::CodePoint::isWhiteSpace(ImWchar codepoint) {
 
 bool TextEditor::CodePoint::isWord(ImWchar codepoint) {
 	if (codepoint < 0x7f) {
-		return (static_cast<unsigned>((codepoint | 32) - 'a') < 26) || (static_cast<unsigned>(codepoint - '0') < 10);
+		return (static_cast<unsigned>((codepoint | 32) - 'a') < 26) || (static_cast<unsigned>(codepoint - '0') < 10) || codepoint == '_';
 
 #if defined(IMGUI_USE_WCHAR32)
 	} else if (codepoint >= 0x10000) {
