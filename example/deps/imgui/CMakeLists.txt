@@ -4,7 +4,7 @@
 #	This work is licensed under the terms of the MIT license.
 #	For a copy, see <https://opensource.org/licenses/MIT>.
 
-FetchContent_Populate(imgui QUIET GIT_REPOSITORY "https://github.com/ocornut/imgui" GIT_TAG "v1.92.6")
+FetchContent_Populate(imgui QUIET GIT_REPOSITORY "https://github.com/ocornut/imgui" GIT_TAG "v1.92.7")
 
 set(IMGUI_SOURCES
 	${imgui_SOURCE_DIR}/imgui.h
