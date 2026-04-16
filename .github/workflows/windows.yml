@@ -8,7 +8,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Configure
       run: cmake -B build -G "Visual Studio 17 2022" -A x64 -S example
