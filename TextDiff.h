@@ -41,11 +41,11 @@ public:
 	void Render(const char* title, const ImVec2& size=ImVec2(), bool border=false);
 
 	// block/hide certain API calls
-	inline void SetReadOnlyEnabled(bool /* value */) {}
-	inline void SetShowLineNumbersEnabled(bool /* value */) {}
-	inline void SetShowMatchingBrackets(bool /* value */) {}
+	inline void SetReadOnlyEnabled(bool value) {}
+	inline void SetShowLineNumbersEnabled(bool value) {}
+	inline void SetShowMatchingBrackets(bool value) {}
 
-	inline void AddMarker(int /* line */, ImU32 /* lineNumberColor */, ImU32 /* textColor */, const std::string_view& /* lineNumberTooltip */, const std::string_view& /* textTooltip */) {}
+	inline void AddMarker(int line, ImU32 lineNumberColor, ImU32 textColor, const std::string_view& lineNumberTooltip, const std::string_view& textTooltip ) {}
 	inline void ClearMarkers() {}
 
 	inline void SetLineDecorator(float /* width */, std::function<void(Decorator& decorator)> /* callback */) {}
