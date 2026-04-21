@@ -120,6 +120,13 @@ If you also want to use the TextDiff widget, you must:
 
 For a complete example, please see the [example folder](example/).
 
+**Note**: Like ImGui, it is recommended that you compile and link TextEditor and TextDiff
+as a static library or directly as part of your sources (as suggested above).
+However, if you must and are compiling TextEditor and/or TextDiff as separate DLLs, make sure
+you set the current ImGui context with TextEditor::SetImGuiContext(ImGuiContext* ctx).
+This ensures that global ImGui variables are correctly shared across the DLL boundary.
+See GImGui documentation in imgui.cpp for more details.
+
 ## Default Keyboard and Mouse Mappings
 
 - In the mappings listed below, the following modifier keys are used:

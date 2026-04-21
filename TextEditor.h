@@ -31,7 +31,7 @@
 //	TextEditor
 //
 
-class TextEditor {
+class IMGUI_API TextEditor {
 public:
 	// constructor
 	TextEditor();
@@ -706,6 +706,13 @@ public:
 			return isBracketOpener(open) && close == toPairCloser(open);
 		}
 	};
+
+	// set the current ImGui context
+	//
+	// this is ONLY necessary if you are compiling this widget as a DLL (which is NOT recommended)
+	// it sets the global variable GImGui, which is not shared across DLL boundaries
+	// see GImGui documentation in imgui.cpp for more details
+	static inline void SetImGuiContext(ImGuiContext* ctx) { ImGui::SetCurrentContext(ctx); }
 
 protected:
 	//
