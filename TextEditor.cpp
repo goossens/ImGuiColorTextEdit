@@ -698,6 +698,10 @@ void TextEditor::renderMiniMap() {
 		auto drawList = ImGui::GetWindowDrawList();
 		auto pos = ImGui::GetWindowPos() + ImVec2(miniMapOffset, 0.0f);
 
+		// map a reference column count onto the minimap width (wrapped text width when word wrap is on, otherwise a configurable column count)
+		auto referenceColumns = config.wordWrap ? config.wordWrapColumns : config.miniMapColumns;
+		auto miniMapTextWidth = referenceColumns > 0 ? config.miniMapWidth / static_cast<float>(referenceColumns) : 0.0f;
+
 		for (size_t i = firstMiniMapRow; i < lastMiniMapRow; i++) {
 			auto& row = miniMap.rows[i];
 

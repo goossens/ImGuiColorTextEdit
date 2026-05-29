@@ -118,6 +118,8 @@ public:
 	inline bool IsShowMiniMapEnabled() const { return config.showMiniMap; }
 	inline void SetMiniMapWidth(float value) { config.miniMapWidth = value; }
 	inline float GetMiniMapWidth() const { return config.miniMapWidth; }
+	inline void SetMiniMapColumns(size_t value) { config.miniMapColumns = value; }
+	inline size_t GetMiniMapColumns() const { return config.miniMapColumns; }
 	inline void SetShowScrollbarMiniMapEnabled(bool value) { config.showScrollbarMiniMap = value; }
 	inline bool IsShowScrollbarMiniMapEnabled() const { return config.showScrollbarMiniMap; }
 	inline void SetShowPanScrollIndicatorEnabled(bool value) { config.showPanScrollIndicator = value; }
@@ -820,7 +822,8 @@ protected:
 		bool showTabs = true;
 		bool showLineNumbers = true;
 		bool showMiniMap = false;
-		float miniMapWidth = 120.0f;
+		float miniMapWidth = 120.0f;   // minimap panel width, in pixels
+		size_t miniMapColumns = 120;   // column count that fills the minimap width (when wordWrap is off; otherwise the wrap width is used, i.e. wordWrapColumns)
 		bool showScrollbarMiniMap = true;
 		bool showMatchingBrackets = true;
 		bool completePairedGlyphs = true;
@@ -1605,7 +1608,6 @@ protected:
 
 	static constexpr float miniMapRowHeight = 3.0f; // sizes are expressed in logical pixels
 	static constexpr float miniMapTextHeight = 2.0f;
-	static constexpr float miniMapTextWidth = 1.0f;
 	static constexpr float miniMapAlpha = 0.45f;
 	static constexpr float miniMapViewPortAlpha = 0.15f;
 	static constexpr float miniMapViewPortActiveAlpha = 0.3f;
