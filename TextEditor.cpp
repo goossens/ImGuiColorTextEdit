@@ -639,6 +639,9 @@ void TextEditor::renderFoldIndicators() {
 
 void TextEditor::renderMiniMap() {
 	if (config.showMiniMap) {
+		auto miniMapRowHeight = getMiniMapRowHeight();
+		auto miniMapTextHeight = getMiniMapTextHeight();
+
 		// reset background colors
 		for (auto& row : miniMap.rows) {
 			row.color = 0;
@@ -1361,7 +1364,7 @@ void TextEditor::handleMouseInteractions() {
 
 				} else if (overMiniMap) {
 					if (ImGui::GetCurrentWindow()->ScrollbarY) {
-						auto clickedRow = firstMiniMapRow + static_cast<size_t>(absoluteMousePos.y / miniMapRowHeight);
+						auto clickedRow = firstMiniMapRow + static_cast<size_t>(absoluteMousePos.y / getMiniMapRowHeight());
 
 						if (clickedRow < firstVisibleRow || clickedRow > lastVisibleRow) {
 							scrollToLine(visPos2DocPos(VisPos(clickedRow, 0)).line, Scroll::alignMiddle);

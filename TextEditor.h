@@ -1606,8 +1606,11 @@ protected:
 	static constexpr size_t textMargin = 2;
 	static constexpr size_t cursorWidth = 1;
 
-	static constexpr float miniMapRowHeight = 3.0f; // sizes are expressed in logical pixels
-	static constexpr float miniMapTextHeight = 2.0f;
+	// minimap sizes (heights) are expressed in (integer) physical pixels: text and row heights are derived by multiplying by 2 and 3 respectively
+	static constexpr int miniMapBaseHeightInPhysicalPixels = 1;
+	static float miniMapPhysicalPixel() { float s = ImGui::GetIO().DisplayFramebufferScale.y; return s > 0.0f ? 1.0f / s : 1.0f; } // for example, a physical pixel corresponds to 0.5 logical pixels on macOS / retina screen
+	static float getMiniMapRowHeight() { return miniMapBaseHeightInPhysicalPixels * 3 * miniMapPhysicalPixel(); }
+	static float getMiniMapTextHeight() { return miniMapBaseHeightInPhysicalPixels * 2 * miniMapPhysicalPixel(); }
 	static constexpr float miniMapAlpha = 0.45f;
 	static constexpr float miniMapViewPortAlpha = 0.15f;
 	static constexpr float miniMapViewPortActiveAlpha = 0.3f;
