@@ -414,9 +414,9 @@ void Editor::renderMenuBar() {
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::BeginMenu("MiniMap Width")) {
-				float width = editor.GetMiniMapWidth();
-				if (ImGui::SliderFloat("##miniMapWidth", &width, 50.0f, 200.0f)) { editor.SetMiniMapWidth(width); }
+			if (ImGui::BeginMenu("MiniMap Columns")) {
+				int width = static_cast<int>(editor.GetMiniMapColumns());
+				if (ImGui::SliderInt("##miniMapColumns", &width, 0, 200)) { editor.SetMiniMapColumns(static_cast<size_t>(width)); }
 				ImGui::EndMenu();
 			}
 
@@ -863,10 +863,14 @@ void Editor::renderDebugInformation() {
 			information = getBackendDebugInformation();
 		}
 
-		auto io = ImGui::GetIO();
-		information += "\n";
+		auto& io = ImGui::GetIO();
+		auto& style = ImGui::GetStyle();
+		information += "Dear ImGui:\n";
 		information += std::format("io.DisplaySize: {}, {}\n", io.DisplaySize.x, io.DisplaySize.y);
 		information += std::format("io.DisplayFramebufferScale: {}, {}\n", io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+		information += std::format("style.FontSizeBase: {}\n", style.FontSizeBase);
+		information += std::format("style.FontScaleMain: {}\n", style.FontScaleMain);
+		information += std::format("style.FontScaleDpi: {}\n", style.FontScaleDpi);
 		information += std::format("GetLineHeight: {}\n", editor.GetLineHeight());
 		information += std::format("GetGlyphWidth: {}", editor.GetGlyphWidth());
 

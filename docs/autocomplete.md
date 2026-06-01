@@ -57,6 +57,9 @@ public:
 	// text label used when no suggestions are available (this allows for internationalization)
 	std::string noSuggestionsLabel = "No suggestions";
 
+	// width of suggestion popup expressed in number of glyphs
+	size_t suggestionWidth = 30;
+
 	// called when autocomplete is configured, active and the editor needs an updated suggestions list
 	// callback must populate and order suggestions in state object
 	// suggestion list is not cleared by editor between callbacks

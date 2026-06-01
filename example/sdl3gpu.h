@@ -76,18 +76,18 @@ int example() {
 	io.IniFilename = nullptr;
 	ImGui::StyleColorsDark();
 
-    // Setup scaling
+    // setup scaling
     ImGuiStyle& style = ImGui::GetStyle();
     style.ScaleAllSizes(mainScale);
     style.FontScaleDpi = mainScale;
 
 	// setup platform/renderer backend
 	ImGui_ImplSDL3_InitForSDLGPU(window);
-	ImGui_ImplSDLGPU3_InitInfo init_info = {};
-	init_info.Device = gpu_device;
-	init_info.ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(gpu_device, window);
-	init_info.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
-	ImGui_ImplSDLGPU3_Init(&init_info);
+	ImGui_ImplSDLGPU3_InitInfo initInfo = {};
+	initInfo.Device = gpu_device;
+	initInfo.ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(gpu_device, window);
+	initInfo.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
+	ImGui_ImplSDLGPU3_Init(&initInfo);
 
 	// setup our font
 	ImFontConfig config;
