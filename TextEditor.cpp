@@ -4640,7 +4640,7 @@ void TextEditor::renderFindReplace() {
 		// calculate sizes
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 4.0f));
 		auto& style = ImGui::GetStyle();
-		auto fieldWidth = 250.0f;
+		auto fieldWidth = 250.0f * ImGui::GetStyle().FontScaleDpi;
 
 		auto button1Width = ImGui::CalcTextSize(findButtonLabel.c_str()).x + style.ItemSpacing.x * 2.0f;
 		auto button2Width = ImGui::CalcTextSize(findAllButtonLabel.c_str()).x + style.ItemSpacing.x * 2.0f;

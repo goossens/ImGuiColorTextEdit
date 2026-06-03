@@ -235,7 +235,7 @@ public:
 	//
 	// this works while opening the editor as well as later
 
-	// get glyph size information
+	// get glyph size in pixels
 	inline float GetLineHeight() const { return glyphSize.y; }
 	inline float GetGlyphWidth() const { return glyphSize.x; }
 
