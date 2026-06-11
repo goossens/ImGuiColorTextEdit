@@ -19,6 +19,14 @@
 
 
 //
+//	LspBridge::LspBridge
+//
+
+LspBridge::LspBridge() {
+}
+
+
+//
 //	LspBridge::~LspBridge
 //
 

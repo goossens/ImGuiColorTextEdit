@@ -35,6 +35,9 @@
 
 class TrieAutoComplete {
 public:
+	// constructor
+	TrieAutoComplete();
+
 	// manage connection to text editor
 	void Connect(TextEditor* editor);
 	void Disconnect();

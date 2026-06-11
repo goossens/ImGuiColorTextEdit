@@ -33,7 +33,8 @@
 
 class LspBridge {
 public:
-	// destructor
+	// constructor/destructor
+	LspBridge();
 	~LspBridge();
 
 	// start/stop the server

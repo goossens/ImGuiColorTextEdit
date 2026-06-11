@@ -13,6 +13,14 @@
 
 
 //
+//	TrieAutoComplete::TrieAutoComplete
+//
+
+TrieAutoComplete::TrieAutoComplete() {
+}
+
+
+//
 //	TrieAutoComplete::Connect
 //
 

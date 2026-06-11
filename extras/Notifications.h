@@ -44,6 +44,9 @@ public:
 		info
 	};
 
+	// constructor
+	Notifications() {}
+
 	// add a new notification
 	inline void Add(Type type, const std::string& message, int dismissTime=4000) {
 		notifications.emplace_back(type, message, dismissTime);
