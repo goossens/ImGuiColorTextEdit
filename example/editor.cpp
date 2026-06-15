@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <exception>
 #include <filesystem>
+#include <format>
 #include <fstream>
 
 #ifdef _WIN32

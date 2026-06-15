@@ -15,6 +15,7 @@
 #define WIN32_LEAN_AND_MEAN
 #undef APIENTRY
 
+#include <format>
 #include <string>
 
 #include <d3d11.h>
