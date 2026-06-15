@@ -4094,6 +4094,13 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(const Config& config, Li
 			if (CodePoint::isWhiteSpace(glyph->codepoint)) {
 				(glyph++)->color = Color::whitespace;
 
+			// are we starting a multiline comment
+			} else if (language->commentStart.size() && matches(glyph, line.end(), language->commentStart)) {
+				state = LineState::inComment;
+				auto size = language->commentEnd.size();
+				setColor(glyph, glyph + size, Color::comment);
+				glyph += size;
+
 			// handle single line comments
 			} else if (language->singleLineComment.size() && matches(glyph, line.end(), language->singleLineComment)) {
 				setColor(glyph, line.end(), Color::comment);
@@ -4102,13 +4109,6 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(const Config& config, Li
 			} else if (language->singleLineCommentAlt.size() && matches(glyph, line.end(), language->singleLineCommentAlt)) {
 				setColor(glyph, line.end(), Color::comment);
 				glyph = line.end();
-
-			// are we starting a multiline comment
-			} else if (language->commentStart.size() && matches(glyph, line.end(), language->commentStart)) {
-				state = LineState::inComment;
-				auto size = language->commentEnd.size();
-				setColor(glyph, glyph + size, Color::comment);
-				glyph += size;
 
 			// are we starting a special string
 			} else if (language->otherStringStart.size() && matches(glyph, line.end(), language->otherStringStart)) {
@@ -11690,9 +11690,10 @@ static TextEditor::Iterator getLuaStyleNumber(TextEditor::Iterator start, TextEd
 
 {
 	ImWchar yych;
+	unsigned int yyaccept = 0;
 	yych = i < end ? *i : 0;
 	switch (yych) {
-		case '.': goto yy3;
+		case '.': goto yy4;
 		case '0': goto yy5;
 		case '1':
 		case '2':
@@ -11703,8 +11704,6 @@ static TextEditor::Iterator getLuaStyleNumber(TextEditor::Iterator start, TextEd
 		case '7':
 		case '8':
 		case '9': goto yy6;
-		case 'E':
-		case 'e': goto yy8;
 		default:
 			if (i >= end) goto yy1;
 			goto yy2;
@@ -11713,8 +11712,9 @@ yy1:
 	{ return i; }
 yy2:
 	++i;
-	{ return start; }
 yy3:
+	{ return start; }
+yy4:
 	++i;
 	yych = i < end ? *i : 0;
 	switch (yych) {
@@ -11727,21 +11727,18 @@ yy3:
 		case '6':
 		case '7':
 		case '8':
-		case '9': goto yy3;
-		case 'E':
-		case 'e': goto yy8;
-		default: goto yy4;
+		case '9': goto yy8;
+		default: goto yy3;
 	}
-yy4:
-	{ return i; }
 yy5:
+	yyaccept = 0;
 	++i;
 	marker = i;
 	yych = i < end ? *i : 0;
 	switch (yych) {
 		case 0x00: goto yy1;
 		case 'X':
-		case 'x': goto yy9;
+		case 'x': goto yy10;
 		default: goto yy7;
 	}
 yy6:
@@ -11749,7 +11746,7 @@ yy6:
 	yych = i < end ? *i : 0;
 yy7:
 	switch (yych) {
-		case '.': goto yy3;
+		case '.': goto yy8;
 		case '0':
 		case '1':
 		case '2':
@@ -11760,20 +11757,31 @@ yy7:
 		case '7':
 		case '8':
 		case '9': goto yy6;
-		case 'E':
-		case 'e': goto yy8;
 		default: goto yy1;
 	}
 yy8:
+	yyaccept = 1;
 	++i;
+	marker = i;
 	yych = i < end ? *i : 0;
 	switch (yych) {
-		case 0x00: goto yy4;
-		case '+':
-		case '-': goto yy11;
-		default: goto yy12;
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9': goto yy8;
+		case 'E':
+		case 'e': goto yy12;
+		default: goto yy9;
 	}
 yy9:
+	{ return i; }
+yy10:
 	++i;
 	yych = i < end ? *i : 0;
 	switch (yych) {
@@ -11799,16 +11807,18 @@ yy9:
 		case 'd':
 		case 'e':
 		case 'f': goto yy13;
-		default: goto yy10;
+		default: goto yy11;
 	}
-yy10:
-	i = marker;
-	goto yy1;
 yy11:
+	i = marker;
+	if (yyaccept == 0) goto yy1;
+	else goto yy9;
+yy12:
 	++i;
 	yych = i < end ? *i : 0;
-yy12:
 	switch (yych) {
+		case '+':
+		case '-': goto yy15;
 		case '0':
 		case '1':
 		case '2':
@@ -11818,14 +11828,14 @@ yy12:
 		case '6':
 		case '7':
 		case '8':
-		case '9': goto yy11;
-		default: goto yy4;
+		case '9': goto yy16;
+		default: goto yy11;
 	}
 yy13:
 	++i;
 	yych = i < end ? *i : 0;
 	switch (yych) {
-		case '.': goto yy15;
+		case '.': goto yy17;
 		case '0':
 		case '1':
 		case '2':
@@ -11849,7 +11859,7 @@ yy13:
 		case 'e':
 		case 'f': goto yy13;
 		case 'P':
-		case 'p': goto yy16;
+		case 'p': goto yy18;
 		default: goto yy14;
 	}
 yy14:
@@ -11867,36 +11877,28 @@ yy15:
 		case '6':
 		case '7':
 		case '8':
-		case '9':
-		case 'A':
-		case 'B':
-		case 'C':
-		case 'D':
-		case 'E':
-		case 'F':
-		case 'a':
-		case 'b':
-		case 'c':
-		case 'd':
-		case 'e':
-		case 'f': goto yy15;
-		case 'P':
-		case 'p': goto yy16;
-		default: goto yy14;
+		case '9': goto yy16;
+		default: goto yy11;
 	}
 yy16:
 	++i;
 	yych = i < end ? *i : 0;
 	switch (yych) {
-		case 0x00: goto yy14;
-		case '+':
-		case '-': goto yy17;
-		default: goto yy18;
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9': goto yy16;
+		default: goto yy9;
 	}
 yy17:
 	++i;
 	yych = i < end ? *i : 0;
-yy18:
 	switch (yych) {
 		case '0':
 		case '1':
@@ -11920,6 +11922,46 @@ yy18:
 		case 'd':
 		case 'e':
 		case 'f': goto yy17;
+		case 'P':
+		case 'p': goto yy18;
+		default: goto yy14;
+	}
+yy18:
+	++i;
+	yych = i < end ? *i : 0;
+	switch (yych) {
+		case 0x00: goto yy14;
+		case '+':
+		case '-': goto yy19;
+		default: goto yy20;
+	}
+yy19:
+	++i;
+	yych = i < end ? *i : 0;
+yy20:
+	switch (yych) {
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+		case 'A':
+		case 'B':
+		case 'C':
+		case 'D':
+		case 'E':
+		case 'F':
+		case 'a':
+		case 'b':
+		case 'c':
+		case 'd':
+		case 'e':
+		case 'f': goto yy19;
 		default: goto yy14;
 	}
 }
