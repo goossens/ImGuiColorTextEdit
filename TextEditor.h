@@ -504,6 +504,13 @@ public:
 		std::string commentStart;
 		std::string commentEnd;
 
+		// functions to help tokenize multilevel, multiline comments (can be nullptr if language doesn't have this feature)
+		// start and end refer to the characters being tokenized
+		// functions should return an iterator to the character after the detected token and set level
+		// returning start means no token was found
+		std::function<Iterator(Iterator start, Iterator end, size_t& level)> commentLevelStart;
+		std::function<Iterator(Iterator start, Iterator end, size_t& level)> commentLevelEnd;
+
 		// flags specifying whether language supports single quoted ['] and/or double quoted [""] strings
 		bool hasSingleQuotedStrings = false;
 		bool hasDoubleQuotedStrings = false;
@@ -518,6 +525,13 @@ public:
 
 		// character inside string used to escape the next character (can be 0 if language doesn't have this feature)
 		ImWchar stringEscape = 0;
+
+		// functions to help tokenize multilevel, multiline strings (can be nullptr if language doesn't have this feature)
+		// start and end refer to the characters being tokenized
+		// functions should return an iterator to the character after the detected token and set level
+		// returning start means no token was found
+		std::function<Iterator(Iterator start, Iterator end, size_t& level)> stringLevelStart;
+		std::function<Iterator(Iterator start, Iterator end, size_t& level)> stringLevelEnd;
 
 		// does the language use indentation for blocks (e.g Python)
 		bool indentationForBlocks = false;
@@ -538,7 +552,7 @@ public:
 		std::function<Iterator(Iterator start, Iterator end)> getIdentifier;
 		std::function<Iterator(Iterator start, Iterator end)> getNumber;
 
-		// function to implement custom tokenizer
+		// function to implement custom tokenizer (can be nullptr if language doesn't have this feature)
 		// if a token is found, function should return an iterator to the character after the token and set the color
 		std::function<Iterator(Iterator start, Iterator end, Color& color)> customTokenizer;
 
@@ -803,7 +817,7 @@ protected:
 	//
 	// below is the private API
 	// private members (functions and variables) start with a lowercase character
-	// private class names start with a lowercase character
+	// private type names start with a uppercase character
 	//
 
 	// everybody needs a friend
@@ -843,11 +857,34 @@ protected:
 	enum class LineState : char {
 		inText,
 		inComment,
+		inCommentLevel1,
+		inCommentLevel2,
+		inCommentLevel3,
+		inCommentLevel4,
+		inCommentLevel5,
+		inCommentLevel6,
+		inCommentLevel7,
 		inSingleQuotedString,
 		inDoubleQuotedString,
 		inOtherString,
-		inOtherStringAlt
+		inOtherStringAlt,
+		inStringLevel0,
+		inStringLevel1,
+		inStringLevel2,
+		inStringLevel3,
+		inStringLevel4,
+		inStringLevel5,
+		inStringLevel6,
+		inStringLevel7
 	};
+
+	static inline bool lineStateInComment(LineState state) { return state >= LineState::inComment && state <= LineState::inCommentLevel7; }
+	static inline bool lineStateInString(LineState state) { return state >= LineState::inSingleQuotedString && state <= LineState::inStringLevel7; }
+	static inline bool lineStateInStringLevel(LineState state) { return state >= LineState::inStringLevel0 && state <= LineState::inStringLevel7; }
+	static inline LineState commentLevelToLineState(size_t level) { return static_cast<LineState>(static_cast<int>(LineState::inComment) + level); }
+	static inline LineState stringLevelToLineState(size_t level) { return static_cast<LineState>(static_cast<int>(LineState::inStringLevel0) + level); }
+	static constexpr size_t maxCommentLevel = static_cast<int>(LineState::inCommentLevel7) - static_cast<int>(LineState::inComment);
+	static constexpr size_t maxStringLevel = static_cast<int>(LineState::inStringLevel7) - static_cast<int>(LineState::inStringLevel0);
 
 	// line folding state
 	enum class FoldingState : char {
