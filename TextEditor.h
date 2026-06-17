@@ -1220,7 +1220,7 @@ protected:
 
 	private:
 		// update color in a single line
-		static LineState updateLine(const Config& config, Line& line);
+		LineState updateLine(Line& line);
 
 		// see if string matches part of line
 		static bool matches(Line::iterator start, Line::iterator end, const std::string_view& text);

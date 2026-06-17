@@ -4048,7 +4048,7 @@ void TextEditor::Transactions::redo(Config& config, Document& document, Cursors&
 //
 
 bool TextEditor::Colorizer::matches(Line::iterator start, Line::iterator end, const std::string_view& text) {
-	// see if text at iterators matches provided UTF-8 string
+	// see if text between iterators matches provided UTF-8 string
 	auto i = text.begin();
 
 	while (i < text.end()) {
@@ -4072,30 +4072,29 @@ bool TextEditor::Colorizer::matches(Line::iterator start, Line::iterator end, co
 //	TextEditor::Colorizer::updateLine
 //
 
-TextEditor::LineState TextEditor::Colorizer::updateLine(const Config& config, Line& line) {
-	auto language = config.language;
+TextEditor::LineState TextEditor::Colorizer::updateLine(Line& line) {
+	// initialize local variables
 	auto state = line.state;
-
-	// process all glyphs on this line
 	auto nonWhiteSpace = false;
 	auto glyph = line.begin();
 	auto end = line.end();
+	Iterator lineEnd(line.data() + line.size());
 
+	// process all glyphs on this line
 	while (glyph < end) {
+		// start parsing glyphs
+		auto start = glyph;
+		Iterator tokenStart(&*glyph);
+
 		if (state == LineState::inText) {
 			// special handling for preprocessor lines
 			if (!nonWhiteSpace && language->preprocess && glyph->codepoint != language->preprocess && !CodePoint::isWhiteSpace(glyph->codepoint)) {
 				nonWhiteSpace = true;
 			}
 
-			// start parsing glyphs
-			auto start = glyph;
-
 			// are we starting a multilevel, multiline comment
 			if (language->commentLevelStart) {
 				size_t level;
-				Iterator tokenStart(&*glyph);
-				Iterator lineEnd(line.data() + line.size());
 				Iterator tokenEnd = language->commentLevelStart(tokenStart, lineEnd, level);
 
 				if (tokenEnd != tokenStart) {
@@ -4110,8 +4109,6 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(const Config& config, Li
 			// are we starting a multilevel, multiline string
 			if (glyph == start && language->stringLevelStart) {
 				size_t level;
-				Iterator tokenStart(&*glyph);
-				Iterator lineEnd(line.data() + line.size());
 				Iterator tokenEnd = language->stringLevelStart(tokenStart, lineEnd, level);
 
 				if (tokenEnd != tokenStart) {
@@ -4171,32 +4168,23 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(const Config& config, Li
 				} else if (language->preprocess && !nonWhiteSpace && glyph->codepoint == language->preprocess) {
 					setColor(line.begin(), end, Color::preprocessor);
 					glyph = end;
-
-				// handle custom tokenizer (if we have one)
-				} else if (language->customTokenizer) {
-					Color color;
-					Iterator tokenStart(&*glyph);
-					Iterator lineEnd(line.data() + line.size());
-					Iterator tokenEnd = language->customTokenizer(tokenStart, lineEnd, color);
-
-					if (tokenEnd != tokenStart) {
-						auto size = tokenEnd - tokenStart;
-						setColor(glyph, glyph + size, color);
-						glyph += size;
-					}
 				}
 			}
 
 			if (glyph == start) {
 				// nothing worked so far so it's time to do some tokenizing
 				Color color;
-				Iterator lineEnd(line.data() + line.size());
-				Iterator tokenStart(&*glyph);
 				Iterator tokenEnd;
 
+				// handle custom tokenizer (if we have one)
+				if (language->customTokenizer&& (tokenEnd = language->customTokenizer(tokenStart, lineEnd, color)) != tokenStart) {
+					auto size = tokenEnd - tokenStart;
+					setColor(glyph, glyph + size, color);
+					glyph += size;
+
 				// do we have an identifier
-				if (language->getIdentifier && (tokenEnd = language->getIdentifier(tokenStart, lineEnd)) != tokenStart) {
-					// determine identifier text and color color
+				} else if (language->getIdentifier && (tokenEnd = language->getIdentifier(tokenStart, lineEnd)) != tokenStart) {
+					// determine identifier text and color
 					auto size = tokenEnd - tokenStart;
 					std::string identifier;
 					color = Color::identifier;
@@ -4253,8 +4241,6 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(const Config& config, Li
 
 			} else if (language->commentLevelEnd) {
 				size_t level;
-				Iterator tokenStart(&*glyph);
-				Iterator lineEnd(line.data() + line.size());
 				Iterator tokenEnd = language->commentLevelEnd(tokenStart, lineEnd, level);
 
 				if (tokenEnd != tokenStart) {
@@ -4276,7 +4262,6 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(const Config& config, Li
 		} else if (lineStateInStringLevel(state)) {
 			// stay in string level until matching closing is detected
 			size_t level;
-			Iterator tokenStart(&*glyph);
 			Iterator lineEnd(line.data() + line.size());
 			Iterator tokenEnd = language->stringLevelEnd(tokenStart, lineEnd, level);
 
@@ -4392,7 +4377,7 @@ bool TextEditor::Colorizer::update(const Config& config, Document& document) {
 
 		if (language) {
 			for (auto line = document.begin(); line < document.end(); line++) {
-				auto state = updateLine(config, *line);
+				auto state = updateLine(*line);
 				line->needsColorizing = false;
 				auto next = line + 1;
 
@@ -4417,7 +4402,7 @@ bool TextEditor::Colorizer::update(const Config& config, Document& document) {
 		for (auto line = document.begin(); line < document.end(); line++) {
 			if (line->needsColorizing) {
 				if (language) {
-					auto state = updateLine(config, *line);
+					auto state = updateLine(*line);
 					line->needsColorizing = false;
 					auto next = line + 1;
 
