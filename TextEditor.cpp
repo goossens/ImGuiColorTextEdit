@@ -142,9 +142,9 @@ void TextEditor::render(const char* title, const ImVec2& size, bool border) {
 		handleMouseInteractions();
 
 		// determine visible row/column limits
-		firstVisibleRow = std::max(static_cast<size_t>(std::floor(ImGui::GetScrollY() / glyphSize.y)), static_cast<size_t>(0));
+		firstVisibleRow = static_cast<size_t>(std::floor(ImGui::GetScrollY() / glyphSize.y));
 		lastVisibleRow = std::min(static_cast<size_t>(std::ceil((ImGui::GetScrollY() + textSize.y) / glyphSize.y)), typeSetter.getRowCount() - 1);
-		firstVisibleColumn = std::max(static_cast<size_t>(std::floor(ImGui::GetScrollX() / glyphSize.x)), static_cast<size_t>(0));
+		firstVisibleColumn = static_cast<size_t>(std::floor(ImGui::GetScrollX() / glyphSize.x));
 		lastVisibleColumn = static_cast<size_t>(std::ceil((ImGui::GetScrollX() + textSize.x) / glyphSize.x));
 
 		// update color palette (if required)
@@ -938,7 +938,10 @@ void TextEditor::updateState() {
 
 	if (typeSetter.update(config, document, lineFold)) {
 		// see if we can scroll to preserve the first visible line
-		scrollToLine(previousFirstLine, Scroll::alignTop);
+		// but we don't overrule an API scroll request
+		if (scrollToLineNumber == invalidLine) {
+			scrollToLine(previousFirstLine, Scroll::alignTop);
+		}
 	}
 
 	miniMap.update(config, document, typeSetter);
@@ -1777,6 +1780,12 @@ void TextEditor::handlePossibleScrolling() {
 
 	// do we need to make a certain position visible
 	if (ensureVisiblePos.line != invalidLine) {
+		if (lastVisibleRow == 0 && lastVisibleColumn == 0) {
+			// this is a hack to handle a chicken and egg issue when the user called SetCursor before the first frame
+			lastVisibleRow = std::min(static_cast<size_t>(std::ceil(textSize.y / glyphSize.y)), typeSetter.getRowCount() - 1);
+			lastVisibleColumn = static_cast<size_t>(std::ceil(textSize.x / glyphSize.x));
+		}
+
 		auto pos = docPos2VisPos(ensureVisiblePos);
 
 		if (pos.row <= firstVisibleRow + 1) {
@@ -1799,7 +1808,7 @@ void TextEditor::handlePossibleScrolling() {
 	// scroll to specified line (if required)
 	if (scrollToLineNumber != invalidLine) {
 		auto row = static_cast<float>(docPos2VisPos(DocPos(scrollToLineNumber, 0)).row);
-		auto visibleRows = static_cast<float>(lastVisibleRow - firstVisibleRow);
+		auto visibleRows = textSize.y / glyphSize.y;
 		scrollX = 0.0f;
 
 		switch (scrollToAlignment) {

@@ -215,7 +215,7 @@ public:
 	inline size_t GetFirstVisibleColumn() const { return firstVisibleColumn; }
 	inline size_t GetLastVisibleColumn() const { return lastVisibleColumn; }
 
-	// specify a new cursor position
+	// specify a new cursor position and scroll to it (if required)
 	// if the new position is currently in a folded region, it will be automatically unfolded
 	inline void SetCursor(DocPos pos) { setCursor(pos); }
 
