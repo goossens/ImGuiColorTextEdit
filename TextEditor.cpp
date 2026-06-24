@@ -4271,7 +4271,6 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(Line& line) {
 		} else if (lineStateInStringLevel(state)) {
 			// stay in string level until matching closing is detected
 			size_t level;
-			Iterator lineEnd(line.data() + line.size());
 			Iterator tokenEnd = language->stringLevelEnd(tokenStart, lineEnd, level);
 
 			if (tokenEnd != tokenStart) {
