@@ -46,7 +46,7 @@ editor.SetDeletor([]([[maybe_unused]] int line, void* userData) {
 	delete data;
 });
 
-editor.SetLineDecorator(40.0f, [](TextEditor::Decorator& decorator) {
+editor.SetLineDecorator(40.0f, [](const TextEditor::Decorator& decorator) {
 	auto data = static_cast<UserData*>(decorator.userData);
 
 	if (data.somethingImportant) {
@@ -85,7 +85,7 @@ editor.SetDeletor([]([[maybe_unused]] int line, void* userData) {
 	}
 });
 
-editor.SetLineDecorator(40.0f, [](TextEditor::Decorator& decorator) {
+editor.SetLineDecorator(40.0f, [](const TextEditor::Decorator& decorator) {
 	if (decorator.userData) {
 		auto data = static_cast<UserData*>(decorator.userData);
 		// render breakpoint based on user data

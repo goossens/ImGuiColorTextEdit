@@ -60,7 +60,7 @@ public:
 		}
 
 		// remove expired notifications
-		notifications.erase(std::remove_if(notifications.begin(), notifications.end(), [](Notification& candidate) {
+		notifications.erase(std::remove_if(notifications.begin(), notifications.end(), [](const Notification& candidate) {
 			return candidate.phase == Notification::Phase::expired;
 		}), notifications.end());
 

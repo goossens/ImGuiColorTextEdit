@@ -9,7 +9,7 @@ When the line decorator is called, the ImGui position is already set (so you can
 If you don't want to express the decorator width in pixels, you can pass a negative number which is interpreted as the width of a specified number of glyphs.
 
 ```c++
-editor.SetLineDecorator(41.0f, [](TextEditor::Decorator& decorator) {
+editor.SetLineDecorator(41.0f, [](const TextEditor::Decorator& decorator) {
 	if (decorator.line == 10 || decorator.line == 15|| decorator.line == 16) {
 		auto size = decorator.height - 1.0f;
 

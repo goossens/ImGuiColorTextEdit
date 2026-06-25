@@ -445,7 +445,6 @@ void Editor::renderMenuBar() {
 			flag = editor.IsShowScrollbarMiniMapEnabled(); if (ImGui::MenuItem("Show Scrollbar Mini Map", nullptr, &flag)) { editor.SetShowScrollbarMiniMapEnabled(flag); };
 			flag = editor.IsShowPanScrollIndicatorEnabled(); if (ImGui::MenuItem("Show Pan/Scroll Indicator", nullptr, &flag)) { editor.SetShowPanScrollIndicatorEnabled(flag); };
 			flag = editor.IsMiddleMousePanMode(); if (ImGui::MenuItem("Middle Mouse Pan Mode", nullptr, &flag)) { if (flag) editor.SetMiddleMousePanMode(); else editor.SetMiddleMouseScrollMode(); };
-			ImGui::MenuItem("Unicode Line Break Algorithm", nullptr, &lineBreakConfig.useUnicodeAnnex14);
 			ImGui::EndMenu();
 		}
 
@@ -456,6 +455,7 @@ void Editor::renderMenuBar() {
 			if (ImGui::MenuItem("Show Line Markers", nullptr, &showLineMarkers)) { toggleLineMarkers(); }
 			if (ImGui::MenuItem("Show Line Decorator", nullptr, &showLineDecorator)) { toggleLineDecorator(); }
 			if (ImGui::MenuItem("Show Context Menus", nullptr, &showContextMenus)) { toggleContextMenus(); }
+			if (ImGui::MenuItem("Enable Unicode Line Break Algorithm", nullptr, &enableUnicodeLineBreakAlgorithm)) { toggleLineBreak(); }
 			ImGui::Separator();
 			ImGui::MenuItem("Show Debug Information", nullptr, &showDebugInformation);
 			ImGui::EndMenu();
@@ -654,7 +654,7 @@ void Editor::showError(const std::string &message) {
 //
 
 void Editor::renderDiff() {
-	auto viewport = ImGui::GetMainViewport();
+	const auto viewport = ImGui::GetMainViewport();
 
 	if (popup) {
 		ImGui::OpenPopup("Changes since Opening File##diff");
@@ -1108,7 +1108,7 @@ void Editor::toggleLineMarkers() {
 void Editor::toggleLineDecorator() {
 	// see if we are turning it on or off
 	if (showLineDecorator) {
-		editor.SetLineDecorator(50.0f, [](TextEditor::Decorator& decorator) {
+		editor.SetLineDecorator(50.0f, [](const TextEditor::Decorator& decorator) {
 			if (decorator.line == 10 || decorator.line == 15|| decorator.line == 16) {
 				auto size = decorator.height - 1.0f;
 
@@ -1166,7 +1166,7 @@ void Editor::toggleContextMenus() {
 			if (ImGui::MenuItem("Remove Breakpoint")) { /* handle click */ }
 		});
 
-		editor.SetTextContextMenuCallback([](TextEditor::PopupData& data) {
+		editor.SetTextContextMenuCallback([](const TextEditor::PopupData& data) {
 			ImGui::Text("Line %zu, index %zu", data.pos.line + 1, data.pos.index + 1);
 		});
 
@@ -1186,13 +1186,14 @@ void Editor::toggleContextMenus() {
 
 void Editor::toggleLineBreak() {
 	// see if we are turning it on or off
-	if (lineBreakConfig.useUnicodeAnnex14) {
+	if (enableUnicodeLineBreakAlgorithm) {
 		notifications.Add(Notifications::Type::info, "Switched line break algorithm to unicode annex 14 mode");
 
 	} else{
 		notifications.Add(Notifications::Type::info, "Switched line break algorithm to simple mode");
 	}
 
+	lineBreakConfig.useUnicodeAnnex14 = enableUnicodeLineBreakAlgorithm;
 	editor.SetWordWrapEnabled(true);
 	editor.SetLineBreakConfig(lineBreakConfig);
 }

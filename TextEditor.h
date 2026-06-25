@@ -148,9 +148,9 @@ public:
 	}
 
 	inline std::string GetSectionText(DocPos start, DocPos end) const { return document.getSectionText(normalizePos(start), normalizePos(end)); }
-	inline std::string GetSectionText(DocSelection selection) const { return GetSectionText(selection.start, selection.end); }
+	inline std::string GetSectionText(const DocSelection& selection) const { return GetSectionText(selection.start, selection.end); }
 	inline void ReplaceSectionText(DocPos start, DocPos end, const std::string_view& text) { replaceSectionText(normalizePos(start), normalizePos(end), text); }
-	inline void ReplaceSectionText(DocSelection selection, const std::string_view& text) { ReplaceSectionText(selection.start, selection.end, text); }
+	inline void ReplaceSectionText(const DocSelection& selection, const std::string_view& text) { ReplaceSectionText(selection.start, selection.end, text); }
 
 	inline void ClearText() { setText(""); }
 
@@ -942,10 +942,10 @@ protected:
 		Document() { emplace_back(); }
 
 		// manipulate document text (strings should be UTF-8 encoded)
-		void setText(Config& config, const std::string_view& text);
-		void setText(Config& config, const std::vector<std::string_view>& text);
-		DocPos insertText(Config& config, DocPos start, const std::string_view& text);
-		void deleteText(Config& config, DocPos start, DocPos end);
+		void setText(const Config& config, const std::string_view& text);
+		void setText(const Config& config, const std::vector<std::string_view>& text);
+		DocPos insertText(const Config& config, DocPos start, const std::string_view& text);
+		void deleteText(const Config& config, DocPos start, DocPos end);
 
 		// access document text (strings are UTF-8 encoded)
 		std::string getText() const;
@@ -1012,7 +1012,7 @@ protected:
 		void insertLine(size_t offset);
 		void deleteLines(size_t start, size_t end);
 		void clearDocument();
-		void updateIndents(Config& config, size_t start, size_t end);
+		void updateIndents(const Config& config, size_t start, size_t end);
 	} document;
 
 	// a single cursor
@@ -1063,8 +1063,8 @@ protected:
 
 	private:
 		// helper functions
-		DocPos adjustCoordinateForInsert(DocPos position, DocPos insertStart, DocPos insertEnd);
-		DocPos adjustCoordinateForDelete(DocPos position, DocPos deleteStart, DocPos deleteEnd);
+		static DocPos adjustCoordinateForInsert(DocPos position, DocPos insertStart, DocPos insertEnd);
+		static DocPos adjustCoordinateForDelete(DocPos position, DocPos deleteStart, DocPos deleteEnd);
 
 		// properties
 		DocPos start;
@@ -1192,10 +1192,10 @@ protected:
 		void add(std::shared_ptr<Transaction> transaction);
 
 		// undo the last transaction
-		void undo(Config& config, Document& document, Cursors& cursors);
+		void undo(const Config& config, Document& document, Cursors& cursors);
 
 		// redo the last undone transaction;
-		void redo(Config& config, Document& document, Cursors& cursors);
+		void redo(const Config& config, Document& document, Cursors& cursors);
 
 		// get status information
 		inline size_t getUndoIndex() const { return undoIndex; }
@@ -1231,7 +1231,7 @@ protected:
 		}
 
 		// current state
-		const Language* language;
+		const Language* language = nullptr;
 	} colorizer;
 
 	// overlay to manage details about bracketed text
@@ -1259,19 +1259,19 @@ protected:
 	class Bracketeer : public std::vector<BracketPair> {
 	public:
 		// update state (if required)
-		void update(Config& config, Document& document);
+		void update(const Config& config, Document& document);
 
 		// find relevant brackets
-		iterator getEnclosingBrackets(DocPos location);
-		iterator getEnclosingBrackets(DocPos first, DocPos last);
-		iterator getInnerBrackets(DocPos first, DocPos last);
+		const_iterator getEnclosingBrackets(DocPos location) const;
+		const_iterator getEnclosingBrackets(DocPos first, DocPos last) const;
+		const_iterator getInnerBrackets(DocPos first, DocPos last) const;
 
 		// see if bracketeer was updated this frame
 		inline bool isUpdated() const { return updated; }
 		inline void resetUpdated() { updated = false; }
 
 		// utility functions
-		static inline bool isBracketCandidate(Glyph& glyph) {
+		static inline bool isBracketCandidate(const Glyph& glyph) {
 			return glyph.color == Color::punctuation ||
 				glyph.color == Color::matchingBracketLevel1 ||
 				glyph.color == Color::matchingBracketLevel2 ||
@@ -1281,7 +1281,7 @@ protected:
 
 	private:
 		bool showMatchingBrackets = false;
-		const Language* language;
+		const Language* language = nullptr;
 		bool updated = false;
 	} bracketeer;
 
@@ -1305,10 +1305,10 @@ protected:
 		void toggleAtLine(Document& document, size_t line);
 		void unfoldAll(Document& document);
 
-		inline bool isFoldable(const Document& document, size_t line) const {return document[line].foldingState == FoldingState::foldable; }
-		inline bool isFolded(const Document& document, size_t line) const {return document[line].foldingState == FoldingState::folded; }
-		inline bool isVisible(const Document& document, size_t line) const {return document[line].foldingState == FoldingState::visible; }
-		inline bool isHidden(const Document& document, size_t line) const {return document[line].foldingState == FoldingState::hidden; }
+		static inline bool isFoldable(const Document& document, size_t line) {return document[line].foldingState == FoldingState::foldable; }
+		static inline bool isFolded(const Document& document, size_t line) {return document[line].foldingState == FoldingState::folded; }
+		static inline bool isVisible(const Document& document, size_t line) {return document[line].foldingState == FoldingState::visible; }
+		static inline bool isHidden(const Document& document, size_t line) {return document[line].foldingState == FoldingState::hidden; }
 
 		// see if line folding was updated this frame
 		inline bool isUpdated() const { return updated; }
@@ -1331,7 +1331,7 @@ protected:
 		bool updateSets = true;
 		std::unordered_set<ImWchar> breakAfter;
 		std::unordered_set<ImWchar> breakBefore;
-		void updateSet(std::unordered_set<ImWchar>& set, std::string_view text);
+		static void updateSet(std::unordered_set<ImWchar>& set, std::string_view text);
 	};
 
 	// class representing a single visible row
@@ -1347,7 +1347,7 @@ protected:
 	class TypeSetter : public std::vector<Row> {
 	public:
 		// update state (if required)
-		bool update(const Config& config, Document& document, LineFold& lineFold);
+		bool update(const Config& config, Document& document, const LineFold& lineFold);
 
 		// convert coordinates
 		VisPos docPos2VisPos(const Document& document, DocPos pos) const;
@@ -1365,8 +1365,8 @@ protected:
 		inline size_t getColumnCount() const { return totalColumns; }
 
 		// set line break configuration
-		inline void setLineBreakConfig(LineBreakConfig& config) {
-			lineBreak.config = config;
+		inline void setLineBreakConfig(LineBreakConfig& lineBreakConfig) {
+			lineBreak.config = lineBreakConfig;
 			lineBreak.updateSets = true;
 		}
 
@@ -1461,7 +1461,7 @@ protected:
 		// get information
 		inline bool isActive() const { return active; }
 		inline bool hasSuggestions() const { return state.suggestions.size() > 0 || state.suggestionsPromise; }
-		bool isSpecialKeyPressed() const;
+		static bool isSpecialKeyPressed();
 		inline ImGuiKeyChord getTriggerShortcut() const { return configuration.triggerShortcut; }
 		inline DocPos getStart() const { return startLocation; }
 		inline std::string getReplacement() { return currentSelection < state.suggestions.size() ? state.suggestions[currentSelection] : ""; }
@@ -1528,7 +1528,7 @@ protected:
 	// manipulate selections/cursors
 	void selectAll();
 	void selectLine(size_t line);
-	void selectLines(size_t startLine, size_t size_t);
+	void selectLines(size_t startLine, size_t endLine);
 	void selectRegion(DocPos start, DocPos end);
 	void selectToBrackets(bool includeBrackets);
 	void growSelections();

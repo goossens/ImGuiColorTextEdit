@@ -56,7 +56,7 @@ public:
 
 	// get status
 	inline bool IsRunning() const { return running.load(); }
-	inline std::string GetError() const { return errorMessage; }
+	inline const std::string& GetError() const { return errorMessage; }
 
 private:
 	// work variables

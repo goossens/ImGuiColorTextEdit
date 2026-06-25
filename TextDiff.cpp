@@ -154,7 +154,7 @@ void TextDiff::IntegratedView::render(const char* title, const ImVec2& size, boo
 	layoutChanged |= rightTypeSetter.update(diff.config, diff.rightDocument, rightLineFold);
 	bool viewChanged = diff.sideBySideMode != diff.previousSideBySideMode;
 
-	if (layoutChanged | viewChanged) {
+	if (layoutChanged || viewChanged) {
 		updateLayout(diff);
 	}
 
@@ -187,14 +187,14 @@ void TextDiff::IntegratedView::render(const char* title, const ImVec2& size, boo
 //	TextDiff::IntegratedView::renderBackground
 //
 
-void TextDiff::IntegratedView::renderBackground(Diff& diff) {
+void TextDiff::IntegratedView::renderBackground(const Diff& diff) {
 	// render line numbers and text backgrounds
 	auto drawList = ImGui::GetWindowDrawList();
 	auto y = cursorScreenPos.y + firstVisibleRow * glyphSize.y;
 	char buffer[32];
 
 	for (auto i = firstVisibleRow; i <= lastVisibleRow; i++) {
-		auto& row = rows[i];
+		const auto& row = rows[i];
 
 		auto lineLeft = static_cast<int>(row.leftLine + 1);
 		auto lineRight = static_cast<int>(row.rightLine + 1);
@@ -237,7 +237,7 @@ void TextDiff::IntegratedView::renderBackground(Diff& diff) {
 //	TextDiff::IntegratedView::renderText
 //
 
-void TextDiff::IntegratedView::renderText(Diff& diff) {
+void TextDiff::IntegratedView::renderText(const Diff& diff) {
 	// setup rendering
 	auto drawList = ImGui::GetWindowDrawList();
 	auto yTop = drawList->GetClipRectMin().y;
@@ -251,7 +251,7 @@ void TextDiff::IntegratedView::renderText(Diff& diff) {
 	drawList->PushClipRect(ImVec2(textPos, yTop), ImVec2(textEnd, yBottom), false);
 
 	for (auto i = firstVisibleRow; i <= lastVisibleRow; i++) {
-		auto& row = rows[i];
+		const auto& row = rows[i];
 		auto y = cursorScreenPos.y + i * glyphSize.y;
 
 		switch(row.type) {
@@ -274,7 +274,7 @@ void TextDiff::IntegratedView::renderText(Diff& diff) {
 //	TextDiff::IntegratedView::renderLine
 //
 
-void TextDiff::IntegratedView::renderLine(float x, float y, TextEditor::Line& line, size_t sectionNo, Diff& diff) {
+void TextDiff::IntegratedView::renderLine(float x, float y, const TextEditor::Line& line, size_t sectionNo, const Diff& diff) {
 	// draw colored glyphs for specified line
 	auto drawList = ImGui::GetWindowDrawList();
 
@@ -284,7 +284,7 @@ void TextDiff::IntegratedView::renderLine(float x, float y, TextEditor::Line& li
 	size_t endColumn;
 
 	if (diff.config.wordWrap && line.sections) {
-		auto& section = line.sections->at(sectionNo);
+		const auto& section = line.sections->at(sectionNo);
 		index = section.startIndex;
 		column = section.indent;
 		endColumn = section.columns;
@@ -351,8 +351,8 @@ void TextDiff::IntegratedView::renderScrollbar() {
 	auto maxColumnsWidth = maxColumns * glyphSize.x;
 
 	if (maxColumnsWidth > textColumnWidth) {
-		auto window = ImGui::GetCurrentWindow();
-		const ImRect outerRect = window->Rect();
+		const ImGuiWindow* window = ImGui::GetCurrentWindow();
+		ImRect outerRect = window->Rect();
 		auto borderSize = std::round(window->WindowBorderSize * 0.5f);
 		auto scrollbarSize = ImGui::GetStyle().ScrollbarSize;
 
@@ -425,7 +425,7 @@ void TextDiff::IntegratedView::renderScrollbar() {
 //	TextDiff::IntegratedView::renderMiniMap
 //
 
-void TextDiff::IntegratedView::renderMiniMap(Diff& diff) {
+void TextDiff::IntegratedView::renderMiniMap(const Diff& diff) {
 	// based on https://github.com/ocornut/imgui/issues/3114
 	if (diff.config.showScrollbarMiniMap) {
 		auto window = ImGui::GetCurrentWindow();
@@ -442,7 +442,7 @@ void TextDiff::IntegratedView::renderMiniMap(Diff& diff) {
 
 			// render diff locations
 			for (size_t i = 0; i < rows.size(); i++) {
-				auto& row = rows[i];
+				const auto& row = rows[i];
 
 				if (row.type != DiffType::common) {
 					auto color = (row.type == DiffType::added) ? diff.addedColor : diff.deletedColor;
@@ -525,7 +525,7 @@ void TextDiff::SideBySideView::render(const char* title, const ImVec2& size, boo
 	layoutChanged |= rightTypeSetter.update(diff.config, diff.rightDocument, rightLineFold);
 	bool viewChanged = diff.sideBySideMode != diff.previousSideBySideMode;
 
-	if (layoutChanged | viewChanged) {
+	if (layoutChanged || viewChanged) {
 		updateLayout(diff);
 	}
 
@@ -560,14 +560,14 @@ void TextDiff::SideBySideView::render(const char* title, const ImVec2& size, boo
 //	TextDiff::SideBySideView::renderBackground
 //
 
-void TextDiff::SideBySideView::renderBackground(Diff& diff) {
+void TextDiff::SideBySideView::renderBackground(const Diff& diff) {
 	// render line numbers and text backgrounds
 	auto drawList = ImGui::GetWindowDrawList();
 	auto y = cursorScreenPos.y + firstVisibleRow * glyphSize.y;
 	char buffer[32];
 
 	for (auto i = firstVisibleRow; i <= lastVisibleRow; i++) {
-		auto& row = rows[i];
+		const auto& row = rows[i];
 
 		auto lineLeft = static_cast<int>(row.leftLine + 1);
 		auto lineRight = static_cast<int>(row.rightLine + 1);
@@ -619,7 +619,7 @@ void TextDiff::SideBySideView::renderBackground(Diff& diff) {
 //	TextDiff::SideBySideView::renderText
 //
 
-void TextDiff::SideBySideView::renderText(Diff& diff) {
+void TextDiff::SideBySideView::renderText(const Diff& diff) {
 	// setup rendering
 	auto drawList = ImGui::GetWindowDrawList();
 	auto yTop = drawList->GetClipRectMin().y;
@@ -633,7 +633,7 @@ void TextDiff::SideBySideView::renderText(Diff& diff) {
 	drawList->PushClipRect(ImVec2(leftTextPos, yTop), ImVec2(rightLineNumberPos, yBottom), false);
 
 	for (auto i = firstVisibleRow; i <= lastVisibleRow; i++) {
-		auto& row = rows[i];
+		const auto& row = rows[i];
 		auto y = cursorScreenPos.y + i * glyphSize.y;
 
 		switch(row.type) {
@@ -653,7 +653,7 @@ void TextDiff::SideBySideView::renderText(Diff& diff) {
 	drawList->PushClipRect(ImVec2(rightTextPos, yTop), ImVec2(rightTextEnd, yBottom), false);
 
 	for (auto i = firstVisibleRow; i <= lastVisibleRow; i++) {
-		auto& row = rows[i];
+		const auto& row = rows[i];
 		auto y = cursorScreenPos.y + i * glyphSize.y;
 
 		switch(row.type) {
@@ -675,7 +675,7 @@ void TextDiff::SideBySideView::renderText(Diff& diff) {
 //	TextDiff::SideBySideView::renderLine
 //
 
-void TextDiff::SideBySideView::renderLine(float x, float y, TextEditor::Line& line, size_t sectionNo, Diff& diff) {
+void TextDiff::SideBySideView::renderLine(float x, float y, const TextEditor::Line& line, size_t sectionNo, const Diff& diff) {
 	// draw colored glyphs for specified line
 	auto drawList = ImGui::GetWindowDrawList();
 
@@ -685,7 +685,7 @@ void TextDiff::SideBySideView::renderLine(float x, float y, TextEditor::Line& li
 	size_t endColumn;
 
 	if (diff.config.wordWrap && line.sections) {
-		auto& section = line.sections->at(sectionNo);
+		const auto& section = line.sections->at(sectionNo);
 		index = section.startIndex;
 		column = section.indent;
 		endColumn = section.columns;
@@ -752,8 +752,8 @@ void TextDiff::SideBySideView::renderScrollbars() {
 	auto maxColumnsWidth = maxColumns * glyphSize.x;
 
 	if (maxColumnsWidth > textColumnWidth) {
-		auto window = ImGui::GetCurrentWindow();
-		const ImRect outerRect = window->Rect();
+		const ImGuiWindow* window = ImGui::GetCurrentWindow();
+		ImRect outerRect = window->Rect();
 		auto borderSize = std::round(window->WindowBorderSize * 0.5f);
 		auto scrollbarSize = ImGui::GetStyle().ScrollbarSize;
 
@@ -839,7 +839,7 @@ void TextDiff::SideBySideView::renderScrollbars() {
 //	TextDiff::SideBySideView::renderMiniMap
 //
 
-void TextDiff::SideBySideView::renderMiniMap(Diff& diff) {
+void TextDiff::SideBySideView::renderMiniMap(const Diff& diff) {
 	// based on https://github.com/ocornut/imgui/issues/3114
 	if (diff.config.showScrollbarMiniMap) {
 		auto window = ImGui::GetCurrentWindow();
@@ -856,7 +856,7 @@ void TextDiff::SideBySideView::renderMiniMap(Diff& diff) {
 
 			// render diff locations
 			for (size_t i = 0; i < rows.size(); i++) {
-				auto& row = rows[i];
+				const auto& row = rows[i];
 
 				if (row.type != DiffType::common) {
 					auto color = (row.type == DiffType::added) ? diff.addedColor : diff.deletedColor;

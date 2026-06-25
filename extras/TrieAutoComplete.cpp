@@ -86,9 +86,9 @@ void TrieAutoComplete::buildTrie() {
 	auto language = editor->GetLanguage();
 
 	if (language) {
-		for (auto& word : language->keywords) { trie.insert(word); }
-		for (auto& word : language->declarations) { trie.insert(word); }
-		for (auto& word : language->identifiers) { trie.insert(word); }
+		for (const auto& word : language->keywords) { trie.insert(word); }
+		for (const auto& word : language->declarations) { trie.insert(word); }
+		for (const auto& word : language->identifiers) { trie.insert(word); }
 	}
 
 	// add all identifiers in current document
@@ -175,7 +175,7 @@ void TrieAutoComplete::Trie::findSuggestions(std::vector<std::string>& suggestio
 void TrieAutoComplete::Trie::evaluateNode(const Node* node, size_t index, size_t cost, size_t skip) {
 	// see if that is one of our children (check both lower and uppercase matches)
 	ImWchar codepointLower = TextEditor::CodePoint::toLower(searchCodepoints[index]);
-	Node* childLower = nullptr;
+	const Node* childLower = nullptr;
 
 	if (node->children.find(codepointLower) != node->children.end()) {
 		// codepoint found, is this the last one in our searchTerm?
@@ -192,7 +192,7 @@ void TrieAutoComplete::Trie::evaluateNode(const Node* node, size_t index, size_t
 	}
 
 	ImWchar codepointUpper = TextEditor::CodePoint::toUpper(searchCodepoints[index]);
-	Node* childUpper = nullptr;
+	const Node* childUpper = nullptr;
 
 	if (node->children.find(codepointUpper) != node->children.end()) {
 		// codepoint found, is this the last one in our searchTerm?

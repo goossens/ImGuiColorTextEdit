@@ -23,7 +23,7 @@ editor.SetLineNumberContextMenuCallback([]([[maybe_unused]] TextEditor::PopupDat
 	if (ImGui::MenuItem("Remove Breakpoint")) { /* handle click */ }
 });
 
-editor.SetTextContextMenuCallback([](TextEditor::PopupData& data) {
+editor.SetTextContextMenuCallback([](const TextEditor::PopupData& data) {
 	ImGui::Text("Line %zu, index %zu", data.pos.line + 1, data.pos.index + 1);
 });
 ```

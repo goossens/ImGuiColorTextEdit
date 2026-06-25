@@ -101,7 +101,7 @@ int example() {
 	config.OversampleH = 1;
 	config.OversampleV = 1;
 	io.Fonts->Clear();
-	io.Fonts->AddFontFromMemoryCompressedTTF((void*) &dejavu, dejavuSize, 15.0f, &config);
+	io.Fonts->AddFontFromMemoryCompressedTTF(static_cast<const void*>(&dejavu), dejavuSize, 15.0f, &config);
 
 	// main loop
 	Editor editor;

@@ -122,6 +122,7 @@ private:
 	bool showLineMarkers = false;
 	bool showLineDecorator = false;
 	bool showContextMenus = false;
+	bool enableUnicodeLineBreakAlgorithm = false;
 	bool showDebugInformation = false;
 
 	TrieAutoComplete trieAutoComplete;

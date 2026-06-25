@@ -155,11 +155,11 @@ private:
 
 		// rendering functions
 		void render(const char* title, const ImVec2& size, bool border, Diff& diff);
-		void renderBackground(Diff& diff);
-		void renderText(Diff& diff);
-		void renderLine(float x, float y, TextEditor::Line& line, size_t section, Diff& diff);
+		void renderBackground(const Diff& diff);
+		void renderText(const Diff& diff);
+		void renderLine(float x, float y, const TextEditor::Line& line, size_t section, const Diff& diff);
 		void renderScrollbar();
-		void renderMiniMap(Diff& diff);
+		void renderMiniMap(const Diff& diff);
 
 		// layout functions
 		void updateLayout(Diff& diff);
@@ -225,18 +225,18 @@ private:
 
 		// rendering functions
 		void render(const char* title, const ImVec2& size, bool border, Diff& diff);
-		void renderBackground(Diff& diff);
-		void renderText(Diff& diff);
-		void renderLine(float x, float y, TextEditor::Line& line, size_t section, Diff& diff);
+		void renderBackground(const Diff& diff);
+		void renderText(const Diff& diff);
+		void renderLine(float x, float y, const TextEditor::Line& line, size_t section, const Diff& diff);
 		void renderScrollbars();
-		void renderMiniMap(Diff& diff);
+		void renderMiniMap(const Diff& diff);
 
 		// layout functions
 		void updateLayout(Diff& diff);
 	} sideBySideView;
 
 	// split string into lines
-	void splitLines(std::vector<std::string_view>& result, const std::string_view& text);
+	static void splitLines(std::vector<std::string_view>& result, const std::string_view& text);
 
 	// update the color palette
 	void updatePalette();

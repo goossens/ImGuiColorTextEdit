@@ -262,7 +262,7 @@ void TextEditor::renderSelections() {
 			auto end = cursor.getSelectionEnd();
 
 			for (size_t i = begin.line; i <= end.line; i++) {
-				auto& line = document[i];
+				const auto& line = document[i];
 
 				if (line.foldingState != FoldingState::hidden) {
 					if (line.rows == 1) {
@@ -330,7 +330,7 @@ void TextEditor::renderTextMarkers() {
 			auto markerIndex = document[typeSetter[row].line].marker;
 
 			if (markerIndex) {
-				auto& marker = markers[markerIndex - 1];
+				const auto& marker = markers[markerIndex - 1];
 				auto y = cursorScreenPos.y + row * glyphSize.y;
 
 				if (((marker.textColor >> IM_COL32_A_SHIFT) & 0xFF) != 0) {
@@ -369,7 +369,7 @@ void TextEditor::renderMatchingBracketLines() {
 				auto column = std::min(docPos2VisPos(bracket->start).column, docPos2VisPos(bracket->end).column);
 
 				for (size_t i = bracket->start.line + 1; i < bracket->end.line; i++) {
-					auto& line = document[i];
+					const auto& line = document[i];
 
 					if (line.foldingState != FoldingState::hidden) {
 						auto lineX = cursorScreenPos.x + textLeftOffset + column * glyphSize.x;
@@ -404,7 +404,7 @@ void TextEditor::renderText() {
 		size_t endColumn;
 
 		if (config.wordWrap && line.sections) {
-			auto& section = line.sections->at(typeSetter[i].section);
+			const auto& section = line.sections->at(typeSetter[i].section);
 			index = section.startIndex;
 			column = section.indent;
 			endColumn = section.columns;
@@ -522,7 +522,7 @@ void TextEditor::renderLineNumberMarkers() {
 			auto markerIndex = document[typeSetter[row].line].marker;
 
 			if (markerIndex) {
-				auto& marker = markers[markerIndex - 1];
+				const auto& marker = markers[markerIndex - 1];
 				auto y = cursorScreenPos.y + row * glyphSize.y;
 
 				if (((marker.lineNumberColor >> IM_COL32_A_SHIFT) & 0xFF) != 0) {
@@ -673,7 +673,7 @@ void TextEditor::renderMiniMap() {
 			auto end = cursor.getSelectionEnd();
 
 			for (size_t i = begin.line; i <= end.line; i++) {
-				auto& line = document[i];
+				const auto& line = document[i];
 
 				if (line.foldingState != FoldingState::hidden) {
 					for (size_t j = 0; j < line.rows; j++) {
@@ -783,7 +783,7 @@ void TextEditor::renderScrollbarMiniMap() {
 				auto end = cursor.getSelectionEnd();
 
 				for (size_t i = begin.line; i <= end.line; i++) {
-					auto& line = document[i];
+					const auto& line = document[i];
 
 					if (line.foldingState != FoldingState::hidden) {
 						auto ly1 = std::round(rect.Min.y + line.row * rowHeight);
@@ -2451,13 +2451,14 @@ void TextEditor::stripTrailingWhitespaces() {
 
 	// process all the lines
 	for (size_t i = 0; i < document.size(); i++) {
-		auto& line = document[i];
+		const auto& line = document[i];
 		size_t lineSize = line.size();
 		size_t whitespace = std::numeric_limits<size_t>::max();
-		bool done = false;
 
 		// look for first non-whitespace glyph at the end of the line
 		if (lineSize) {
+			bool done = false;
+
 			for (auto index = lineSize - 1; !done; index--) {
 				if (CodePoint::isWhiteSpace(line[index].codepoint)) {
 					whitespace = index;
@@ -2526,7 +2527,6 @@ void TextEditor::tabsToSpaces() {
 		size_t pos = 0;
 
 		while (i < end) {
-			char utf8[4];
 			ImWchar codepoint;
 			i = CodePoint::read(i, end, &codepoint);
 
@@ -2536,6 +2536,7 @@ void TextEditor::tabsToSpaces() {
 				pos += spaces;
 
 			} else {
+				char utf8[4];
 				output.append(utf8, CodePoint::write(utf8, codepoint));
 				pos++;
 			}
@@ -2559,7 +2560,6 @@ void TextEditor::spacesToTabs() {
 		size_t spaces = 0;
 
 		while (i < end) {
-			char utf8[4];
 			ImWchar codepoint;
 			i = CodePoint::read(i, end, &codepoint);
 
@@ -2597,6 +2597,7 @@ void TextEditor::spacesToTabs() {
 					pos += config.tabSize - (pos % config.tabSize);
 
 				} else {
+					char utf8[4];
 					output.append(utf8, CodePoint::write(utf8, codepoint));
 					pos++;
 				}
@@ -3124,7 +3125,7 @@ void TextEditor::Cursors::adjustForDelete(iterator start, DocPos deleteStart, Do
 //	TextEditor::Document::setText
 //
 
-void TextEditor::Document::setText(Config& config, const std::string_view& text) {
+void TextEditor::Document::setText(const Config& config, const std::string_view& text) {
 	// reset document
 	clearDocument();
 	appendLine();
@@ -3162,13 +3163,13 @@ void TextEditor::Document::setText(Config& config, const std::string_view& text)
 //	TextEditor::Document::setText
 //
 
-void TextEditor::Document::setText(Config& config, const std::vector<std::string_view>& text) {
+void TextEditor::Document::setText(const Config& config, const std::vector<std::string_view>& text) {
 	// reset document
 	clearDocument();
 
 	if (text.size()) {
 		// process input UTF-8 and generate lines of glyphs
-		for (auto& line : text) {
+		for (const auto& line : text) {
 			appendLine();
 			auto i = line.begin();
 			auto end = line.end();
@@ -3204,7 +3205,7 @@ void TextEditor::Document::setText(Config& config, const std::vector<std::string
 //	TextEditor::Document::insertText
 //
 
-TextEditor::DocPos TextEditor::Document::insertText(Config& config, DocPos start, const std::string_view& text) {
+TextEditor::DocPos TextEditor::Document::insertText(const Config& config, DocPos start, const std::string_view& text) {
 	auto line = begin() + start.line;
 	auto index = start.index;
 	auto lineNo = start.line;
@@ -3265,7 +3266,7 @@ TextEditor::DocPos TextEditor::Document::insertText(Config& config, DocPos start
 //	TextEditor::Document::deleteText
 //
 
-void TextEditor::Document::deleteText(Config& config, DocPos start, DocPos end) {
+void TextEditor::Document::deleteText(const Config& config, DocPos start, DocPos end) {
 	auto& startLine = at(start.line);
 	auto startIndex = start.index;
 	auto& endLine = at(end.line);
@@ -3487,7 +3488,7 @@ TextEditor::DocPos TextEditor::Document::getEndOfLine(DocPos from) const {
 //
 
 TextEditor::DocPos TextEditor::Document::findWordStart(DocPos from, bool wordOnly) const {
-	auto& line = at(from.line);
+	const auto& line = at(from.line);
 	auto lineSize = line.size();
 
 	if (from.index == 0 || lineSize == 0) {
@@ -3523,7 +3524,7 @@ TextEditor::DocPos TextEditor::Document::findWordStart(DocPos from, bool wordOnl
 //
 
 TextEditor::DocPos TextEditor::Document::findWordEnd(DocPos from, bool wordOnly) const {
-	auto& line = at(from.line);
+	const auto& line = at(from.line);
 	auto index = from.index;
 	auto size = line.size();
 
@@ -3744,7 +3745,7 @@ TextEditor::DocPos TextEditor::Document::findPreviousNonWhiteSpace(DocPos from, 
 	bool done = false;
 
 	while (!done) {
-		auto& line = at(from.line);
+		const auto& line = at(from.line);
 		auto index = from.index;
 
 		while (!done && index > 0) {
@@ -3779,7 +3780,7 @@ TextEditor::DocPos TextEditor::Document::findNextNonWhiteSpace(DocPos from, bool
 	bool done = false;
 
 	while (!done) {
-		auto& line = at(from.line);
+		const auto& line = at(from.line);
 		auto index = from.index;
 
 		while (!done && index < line.size()) {
@@ -3924,7 +3925,7 @@ void TextEditor::Document::clearDocument() {
 //	TextEditor::Document::updateIndents
 //
 
-void TextEditor::Document::updateIndents(Config& config, size_t start, size_t end) {
+void TextEditor::Document::updateIndents(const Config& config, size_t start, size_t end) {
 	for (size_t i = start; i <= end; i++) {
 		auto& line = at(i);
 		line.indent = 0;
@@ -3986,7 +3987,7 @@ void TextEditor::Transactions::add(std::shared_ptr<Transaction> transaction) {
 //	TextEditor::Transactions::undo
 //
 
-void TextEditor::Transactions::undo(Config& config, Document& document, Cursors& cursors) {
+void TextEditor::Transactions::undo(const Config& config, Document& document, Cursors& cursors) {
 	auto transaction = at(--undoIndex);
 
 	for (auto action = transaction->rbegin(); action < transaction->rend(); action++) {
@@ -4021,7 +4022,7 @@ void TextEditor::Transactions::undo(Config& config, Document& document, Cursors&
 //	TextEditor::Transactions::redo
 //
 
-void TextEditor::Transactions::redo(Config& config, Document& document, Cursors& cursors) {
+void TextEditor::Transactions::redo(const Config& config, Document& document, Cursors& cursors) {
 	auto transaction = at(undoIndex++);
 
 	for (auto action = transaction->begin(); action < transaction->end(); action++) {
@@ -4440,7 +4441,7 @@ bool TextEditor::Colorizer::update(const Config& config, Document& document) {
 //	TextEditor::Bracketeer::update
 //
 
-void TextEditor::Bracketeer::update(Config& config, Document& document) {
+void TextEditor::Bracketeer::update(const Config& config, Document& document) {
 	// see if the configuration changed
 	bool configChanged =
 		showMatchingBrackets != config.showMatchingBrackets ||
@@ -4528,7 +4529,7 @@ void TextEditor::Bracketeer::update(Config& config, Document& document) {
 		// handle levels left open and mark them as errors
 		if (levels.size()) {
 			for (auto i = levels.rbegin(); i < levels.rend(); i++) {
-				auto& start = at(*i).start;
+				const auto& start = at(*i).start;
 				document[start.line][start.index].color = Color::matchingBracketError;
 				erase(begin() + *i);
 			}
@@ -4562,7 +4563,7 @@ void TextEditor::Bracketeer::update(Config& config, Document& document) {
 			}
 
 			// sort visible and invisible blocks by block start
-			std::sort(begin(), end(), [](BracketPair& a, BracketPair& b) {
+			std::sort(begin(), end(), [](const BracketPair& a, const BracketPair& b) {
 				return a.start < b.start;
 			});
 		}
@@ -4576,11 +4577,11 @@ void TextEditor::Bracketeer::update(Config& config, Document& document) {
 //	TextEditor::Bracketeer::getEnclosingBrackets
 //
 
-TextEditor::Bracketeer::iterator TextEditor::Bracketeer::getEnclosingBrackets(DocPos location) {
-	iterator brackets = end();
+TextEditor::Bracketeer::const_iterator TextEditor::Bracketeer::getEnclosingBrackets(DocPos location) const {
+	auto brackets = cend();
 	bool done = false;
 
-	for (auto i = begin(); !done && i < end(); i++) {
+	for (auto i = cbegin(); !done && i < end(); i++) {
 		// brackets are sorted so no need to go past specified location
 		if (i->isAfter(location)) {
 			done = true;
@@ -4600,11 +4601,11 @@ TextEditor::Bracketeer::iterator TextEditor::Bracketeer::getEnclosingBrackets(Do
 //	TextEditor::Bracketeer::getEnclosingBrackets
 //
 
-TextEditor::Bracketeer::iterator TextEditor::Bracketeer::getEnclosingBrackets(DocPos first, DocPos last) {
-	iterator brackets = end();
+TextEditor::Bracketeer::const_iterator TextEditor::Bracketeer::getEnclosingBrackets(DocPos first, DocPos last) const {
+	auto brackets = cend();
 	bool done = false;
 
-	for (auto i = begin(); !done && i < end(); i++) {
+	for (auto i = cbegin(); !done && i < end(); i++) {
 		// brackets are sorted so no need to go past specified location
 		if (i->isAfter(first)) {
 			done = true;
@@ -4624,8 +4625,8 @@ TextEditor::Bracketeer::iterator TextEditor::Bracketeer::getEnclosingBrackets(Do
 //	TextEditor::Bracketeer::getInnerBrackets
 //
 
-TextEditor::Bracketeer::iterator TextEditor::Bracketeer::getInnerBrackets(DocPos first, DocPos last) {
-	iterator brackets = end();
+TextEditor::Bracketeer::const_iterator TextEditor::Bracketeer::getInnerBrackets(DocPos first, DocPos last) const {
+	auto brackets = cend();
 	auto outer = getEnclosingBrackets(first, last);
 
 	if (outer != end()) {
@@ -4652,7 +4653,7 @@ TextEditor::Bracketeer::iterator TextEditor::Bracketeer::getInnerBrackets(DocPos
 
 static bool latchButton(const char* label, bool* value, const ImVec2& size) {
 	auto changed = false;
-	ImVec4* colors = ImGui::GetStyle().Colors;
+	const ImVec4* colors = ImGui::GetStyle().Colors;
 
 	if (*value) {
 		ImGui::PushStyleColor(ImGuiCol_Button, colors[ImGuiCol_ButtonActive]);
@@ -4686,9 +4687,9 @@ static bool inputString(const char* label, std::string* value, ImGuiInputTextFla
 		ImGuiInputTextFlags_NoUndoRedo |
 		ImGuiInputTextFlags_CallbackResize;
 
-	return ImGui::InputText(label, (char*) value->c_str(), value->capacity() + 1, flags, [](ImGuiInputTextCallbackData* data) {
+	return ImGui::InputText(label, value->data(), value->capacity() + 1, flags, [](ImGuiInputTextCallbackData* data) {
 		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-			std::string* value = (std::string*) data->UserData;
+			std::string* value = static_cast<std::string*>(data->UserData);
 			value->resize(data->BufTextLen);
 			data->Buf = (char*) value->c_str();
 		}
@@ -4710,7 +4711,7 @@ void TextEditor::renderFindReplace() {
 
 		// calculate sizes
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 4.0f));
-		auto& style = ImGui::GetStyle();
+		const auto& style = ImGui::GetStyle();
 		auto fieldWidth = 250.0f * ImGui::GetStyle().FontScaleDpi;
 
 		auto button1Width = ImGui::CalcTextSize(findButtonLabel.c_str()).x + style.ItemSpacing.x * 2.0f;
@@ -5140,7 +5141,7 @@ bool TextEditor::MiniMap::update(const Config& config, const Document& document,
 
 				// determine visible part of document line on row
 				if (config.wordWrap && line.sections) {
-					auto& section = line.sections->at(typeSetter[i].section);
+					const auto& section = line.sections->at(typeSetter[i].section);
 					index = section.startIndex;
 					column = section.indent;
 					endColumn = section.columns;
@@ -6178,7 +6179,7 @@ struct LineBreakState {
 	size_t ri = 0;
 
 	// move to the next state
-	inline void push(LineBreakGlyph step) {
+	inline void push(const LineBreakGlyph& step) {
 		if (next.ignored) {
 			current.pos = next.pos;
 
@@ -6191,7 +6192,7 @@ struct LineBreakState {
 	}
 
 	// get the codepoint at specified location
-	ImWchar getCodepoint(size_t pos) {
+	ImWchar getCodepoint(size_t pos) const {
 		if (pos < size) {
 			return glyphs[pos].codepoint;
 
@@ -6201,7 +6202,7 @@ struct LineBreakState {
 	}
 
 	// get the line break class at specified location
-	LBC getClass(size_t pos) {
+	LBC getClass(size_t pos) const {
 		if (pos < size) {
 			return getLineBreakClass(glyphs[pos].codepoint);
 
@@ -6244,7 +6245,7 @@ static inline bool isPi(ImWchar codepoint) {
 }
 
 
-static inline bool isAkCircleAs(LineBreakGlyph& lbg) {
+static inline bool isAkCircleAs(const LineBreakGlyph& lbg) {
 	return (lbg.cls == LBC::ak) || (lbg.codepoint == 0x25CC) || (lbg.cls == LBC::as);
 }
 
@@ -6255,7 +6256,7 @@ static inline bool isAkCircleAs(LineBreakGlyph& lbg) {
 //	Partly ported from on https://github.com/cto-af/linebreak
 //
 
-static inline TextEditor::BreakOption lb2(LineBreakState& state) {
+static inline TextEditor::BreakOption lb2(const LineBreakState& state) {
 	// LB2: never break at the start of text
 	// sot ×
 	if (state.current.cls == LBC::sot && state.next.cls != LBC::eot) {
@@ -6267,7 +6268,7 @@ static inline TextEditor::BreakOption lb2(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb3(LineBreakState& state) {
+static inline TextEditor::BreakOption lb3(const LineBreakState& state) {
 	// LB3: always break at the end of text
 	// ! eot
 	if (state.next.cls == LBC::eot) {
@@ -6279,7 +6280,7 @@ static inline TextEditor::BreakOption lb3(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb4(LineBreakState& state) {
+static inline TextEditor::BreakOption lb4(const LineBreakState& state) {
 	// LB4: always break after hard line breaks
 	// BK !
 	if (state.current.cls == LBC::bk) {
@@ -6291,7 +6292,7 @@ static inline TextEditor::BreakOption lb4(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb5(LineBreakState& state) {
+static inline TextEditor::BreakOption lb5(const LineBreakState& state) {
 	// LB5: treat CR followed by LF, as well as CR, LF, and NL as hard line breaks
 	// CR × LF
 	// CR !
@@ -6315,7 +6316,7 @@ static inline TextEditor::BreakOption lb5(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb6(LineBreakState& state) {
+static inline TextEditor::BreakOption lb6(const LineBreakState& state) {
 	// LB6: do not break before hard line breaks
 	// × ( BK | CR | LF | NL )
 	switch (state.next.cls) {
@@ -6348,7 +6349,7 @@ static inline TextEditor::BreakOption lbSpaceStop(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb7(LineBreakState& state) {
+static inline TextEditor::BreakOption lb7(const LineBreakState& state) {
 	// LB7: do not break before spaces or zero width space
 	// × ZW
 	if (state.next.cls == LBC::zw) {
@@ -6395,7 +6396,7 @@ static inline TextEditor::BreakOption lb8(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb8a(LineBreakState& state) {
+static inline TextEditor::BreakOption lb8a(const LineBreakState& state) {
 	// LB8a: do not break after a zero width joiner
 	// ZWJ ×
 	if (state.current.cls == LBC::zwj) {
@@ -6439,7 +6440,7 @@ static inline TextEditor::BreakOption lb10(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb11(LineBreakState& state) {
+static inline TextEditor::BreakOption lb11(const LineBreakState& state) {
 	// LB11: do not break before or after word joiner and related characters
 	// × WJ
 	// WJ ×
@@ -6452,7 +6453,7 @@ static inline TextEditor::BreakOption lb11(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb12(LineBreakState& state) {
+static inline TextEditor::BreakOption lb12(const LineBreakState& state) {
 	// LB12: do not break after NBSP and related characters
 	// GL ×
 	if (state.current.cls == LBC::gl) {
@@ -6464,7 +6465,7 @@ static inline TextEditor::BreakOption lb12(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb12a(LineBreakState& state) {
+static inline TextEditor::BreakOption lb12a(const LineBreakState& state) {
 	// LB12a: do not break before NBSP and related characters, except after spaces and hyphens
 	// [^SP BA HY HH] × GL
 	if (state.next.cls == LBC::gl) {
@@ -6484,7 +6485,7 @@ static inline TextEditor::BreakOption lb12a(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb13(LineBreakState& state) {
+static inline TextEditor::BreakOption lb13(const LineBreakState& state) {
 	// LB13: do not break before ‘]’ or ‘!’ or ‘;’ or ‘/’, even after spaces
 	// × CL
 	// × CP
@@ -6538,7 +6539,7 @@ static inline TextEditor::BreakOption lb15a(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb15b(LineBreakState& state) {
+static inline TextEditor::BreakOption lb15b(const LineBreakState& state) {
 	// LB15b: do not break before an unresolved final punctuation that lies at the end of the line,
 	// before a space, before a prohibited break, or before an unresolved quotation mark, even after spaces
 	static const std::unordered_set<LBC> SPGLWJCLQUCPEXISSYBKCRLFNLZW = {
@@ -6563,7 +6564,7 @@ static inline TextEditor::BreakOption lb15b(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb15c(LineBreakState& state) {
+static inline TextEditor::BreakOption lb15c(const LineBreakState& state) {
 	// LB15c: Break before a decimal mark that follows a space, for instance, in ‘subtract .5’
 	// SP ÷ IS NU
 	if ((state.current.cls == LBC::sp) && (state.next.cls == LBC::is)) {
@@ -6576,7 +6577,7 @@ static inline TextEditor::BreakOption lb15c(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb15d(LineBreakState& state) {
+static inline TextEditor::BreakOption lb15d(const LineBreakState& state) {
 	// LB15d: otherwise, do not break before ‘;’, ‘,’, or ‘.’, even after spaces
 	// × IS
 	if (state.next.cls == LBC::is) {
@@ -6643,7 +6644,7 @@ static inline TextEditor::BreakOption lb17(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb18(LineBreakState& state) {
+static inline TextEditor::BreakOption lb18(const LineBreakState& state) {
 	// LB18: Break after spaces
 	// SP ÷
 	if (state.current.cls == LBC::sp) {
@@ -6654,7 +6655,7 @@ static inline TextEditor::BreakOption lb18(LineBreakState& state) {
 	}
 }
 
-static inline TextEditor::BreakOption lb19(LineBreakState& state) {
+static inline TextEditor::BreakOption lb19(const LineBreakState& state) {
 	// LB19: do not break before non-initial unresolved quotation marks, such as ‘ ” ’ or ‘ " ’,
 	// nor after non-final unresolved quotation marks, such as ‘ “ ’ ‘ " ’
 	// × [ QU - \p{Pi} ]
@@ -6673,7 +6674,7 @@ static inline TextEditor::BreakOption lb19(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb19a(LineBreakState& state) {
+static inline TextEditor::BreakOption lb19a(const LineBreakState& state) {
 	// LB19a: unless surrounded by East Asian characters, do not break either side
 	// [^$EastAsian] × QU
 	if (!TextEditor::CodePoint::isEastAsian(state.current.codepoint) && (state.next.cls == LBC::qu)) {
@@ -6704,7 +6705,7 @@ static inline TextEditor::BreakOption lb19a(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb20(LineBreakState& state) {
+static inline TextEditor::BreakOption lb20(const LineBreakState& state) {
 	// LB20: break before and after unresolved CB
 	// ÷ CB
 	// CB ÷
@@ -6717,7 +6718,7 @@ static inline TextEditor::BreakOption lb20(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb20a(LineBreakState& state) {
+static inline TextEditor::BreakOption lb20a(const LineBreakState& state) {
 	// LB20a: do not break after a word-initial hyphen
 	static const std::unordered_set<LBC> sotBKCRLFNLSPZWCBGL = {
 		LBC::sot, LBC::bk, LBC::cr, LBC::lf, LBC::nl, LBC::sp, LBC::zw, LBC::cb, LBC::gl
@@ -6736,7 +6737,7 @@ static inline TextEditor::BreakOption lb20a(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb21(LineBreakState& state) {
+static inline TextEditor::BreakOption lb21(const LineBreakState& state) {
 	// LB21: do not break before hyphen-minus, other hyphens, fixed-width spaces, small kana, and other non-starters, or after acute accents
 	// BB ×
 	if (state.current.cls == LBC::bb) {
@@ -6757,7 +6758,7 @@ static inline TextEditor::BreakOption lb21(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb21a(LineBreakState& state) {
+static inline TextEditor::BreakOption lb21a(const LineBreakState& state) {
 	// LB21a: do not break after the hyphen in Hebrew + Hyphen + non-Hebrew
 	// HL (HY | HH) × [^HL]
 	if ((state.previous.cls == LBC::hl) &&
@@ -6772,7 +6773,7 @@ static inline TextEditor::BreakOption lb21a(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb21b(LineBreakState& state) {
+static inline TextEditor::BreakOption lb21b(const LineBreakState& state) {
 	// don’t break between Solidus and Hebrew letters
 	// SY × HL
 	if ((state.current.cls == LBC::sy) && (state.next.cls == LBC::hl)) {
@@ -6784,7 +6785,7 @@ static inline TextEditor::BreakOption lb21b(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb22(LineBreakState& state) {
+static inline TextEditor::BreakOption lb22(const LineBreakState& state) {
 	// do not break before ellipses
 	// × IN
 	if (state.next.cls == LBC::in) {
@@ -6796,7 +6797,7 @@ static inline TextEditor::BreakOption lb22(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb23(LineBreakState& state) {
+static inline TextEditor::BreakOption lb23(const LineBreakState& state) {
 	// do not break between digits and letters
 	switch (state.current.cls) {
 		case LBC::al:
@@ -6824,7 +6825,7 @@ static inline TextEditor::BreakOption lb23(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb23a(LineBreakState& state) {
+static inline TextEditor::BreakOption lb23a(const LineBreakState& state) {
 	// LB23a: do not break between numeric prefixes and ideographs, or between ideographs and numeric postfixes
 	static const std::unordered_set<LBC> IDEBEM = {LBC::id, LBC::eb, LBC::em};
 
@@ -6842,7 +6843,7 @@ static inline TextEditor::BreakOption lb23a(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb24(LineBreakState& state) {
+static inline TextEditor::BreakOption lb24(const LineBreakState& state) {
 	// LB24: do not break between numeric prefix/postfix and letters, or between letters and prefix/postfix
 	// (PR | PO) × (AL | HL)
 	if ((state.current.cls == LBC::pr || state.current.cls == LBC::po) &&
@@ -6860,7 +6861,7 @@ static inline TextEditor::BreakOption lb24(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb25(LineBreakState& state) {
+static inline TextEditor::BreakOption lb25(const LineBreakState& state) {
 	// LB25: do not break numbers
 	// approach: find the end of a matching run, then no-break everything as we go past it
 	static const std::unordered_set<LBC> POPR = {LBC::po, LBC::pr};
@@ -6948,7 +6949,7 @@ static inline TextEditor::BreakOption lb25(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb26(LineBreakState& state) {
+static inline TextEditor::BreakOption lb26(const LineBreakState& state) {
 	// LB26 do not break a Korean syllable
 	static const std::unordered_set<LBC> JLJVH2H3 = {LBC::jl, LBC::jv, LBC::h2, LBC::h3};
 	static const std::unordered_set<LBC> JVJT = {LBC::jv, LBC::jt};
@@ -6988,7 +6989,7 @@ static inline TextEditor::BreakOption lb26(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb27(LineBreakState& state) {
+static inline TextEditor::BreakOption lb27(const LineBreakState& state) {
 	// LB27: treat a Korean Syllable Block the same as LBC::id
 	static const std::unordered_set<LBC> JLJVJTH2H3 = {LBC::jl, LBC::jv, LBC::jt, LBC::h2, LBC::h3};
 
@@ -7021,7 +7022,7 @@ static inline TextEditor::BreakOption lb27(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb28(LineBreakState& state) {
+static inline TextEditor::BreakOption lb28(const LineBreakState& state) {
 	// LB28 do not break between alphabetics (“at”)
 	// (AL | HL) × (AL | HL)
 	if ((state.current.cls == LBC::al || state.current.cls == LBC::hl) &&
@@ -7035,7 +7036,7 @@ static inline TextEditor::BreakOption lb28(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb28a(LineBreakState& state) {
+static inline TextEditor::BreakOption lb28a(const LineBreakState& state) {
 	// LB28a: do not break inside the orthographic syllables of Brahmic scripts
 	// AP × (AK | [◌] | AS)
 	if ((state.current.cls == LBC::ap) && isAkCircleAs(state.next)) {
@@ -7065,7 +7066,7 @@ static inline TextEditor::BreakOption lb28a(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb29(LineBreakState& state) {
+static inline TextEditor::BreakOption lb29(const LineBreakState& state) {
 	// LB29: do not break between numeric punctuation and alphabetics (“e.g.”)
 	// IS × (AL | HL)
 	if (state.current.cls == LBC::is && (state.next.cls == LBC::al || state.next.cls == LBC::hl)) {
@@ -7077,7 +7078,7 @@ static inline TextEditor::BreakOption lb29(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb30(LineBreakState& state) {
+static inline TextEditor::BreakOption lb30(const LineBreakState& state) {
 	// LB30: do not break between letters, numbers, or ordinary symbols and opening or closing parentheses
 	static const std::unordered_set<LBC> ALHLNU = {LBC::al, LBC::hl, LBC::nu};
 
@@ -7128,7 +7129,7 @@ static inline TextEditor::BreakOption lb30a(LineBreakState& state) {
 }
 
 
-static inline TextEditor::BreakOption lb30b(LineBreakState& state) {
+static inline TextEditor::BreakOption lb30b(const LineBreakState& state) {
 	// LB30b: do not break between an emoji base (or potential emoji) and an emoji modifier
 	// EB × EM
 	if ((state.current.cls == LBC::eb) && (state.next.cls == LBC::em)) {
@@ -7159,7 +7160,7 @@ static inline TextEditor::BreakOption lb30b(LineBreakState& state) {
 	}
 
 
-static inline TextEditor::BreakOption applyRules(TextEditor::LineBreakConfig config, LineBreakState& state) {
+static inline TextEditor::BreakOption applyRules(TextEditor::LineBreakConfig& config, LineBreakState& state) {
 	TextEditor::BreakOption result;
 	RULE2(lb2);
 	RULE2(lb3);
@@ -7236,7 +7237,7 @@ void TextEditor::LineBreak::classify(Line& line) {
 		state.size = size;
 
 		for (size_t i = 0; i < size; i++) {
-			auto& glyph = line[i];
+			const auto& glyph = line[i];
 			state.push(LineBreakGlyph(glyph.codepoint, getLineBreakClass(glyph.codepoint), i));
 			auto breakOption = applyRules(config, state);
 
@@ -7342,7 +7343,7 @@ bool TextEditor::LineFold::update(const Config& config, Document& document, cons
 			line.foldingState = FoldingState::visible;
 		}
 
-		for (auto& fold : *this) {
+		for (const auto& fold : *this) {
 			if (previouslyFolded.find(fold.start) != previouslyFolded.end()) {
 				document[fold.start].foldingState = FoldingState::folded;
 
@@ -7367,7 +7368,7 @@ bool TextEditor::LineFold::update(const Config& config, Document& document, cons
 void TextEditor::LineFold::foldAroundLine(Document& document, size_t line) {
 	auto lineToFold = invalidLine;
 
-	for (auto& fold : *this) {
+	for (const auto& fold : *this) {
 		if (line > fold.start && line <= fold.end) {
 			if (document[fold.start].foldingState == FoldingState::foldable) {
 				lineToFold = fold.start;
@@ -7387,7 +7388,7 @@ void TextEditor::LineFold::foldAroundLine(Document& document, size_t line) {
 //
 
 void TextEditor::LineFold::unfoldAroundLine(Document& document, size_t line) {
-	for (auto& fold : *this) {
+	for (const auto& fold : *this) {
 		if (line > fold.start && line <= fold.end) {
 			if (document[fold.start].foldingState == FoldingState::folded) {
 				document[fold.start].foldingState = FoldingState::foldable;
@@ -7409,7 +7410,7 @@ void TextEditor::LineFold::toggleAtLine(Document& document, size_t lineNo) {
 	if (state == FoldingState::foldable) {
 		line.foldingState = FoldingState::folded;
 
-		for (auto& fold : *this) {
+		for (const auto& fold : *this) {
 			if (fold.start == lineNo) {
 				for (size_t i = fold.start + 1; i <= fold.end; i++) {
 					document[i].foldingState = FoldingState::hidden;
@@ -7422,7 +7423,7 @@ void TextEditor::LineFold::toggleAtLine(Document& document, size_t lineNo) {
 	} else if (state == FoldingState::folded) {
 		line.foldingState = FoldingState::foldable;
 
-		for (auto& fold : *this) {
+		for (const auto& fold : *this) {
 			if (fold.start == lineNo) {
 				for (size_t i = fold.start + 1; i <= fold.end; i++) {
 					document[i].foldingState = FoldingState::visible;
@@ -7440,7 +7441,7 @@ void TextEditor::LineFold::toggleAtLine(Document& document, size_t lineNo) {
 //
 
 void TextEditor::LineFold::unfoldAll(Document& document) {
-	for (auto& fold : *this) {
+	for (const auto& fold : *this) {
 		if (document[fold.start].foldingState == FoldingState::folded) {
 			document[fold.start].foldingState = FoldingState::foldable;
 			forceUpdate = true;
@@ -7548,7 +7549,7 @@ void TextEditor::TypeSetter::wrapLine(Line& line) {
 
 		line.columns = 0;
 
-		for (auto& section : sections) {
+		for (const auto& section : sections) {
 			line.columns = std::max(line.columns, section.columns);
 		}
 
@@ -7579,7 +7580,7 @@ void TextEditor::TypeSetter::updateLine(Line& line) {
 		// determine the maximum column number for this line
 		line.columns = 0;
 
-		for (auto& glyph : line) {
+		for (const auto& glyph : line) {
 			line.columns = (glyph.codepoint == '\t') ? ((line.columns / tabSize) + 1) * tabSize : line.columns + 1;
 		}
 
@@ -7595,7 +7596,7 @@ void TextEditor::TypeSetter::updateLine(Line& line) {
 //	TextEditor::TypeSetter::update
 //
 
-bool TextEditor::TypeSetter::update(const Config& config, Document& document, LineFold& lineFold) {
+bool TextEditor::TypeSetter::update(const Config& config, Document& document, const LineFold& lineFold) {
 	// see if the configuration changed
 	bool configChanged =
 		tabSize != config.tabSize ||
@@ -7741,7 +7742,7 @@ TextEditor::DocPos TextEditor::TypeSetter::visPos2DocPos(const Document& documen
 	Line::const_iterator end;
 
 	if (line.sections) {
-		auto& section = line.sections->at(row.section);
+		const auto& section = line.sections->at(row.section);
 		index = section.startIndex;
 		leftColumn = section.indent;
 		rightColumn = section.indent;
@@ -7805,7 +7806,7 @@ void TextEditor::TypeSetter::screenPos2DocPos(const Document& document, ImVec2 s
 
 		} else if (colNo > row.columns) {
 			if (line.sections) {
-				auto& section = line.sections->at(row.section);
+				const auto& section = line.sections->at(row.section);
 				glyphPos = DocPos(row.line, section.endIndex);
 
 			} else {
@@ -7823,7 +7824,7 @@ void TextEditor::TypeSetter::screenPos2DocPos(const Document& document, ImVec2 s
 			Line::const_iterator end;
 
 			if (line.sections) {
-				auto& section = line.sections->at(row.section);
+				const auto& section = line.sections->at(row.section);
 				index = section.startIndex;
 				leftColumn = section.indent;
 				rightColumn = section.indent;
@@ -8082,7 +8083,7 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 
 	auto suggestions = state.suggestions.size();
 	auto visibleSuggestions = (suggestions == 0) ? 1 : std::min(static_cast<size_t>(10), suggestions);
-	auto& style = ImGui::GetStyle();
+	const auto& style = ImGui::GetStyle();
 	auto height = ImGui::GetFrameHeightWithSpacing() * visibleSuggestions + style.WindowPadding.y * 2.0f;
 	ImGui::SetNextWindowSize(ImVec2(configuration.suggestionWidth * glyphSize.x, height));
 
@@ -8185,7 +8186,7 @@ void TextEditor::AutoComplete::setSuggestions(const std::vector<std::string>& su
 //	TextEditor::AutoComplete::isSpecialKeyPressed
 //
 
-bool TextEditor::AutoComplete::isSpecialKeyPressed() const {
+bool TextEditor::AutoComplete::isSpecialKeyPressed() {
 	for (auto key : {ImGuiKey_Tab, ImGuiKey_Enter, ImGuiKey_KeypadEnter, ImGuiKey_UpArrow, ImGuiKey_DownArrow}) {
 		if (ImGui::IsKeyPressed(key)) {
 			return true;
@@ -9590,7 +9591,7 @@ std::string_view::const_iterator TextEditor::CodePoint::read(std::string_view::c
 	// parse a UTF-8 sequence into a unicode codepoint and return updated iterator
 	if (i < end && (uch(*i) & 0x80) == 0) {
 		*codepoint = uch(*i);
-		i++;
+		++i;
 
 	} else if (i + 1 < end && (uch(*i) & 0xE0) == 0xC0) {
 		*codepoint = ((uch(*i) & 0x1f) << 6) | (uch(*(i + 1)) & 0x3f);
@@ -9610,7 +9611,7 @@ std::string_view::const_iterator TextEditor::CodePoint::read(std::string_view::c
 
 	} else {
 		*codepoint = IM_UNICODE_CODEPOINT_INVALID;
-		i++;
+		++i;
 	}
 
 	return i;
@@ -10116,10 +10117,10 @@ TextEditor::Palette TextEditor::defaultPalette = TextEditor::GetDarkPalette();
 
 static TextEditor::Iterator getCStyleIdentifier(TextEditor::Iterator start, TextEditor::Iterator end) {
 	if (start < end && TextEditor::CodePoint::isXidStart(*start)) {
-		start++;
+		++start;
 
 		while (start < end && TextEditor::CodePoint::isXidContinue(*start)) {
-			start++;
+			++start;
 		}
 	}
 
@@ -11029,7 +11030,7 @@ yy82:
 //
 
 static bool isCStylePunctuation(ImWchar character) {
-	static bool punctuation[128] = {
+	static const bool punctuation[128] = {
 		false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 		false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 		false,  true, false, false, false,  true,  true, false,  true,  true,  true,  true,  true,  true,  true,  true,
@@ -12041,7 +12042,7 @@ yy20:
 //
 
 static bool isLuaStylePunctuation(ImWchar character) {
-	static bool punctuation[128] = {
+	static const bool punctuation[128] = {
 		false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 		false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 		false,  true, false,  true, false,  true,  true, false,  true,  true,  true,  true,  true,  true,  true,  true,
