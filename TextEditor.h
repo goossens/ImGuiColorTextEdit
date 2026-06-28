@@ -538,6 +538,12 @@ public:
 
 		// set of keywords, declarations, identifiers used in the language (can be blank if language doesn't have these features)
 		// if language is not case sensitive, all entries should be in lower case
+
+		// guidance for these categories
+		// 1. these categories refer to different colors in the color palette
+		// 2. keywords are typically used to highlight control/reserved words in a language (palette color keyword)
+		// 3. declarations are used in strongly typed languages to highlight builtin types or the keywords to create a type (palette color declaration)
+		// 4. identifiers are used to color the language predefined variables  (palette color knownIdentifier) differently from the user variables (palette color identifier)
 		std::unordered_set<std::string> keywords;
 		std::unordered_set<std::string> declarations;
 		std::unordered_set<std::string> identifiers;

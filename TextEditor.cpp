@@ -12307,7 +12307,23 @@ const TextEditor::Language* TextEditor::Language::Lua() {
 			"not", "or", "repeat", "return", "then", "true", "until", "while"
 		};
 
+		static const char* const identifiers[] = {
+			"_G", "_VERSION", "abs", "acos", "asin", "assert", "atan", "atan2", "byte", "ceil", "char", "clock", "close",
+			"collectgarbage", "concat", "coroutine", "cos", "cosh", "cpath", "create", "date", "debug", "deg", "difftime",
+			"dofile", "dump", "error", "execute", "exit", "exp", "find", "floor", "flush", "fmod", "format", "frexp", "getenv",
+			"getfenv", "gethook", "getinfo", "getlocal", "getmetatable", "getregistry", "getupvalue", "gmatch", "gsub", "huge",
+			"input", "insert", "io", "ipairs", "ldexp", "len", "lines", "load", "loaded", "loaders", "loadfile", "loadlib",
+			"loadstring", "log", "log10", "lower", "match", "math", "max", "maxn", "min", "modf", "module", "next", "open",
+			"os", "output", "package", "pairs", "path", "pcall", "pi", "popen", "pow", "preload", "print", "rad", "random",
+			"randomseed", "rawequal", "rawget", "rawset", "read", "remove", "rename", "rep", "require", "resume", "reverse",
+			"running", "seeall", "seek", "select", "setfenv", "sethook", "setlocal", "setlocale", "setmetatable", "setupvalue",
+			"setvbuf", "sin", "sinh", "sort", "sqrt", "status", "stderr", "stdin", "stdout", "string", "sub", "table", "tan",
+			"tanh", "time", "tmpfile", "tmpname", "tonumber", "tostring", "traceback", "type", "unpack", "upper", "wrap",
+			"write", "xpcall", "yield"
+		};
+
 		for (auto& keyword : keywords) { language.keywords.insert(keyword); }
+		for (auto& identifier : identifiers) { language.identifiers.insert(identifier); }
 
 		language.isPunctuation = isLuaStylePunctuation;
 		language.getIdentifier = getCStyleIdentifier;
