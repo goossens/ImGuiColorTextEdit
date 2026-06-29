@@ -48,7 +48,7 @@ void TextEditor::setText(const std::string_view& text) {
 //	TextEditor::render
 //
 
-void TextEditor::render(const char* title, const ImVec2& size, bool border) {
+void TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags) {
 	// get font information
 	font = ImGui::GetFont();
 	fontSize = ImGui::GetFontSize();
@@ -59,14 +59,6 @@ void TextEditor::render(const char* title, const ImVec2& size, bool border) {
 		ImGui::SetNextWindowFocus();
 		focusOnEditor = false;
 	}
-
-	// determine window flags
-	ImGuiChildFlags childFlags = border ? ImGuiChildFlags_Borders : ImGuiChildFlags_None;
-
-	ImGuiWindowFlags windowFlags =
-		ImGuiWindowFlags_HorizontalScrollbar |
-		ImGuiWindowFlags_NoNavInputs |
-		ImGuiWindowFlags_NoMove;
 
 	// start a new child window
 	ImGui::SetNextWindowContentSize(totalSize);

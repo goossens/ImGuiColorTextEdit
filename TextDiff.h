@@ -55,7 +55,11 @@ public:
 	void SetText(const std::string_view& left, const std::string_view& right);
 
 	// render text diff in a Dear ImGui context
-	void Render(const char* title, const ImVec2& size=ImVec2(), bool border=false);
+	// note: if you overwrite windowFlags to for instance add ImGuiWindowFlags_NoSavedSettings
+	// ensure you keep the default as they are required for the diff widget
+	// - ImGuiWindowFlags_NoNavInputs to ensure cursor keys are passed to the diff widget
+	// - ImGuiWindowFlags_NoMove to ensure mouse drag event are passed to the diff widget
+	void Render(const char* title, const ImVec2& size=ImVec2(), ImGuiChildFlags childFlags=0, ImGuiWindowFlags windowFlags=ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoMove);
 
 private:
 	// information about a single line
@@ -154,7 +158,7 @@ private:
 		TextEditor::TypeSetter rightTypeSetter;
 
 		// rendering functions
-		void render(const char* title, const ImVec2& size, bool border, Diff& diff);
+		void render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags, Diff& diff);
 		void renderBackground(const Diff& diff);
 		void renderText(const Diff& diff);
 		void renderLine(float x, float y, const TextEditor::Line& line, size_t section, const Diff& diff);
@@ -224,7 +228,7 @@ private:
 		TextEditor::TypeSetter rightTypeSetter;
 
 		// rendering functions
-		void render(const char* title, const ImVec2& size, bool border, Diff& diff);
+		void render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags, Diff& diff);
 		void renderBackground(const Diff& diff);
 		void renderText(const Diff& diff);
 		void renderLine(float x, float y, const TextEditor::Line& line, size_t section, const Diff& diff);

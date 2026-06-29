@@ -73,7 +73,7 @@ void TextDiff::SetText(const std::string_view& left, const std::string_view& rig
 //	TextDiff::Render
 //
 
-void TextDiff::Render(const char* title, const ImVec2& size, bool border) {
+void TextDiff::Render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags) {
 	// update color palette (if required)
 	if (diff.paletteAlpha != ImGui::GetStyle().Alpha) {
 		updatePalette();
@@ -91,11 +91,11 @@ void TextDiff::Render(const char* title, const ImVec2& size, bool border) {
 
 	if (diff.sideBySideMode) {
 		// render a custom side-by-side view
-		sideBySideView.render(title, size, border, diff);
+		sideBySideView.render(title, size, childFlags, windowFlags, diff);
 
 	} else {
 		// render combined view
-		integratedView.render(title, size, border, diff);
+		integratedView.render(title, size, childFlags, windowFlags, diff);
 	}
 
 	// reset view mode
@@ -116,25 +116,17 @@ void TextDiff::Render(const char* title, const ImVec2& size, bool border) {
 //	TextDiff::IntegratedView::render
 //
 
-void TextDiff::IntegratedView::render(const char* title, const ImVec2& size, bool border, Diff& diff) {
+void TextDiff::IntegratedView::render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags, Diff& diff) {
 	// get font information
 	font = ImGui::GetFont();
 	fontSize = ImGui::GetFontSize();
 	glyphSize = ImVec2(ImGui::CalcTextSize("#").x, ImGui::GetTextLineHeightWithSpacing() * diff.config.lineSpacing);
 
-	// determine flags
-	ImGuiChildFlags childFlags = border ? ImGuiChildFlags_Borders : ImGuiChildFlags_None;
-
-	ImGuiWindowFlags windowFlags =
-		ImGuiWindowFlags_HorizontalScrollbar |
-		ImGuiWindowFlags_NoNavInputs |
-		ImGuiWindowFlags_NoMove;
-
-		// start rendering the widget
+	// start rendering the widget
 	ImGui::SetNextWindowContentSize(ImVec2(0.0f, glyphSize.y * rows.size()));
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(diff.palette.get(TextEditor::Color::background)));
-	ImGui::BeginChild(title, size, childFlags, windowFlags);
+	ImGui::BeginChild(title, size, childFlags, windowFlags | ImGuiWindowFlags_HorizontalScrollbar);
 
 	// determine visible dimensions
 	cursorScreenPos = ImGui::GetCursorScreenPos();
@@ -487,20 +479,13 @@ void TextDiff::IntegratedView::updateLayout(Diff& diff) {
 //	TextDiff::SideBySideView::render
 //
 
-void TextDiff::SideBySideView::render(const char* title, const ImVec2& size, bool border, Diff& diff) {
+void TextDiff::SideBySideView::render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags, Diff& diff) {
 	// get font information
 	font = ImGui::GetFont();
 	fontSize = ImGui::GetFontSize();
 	glyphSize = ImVec2(ImGui::CalcTextSize("#").x, ImGui::GetTextLineHeightWithSpacing() * diff.config.lineSpacing);
 
-	// determine flags
-	ImGuiChildFlags childFlags = border ? ImGuiChildFlags_Borders : ImGuiChildFlags_None;
-
-	ImGuiWindowFlags windowFlags =
-		ImGuiWindowFlags_HorizontalScrollbar |
-		ImGuiWindowFlags_NoNavInputs;
-
-		// start rendering the widget
+	// start rendering the widget
 	ImGui::SetNextWindowContentSize(ImVec2(0.0f, glyphSize.y * rows.size()));
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(diff.palette.get(TextEditor::Color::background)));
