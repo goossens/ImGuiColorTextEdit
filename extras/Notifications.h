@@ -167,6 +167,7 @@ private:
 				ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y - offset), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
 
 				ImGuiWindowFlags flags =
+					ImGuiWindowFlags_NoSavedSettings |
 					ImGuiWindowFlags_AlwaysAutoResize |
 					ImGuiWindowFlags_NoDecoration |
 					ImGuiWindowFlags_NoNav |
