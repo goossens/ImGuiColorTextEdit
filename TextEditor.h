@@ -66,6 +66,8 @@ public:
 	inline bool IsShowTabsEnabled() const { return showTabs; }
 	inline void SetShowLineNumbersEnabled(bool value) { showLineNumbers = value; }
 	inline bool IsShowLineNumbersEnabled() const { return showLineNumbers; }
+	inline void SetLineNumberLeftMargin(int value) { leftMargin = std::max(0, value); } // margin is expressed in glyphs
+	inline int GetLineNumberLeftMargin() const { return leftMargin; }
 	inline void SetShowScrollbarMiniMapEnabled(bool value) { showScrollbarMiniMap = value; }
 	inline bool IsShowScrollbarMiniMapEnabled() const { return showScrollbarMiniMap; }
 	inline void SetShowPanScrollIndicatorEnabled(bool value) { showPanScrollIndicator = value; }
@@ -1347,7 +1349,7 @@ protected:
 	int contextMenuLine = 0;
 	int contextMenuColumn = 0;
 
-	static constexpr int leftMargin = 1; // margins are expressed in glyphs
+	int leftMargin = 1; // margins are expressed in glyphs
 	static constexpr int decorationMargin = 1;
 	static constexpr int textMargin = 2;
 	static constexpr int cursorWidth = 1;
