@@ -7,7 +7,7 @@ on:
 
 jobs:
   verify-windows:
-    runs-on: windows-2025
+    runs-on: windows-2022
 
     steps:
     - name: Checkout Repository
