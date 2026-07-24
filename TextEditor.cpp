@@ -8079,6 +8079,12 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 		ImGui::GetCursorScreenPos().y + (pos.row + 1) * glyphSize.y));
 
 	auto suggestions = state.suggestions.size();
+
+	// an empty result while typing dismisses silently; only a manual trigger earns the "no suggestions" feedback
+	if (suggestions == 0 && !state.suggestionsPromise && !triggeredManually) {
+		requestDeactivation = true;
+	}
+
 	auto visibleSuggestions = (suggestions == 0) ? 1 : std::min(static_cast<size_t>(10), suggestions);
 	const auto& style = ImGui::GetStyle();
 	auto height = ImGui::GetFrameHeightWithSpacing() * visibleSuggestions + style.WindowPadding.y * 2.0f;
