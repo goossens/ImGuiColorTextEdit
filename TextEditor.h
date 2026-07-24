@@ -546,6 +546,10 @@ public:
 		// this only works when triggered manually
 		bool autoInsertSingleSuggestions = false;
 
+		// see if the popup is dismissed silently when typing produces no suggestions
+		// a manual trigger still shows the noSuggestionsLabel feedback (and this respects suggestionsPromise)
+		bool dismissWhenEmpty = false;
+
 		// delay in milliseconds between autocomplete trigger and suggestions popup
 		std::chrono::milliseconds triggerDelay{200};
 
