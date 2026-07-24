@@ -72,29 +72,34 @@ void TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		visibleSize = ImGui::GetCurrentWindow()->InnerRect.GetSize();
 
 		// determine horizontal offsets for line numbers, decorations and text
-		lineNumberLeftOffset = leftMargin * glyphSize.x;
-
 		if (config.showLineNumbers) {
 			size_t digits = static_cast<size_t>(std::log10(static_cast<float>(document.size() + 1)) + 1.0f);
+			lineNumberLeftOffset = config.leftMargin * glyphSize.x;
 			lineNumberRightOffset = lineNumberLeftOffset + digits * glyphSize.x;
-			decorationOffset = lineNumberRightOffset + decorationMargin * glyphSize.x;
 
 		} else {
-			lineNumberRightOffset = lineNumberLeftOffset;
-			decorationOffset = lineNumberLeftOffset;
+			lineNumberLeftOffset = 0.0f;
+			lineNumberRightOffset = 0.0f;
+		}
+
+		if (config.lineFolding) {
+			foldIndicatorOffset = lineNumberLeftOffset;
+			lineNumberLeftOffset += glyphSize.x;
+			lineNumberRightOffset += glyphSize.x;
 		}
 
 		if (decoratorWidth > 0.0f) {
-			textLeftOffset = decorationOffset + decoratorWidth + decorationMargin * glyphSize.x;
+			decorationOffset = lineNumberRightOffset + config.decorationMargin * glyphSize.x;
+			textLeftOffset = decorationOffset + decoratorWidth + config.decorationMargin * glyphSize.x;
 
 		} else if (decoratorWidth < 0.0f) {
-			textLeftOffset = decorationOffset + (-decoratorWidth + decorationMargin) * glyphSize.x;
+			decorationOffset = lineNumberRightOffset + config.decorationMargin * glyphSize.x;
+			textLeftOffset = decorationOffset + (-decoratorWidth + config.decorationMargin) * glyphSize.x;
 
 		} else {
-			textLeftOffset = decorationOffset + textMargin * glyphSize.x;
+			decorationOffset = lineNumberRightOffset;
+			textLeftOffset = decorationOffset + config.textMargin * glyphSize.x;
 		}
-
-		foldIndicatorOffset = textLeftOffset - glyphSize.x;
 
 		if (config.showMiniMap) {
 			auto fontScale = ImGui::GetStyle().FontScaleDpi;

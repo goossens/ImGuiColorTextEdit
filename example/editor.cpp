@@ -445,6 +445,27 @@ void Editor::renderMenuBar() {
 			flag = editor.IsShowScrollbarMiniMapEnabled(); if (ImGui::MenuItem("Show Scrollbar Mini Map", nullptr, &flag)) { editor.SetShowScrollbarMiniMapEnabled(flag); };
 			flag = editor.IsShowPanScrollIndicatorEnabled(); if (ImGui::MenuItem("Show Pan/Scroll Indicator", nullptr, &flag)) { editor.SetShowPanScrollIndicatorEnabled(flag); };
 			flag = editor.IsMiddleMousePanMode(); if (ImGui::MenuItem("Middle Mouse Pan Mode", nullptr, &flag)) { if (flag) editor.SetMiddleMousePanMode(); else editor.SetMiddleMouseScrollMode(); };
+
+			ImGui::Separator();
+
+			if (ImGui::BeginMenu("Line Number Left Margin")) {
+				int margin = static_cast<int>(editor.GetLineNumberLeftMargin());
+				if (ImGui::SliderInt("##margin", &margin, 0, 4)) { editor.SetLineNumberLeftMargin(static_cast<size_t>(margin)); }
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Decoration Left Margin")) {
+				int margin = static_cast<int>(editor.GetDecorationLeftMargin());
+				if (ImGui::SliderInt("##margin", &margin, 0, 4)) { editor.SetDecorationLeftMargin(static_cast<size_t>(margin)); }
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Text Left Margin")) {
+				int margin = static_cast<int>(editor.GetTextLeftMargin());
+				if (ImGui::SliderInt("##margin", &margin, 0, 4)) { editor.SetTextLeftMargin(static_cast<size_t>(margin)); }
+				ImGui::EndMenu();
+			}
+
 			ImGui::EndMenu();
 		}
 
