@@ -9,6 +9,7 @@
 //	Include files
 //
 
+#include <cstdint>
 #include <cmath>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
