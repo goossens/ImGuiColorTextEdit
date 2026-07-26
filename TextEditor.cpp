@@ -8115,8 +8115,8 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
 					if (currentSelection == 0) {
 						currentSelection = items - 1;
-}
-					 else {
+
+					} else {
 						currentSelection--;
 					}
 

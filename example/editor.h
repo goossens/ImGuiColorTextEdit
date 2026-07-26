@@ -15,7 +15,6 @@
 #include <algorithm>
 #include <functional>
 #include <string>
-#include <vector>
 
 #include "../TextEditor.h"
 #include "../TextDiff.h"

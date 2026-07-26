@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "lsp/messagehandler.h"
-#include "lsp/messages.h"
+#include "lsp/messages.h" // IWYU pragma: keep
 #include "lsp/process.h"
 
 #include "../TextEditor.h"
