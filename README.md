@@ -9,7 +9,6 @@
 <br/>
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 ![Maintained](https://img.shields.io/maintenance/yes/2026?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-0.9-blue?style=for-the-badge)
 
 # Colorizing Text Editor and Text Diff for Dear ImGui
 
@@ -38,7 +37,7 @@ In April 2026, another large refactoring effort was undertaken to improve the
 architecture of the widget so that new features could be implemented. The biggest change
 was to make a distinction between document positions and visual positions (see below)
 which makes the editor use more of a Model-View-Controller (MVC) design pattern.
-This change enables implementation of Word Wrap and Line Folding but it breaks some
+This change enables implementation of Word Wrap, Line Folding and Minimaps but it breaks some
 API calls. We believe the public API is now better and more logical but it takes a little
 effort to port from the older versions to this new one. If you only want the old interface
 and forgo new features, the legacy release contains a version that is most compatible with
@@ -65,7 +64,7 @@ features are however included.
 
 - Works on MacOS, Linux and Windows.
 - Has look and feel similar to Visual Studio Code.
-- Works with latest Dear ImGui version (currently v1.92.8) and does not use deprecated functions.
+- Works with latest Dear ImGui version (currently v1.92.8 && v1.92.9) and does not use deprecated functions.
 - Supports dynamic font sizes (courtesy of Dear ImGui v1.92+). Implemented in the [example application](example/).
 - Supports UTF-8 encoding with 16/32 bit codepoints (based on Dear ImGui configuration, see below).
 - Is C++17 based (not unreasonable in 2026 I think) although Dear ImGui still uses C++11.
@@ -322,6 +321,11 @@ and source code is available
 find the source code [here](https://codeberg.org/pongasoft/webgpu-shader-toy).
 This is another fine example on how far web technology has come and how easy
 it is to use this editor on a web page.
+
+## Versioning
+
+This repository includes releases with a numbering scheme synchronized with Dear ImGui.
+This will allow people to quickly find a version of the widgets compatible with a specific Dear ImGui version.
 
 ## Issues
 
