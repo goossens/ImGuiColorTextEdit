@@ -1,14 +1,14 @@
-# Autocomplete
+# AutoComplete
 
 The text editor provides an optional autocomplete framework. Once configured, the editor
 takes care of activation events (triggering), state tracking, visualization and insertion
 of suggestions with full undo/redo. The application is responsible for providing the list
 of suggestions through a callback or the API. This allows simple implementations to provide
 suggestions in realtime and allows other implementations to do things asynchronously like
-reaching out to a language server. Autocomplete can't be triggered when multiple cursors
+reaching out to a language server. AutoComplete can't be triggered when multiple cursors
 are active as this causes a mess. Try it in Visual Studio Code if you want to see what I mean.
 
-![Autocomplete](autocomplete.png)
+![AutoComplete](autocomplete.png)
 
 To activate the feature, the app must provide a configuration like:
 
@@ -52,10 +52,13 @@ public:
 	bool autoInsertSingleSuggestions = false;
 
 	// delay in milliseconds between autocomplete trigger and suggestions popup
-	std::chrono::milliseconds triggerDelay{200};
+	std::chrono::milliseconds triggerDelay(200);
 
 	// text label used when no suggestions are available (this allows for internationalization)
 	std::string noSuggestionsLabel = "No suggestions";
+
+	// width of suggestion popup expressed in number of glyphs
+	size_t suggestionWidth = 30;
 
 	// called when autocomplete is configured, active and the editor needs an updated suggestions list
 	// callback must populate and order suggestions in state object
@@ -64,7 +67,6 @@ public:
 
 	// if it takes too long, applications should do search in separate thread and
 	// use API to report results (see SetAutoCompleteSuggestions)
-	// callback should set suggestionsPromise to true in this case
 	std::function<void(AutoCompleteState&)> callback;
 
 	// optional opaque void* that must be managed externally but passed to callback
@@ -79,14 +81,10 @@ It is defined as:
 ```c++
 class AutoCompleteState {
 public:
-	// current context (strings = UTF-8, columns = Nth visible column and indices = Nth codepoint)
-	// to understand the difference between column and index, think like a tab :-)
+	// current context
 	std::string searchTerm;
-	size_t line;
-	size_t searchTermStartColumn;
-	size_t searchTermStartIndex;
-	size_t searchTermEndColumn;
-	size_t searchTermEndIndex;
+	DocPos searchTermStart;
+	DocPos searchTermEnd;
 
 	bool inIdentifier;
 	bool inNumber;
@@ -96,7 +94,7 @@ public:
 	// currently selected language (could be nullptr if no language is selected)
 	const Language* language;
 
-	// opaque void* provided by app when autocomplete was setup
+	// optional opaque void* provided by app when autocomplete was setup
 	void* userData;
 
 	// auto complete suggestions te be provided by app callback (the app is responsible for sorting)
@@ -112,65 +110,30 @@ public:
 };
 ```
 
-The editor also comes with a Trie class that implements fuzzy searching and
-the example app shows how it can be used. Given that this is a primitive,
-poor-man's solution, more sophisticated solutions probably required external
-language engines/services that are beyond the scope of this editor. With the
-provided API however, connections to external capabilities can be established
-and context-sensitive suggestions can be provided based on the most advanced
-algorithms (even good-old AI slop :-).
+The editor comes with two autocomplete solutions that are in the extras
+folder. The first is a simple suggestion generator that attaches itself to
+the text editor and create a suggestion list based on keywords in the selected
+language and all identifiers contained in the current document. This
+solution is very fast but lacks the ability to provide context specific
+suggestions. For that, a second solution is [available](lsp.md) which lets
+you connect to a language server.
 
-Below is a quick snippet that shows how to use the Trie class to implement
-a poor-man's autocomplete without using a language server. This snippet
-was taken from the [example application](../example/) so can see it in
-context.
+To use the simple solution, do the following:
+
+- Include the **TrieAutoComplete.cpp** and **TrieAutoComplete.h** files in your
+project (both are in the **extras** folder).
+- Create an instance of the **TrieAutoComplete** class.
+- Use the **Connect** and **Disconnect** methods to connect the object to the text editor.
+- Everything else is done automatically for you.
+
+So as a simple example:
 
 ```c++
-void Editor::setAutocompleteMode(bool flag) {
-	// see we are turning autocomplete on or off
-	if (flag) {
-		// rebuild word list
-		buildAutocompleteTrie();
+TextEditor editor;
+TrieAutoComplete trieAutoComplete;
 
-		// setup autocomplete by submitting a new configuration
-		TextEditor::AutoCompleteConfig config;
-
-		config.callback = [this](TextEditor::AutoCompleteState& state) {
-			trie.findSuggestions(state.suggestions, state.searchTerm);
-		};
-
-		editor.SetAutoCompleteConfig(&config);
-
-		// enable change tracking
-		// we don't track every keystroke, callbacks can be delayed up to 3000 milliseconds
-		// if you want live tracking, change 3000 to 0 (performance hit will be minimal for small documents)
-		editor.SetChangeCallback([this]() {
-			buildAutocompleteTrie();
-		}, 3000);
-
-	} else {
-		// disable autocomplete and change tracking
-		editor.SetAutoCompleteConfig(nullptr);
-		editor.SetChangeCallback(nullptr);
-	}
-}
-
-void Editor::buildAutocompleteTrie() {
-	// empty list first
-	trie.clear();
-
-	// add language words (if required)
-	auto language = editor.GetLanguage();
-
-	if (language) {
-		for (auto& word : language->keywords) { trie.insert(word); }
-		for (auto& word : language->declarations) { trie.insert(word); }
-		for (auto& word : language->identifiers) { trie.insert(word); }
-	}
-
-	// add all identifiers in current document
-	editor.IterateIdentifiers([this](const std::string& identifier) {
-		trie.insert(identifier);
-	});
-}
+trieAutoComplete.Connect(&editor);
 ```
+
+For more information on the Language Server Protocol Bridge, its dependencies
+and its use, see the [documentation](lsp.md).

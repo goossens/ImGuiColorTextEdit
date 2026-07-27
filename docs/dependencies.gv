@@ -1,0 +1,56 @@
+// https://magjac.com/graphviz-visual-editor/
+
+digraph "Editor" {
+	rankdir="LR";
+	node [shape = polygon, fontname = "Verdana"];
+
+    "TextEditor" [color="red", penwidth=4]
+    "Document" [color="red", penwidth=3]
+    "Cursors" [color="red", penwidth=2]
+    "Transactions" [color="red", penwidth=2]
+    "AutoComplete" [color="red", penwidth=2]
+    "Colorizer" [color="red", penwidth=2]
+    "Bracketeer" [color="red", penwidth=2]
+    "LineFold" [color="red", penwidth=2]
+    "MiniMap" [color="red", penwidth=2]
+    "TypeSetter" [color="red", penwidth=2]
+    "Cursor" [color="blue", penwidth=2]
+    "Transaction" [color="blue", penwidth=2]
+    "LineBreak" [color="blue", penwidth=2]
+    "Language" [color="blue", penwidth=2]
+    "DocPos" [color="orange", penwidth=2]
+    "VisPos" [color="orange", penwidth=2]
+
+	"TextEditor" -> "Document"
+	"TextEditor" -> "Cursors"
+	"TextEditor" -> "Colorizer"
+	"TextEditor" -> "Bracketeer"
+	"TextEditor" -> "TypeSetter"
+	"TextEditor" -> "Transactions"
+	"TextEditor" -> "AutoComplete"
+	"TextEditor" -> "MiniMap"
+	"TextEditor" -> "LineFold"
+	"TextEditor" -> "VisPos"
+	"Transactions" -> "Transaction"
+	"Transactions" -> "Document"
+	"Transaction" -> "Cursors"
+	"Transaction" -> "Action"
+	"Action" -> "DocPos"
+	"AutoComplete" -> "Document"
+	"MiniMap" -> "Document"
+	"MiniMap" -> "TypeSetter"
+	"Colorizer" -> "Document"
+	"Colorizer" -> "Language"
+	"Bracketeer" -> "Document"
+	"TypeSetter" -> "Document"
+	"TypeSetter" -> "LineBreak"
+	"TypeSetter" -> "VisPos"
+	"LineBreak" -> "Line"
+	"LineFold" -> "Document"
+	"LineFold" -> "Bracketeer"
+	"Cursors" -> "Cursor"
+	"Cursor" -> "DocPos"
+	"Document" -> "Line"
+	"Document" -> "DocPos"
+	"Line" -> "Glyph"
+}

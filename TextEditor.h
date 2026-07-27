@@ -17,10 +17,10 @@
 #include <chrono>
 #include <functional>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -41,101 +41,156 @@ public:
 	// Public member functions start with an uppercase character to be consistent with Dear ImGui
 	//
 
-	// access editor options
-	inline void SetTabSize(int value) {
-		// this must be called before text is loaded/edited
-		if (document.isEmpty() && transactions.empty()) {
-			document.setTabSize(std::max(1, std::min(8, value)));
-		}
-	}
+	struct DocPos {
+		// represents the logical position of a glyph in a document expressed as a line number and glyph index (both zero-based)
+		DocPos() = default;
+		DocPos(size_t line, size_t index) : line(line), index(index) {}
 
-	inline int GetTabSize() const { return document.getTabSize(); }
-	inline void SetInsertSpacesOnTabs(bool value) { document.setInsertSpacesOnTabs(value); }
-	inline bool IsInsertSpacesOnTabs() const { return document.isInsertSpacesOnTabs(); }
-	inline void SetLineSpacing(float value) { lineSpacing = std::max(1.0f, std::min(2.0f, value)); }
-	inline float GetLineSpacing() const { return lineSpacing; }
-	inline void SetReadOnlyEnabled(bool value) { readOnly = value; }
-	inline bool IsReadOnlyEnabled() const { return readOnly; }
-	inline void SetAutoIndentEnabled(bool value) { autoIndent = value; }
-	inline bool IsAutoIndentEnabled() const { return autoIndent; }
-	inline void SetShowWhitespacesEnabled(bool value) { showSpaces = value; showTabs = value; }
-	inline bool IsShowWhitespacesEnabled() const { return showSpaces && showTabs; }
-	inline void SetShowSpacesEnabled(bool value) { showSpaces = value; }
-	inline bool IsShowSpacesEnabled() const { return showSpaces; }
-	inline void SetShowTabsEnabled(bool value) { showTabs = value; }
-	inline bool IsShowTabsEnabled() const { return showTabs; }
-	inline void SetShowLineNumbersEnabled(bool value) { showLineNumbers = value; }
-	inline bool IsShowLineNumbersEnabled() const { return showLineNumbers; }
-	inline void SetLineNumberLeftMargin(int value) { leftMargin = std::max(0, value); } // margin is expressed in glyphs
-	inline int GetLineNumberLeftMargin() const { return leftMargin; }
-	inline void SetShowScrollbarMiniMapEnabled(bool value) { showScrollbarMiniMap = value; }
-	inline bool IsShowScrollbarMiniMapEnabled() const { return showScrollbarMiniMap; }
-	inline void SetShowPanScrollIndicatorEnabled(bool value) { showPanScrollIndicator = value; }
-	inline bool IsShowPanScrollIndicatorEnabled() const { return showPanScrollIndicator; }
-	inline void SetShowMatchingBrackets(bool value) { showMatchingBrackets = value; showMatchingBracketsChanged = true; }
-	inline bool IsShowingMatchingBrackets() const { return showMatchingBrackets; }
-	inline void SetCompletePairedGlyphs(bool value) { completePairedGlyphs = value; }
-	inline bool IsCompletingPairedGlyphs() const { return completePairedGlyphs; }
-	inline void SetOverwriteEnabled(bool value) { overwrite = value; }
-	inline bool IsOverwriteEnabled() const { return overwrite; }
-	inline void SetMiddleMousePanMode() { panMode = true; }
-	inline void SetMiddleMouseScrollMode() { panMode = false; }
-	inline bool IsMiddleMousePanMode() const { return panMode; }
+		inline bool operator ==(const DocPos& rhs) const { return line == rhs.line && index == rhs.index; }
+		inline bool operator !=(const DocPos& rhs) const { return line != rhs.line || index != rhs.index; }
+		inline bool operator <(const DocPos& rhs) const { return line != rhs.line ? line < rhs.line : index < rhs.index; }
+		inline bool operator >(const DocPos& rhs) const { return line != rhs.line ? line > rhs.line : index > rhs.index; }
+		inline bool operator <=(const DocPos& rhs) const { return line != rhs.line ? line < rhs.line : index <= rhs.index; }
+		inline bool operator >=(const DocPos& rhs) const { return line != rhs.line ? line > rhs.line : index >= rhs.index; }
+
+		inline DocPos operator -(const DocPos& rhs) const { return DocPos(line - rhs.line, index - rhs.index); }
+		inline DocPos operator +(const DocPos& rhs) const { return DocPos(line + rhs.line, index + rhs.index); }
+
+		size_t line = 0;
+		size_t index = 0;
+	};
+
+	struct DocSelection {
+		// represents a range of glyphs from a starting position to an end position
+		DocSelection() = default;
+		DocSelection(DocPos start, DocPos end) : start(start), end(end) {}
+		DocPos start;
+		DocPos end;
+	};
+
+	struct VisPos {
+		// represents the visual position of a glyph expressed as a visible row and column number (both zero-based)
+		// this is not necessarily the same as the document position
+		// tabs create a horizontal offset between index and column
+		// word-wrapping creates a vertical offset between line and row
+		VisPos() = default;
+		VisPos(size_t row, size_t column) : row(row), column(column) {}
+
+		inline bool operator ==(const VisPos& rhs) const { return row == rhs.row && column == rhs.column; }
+		inline bool operator !=(const VisPos& rhs) const { return row != rhs.row || column != rhs.column; }
+		inline bool operator <(const VisPos& rhs) const { return row != rhs.row ? row < rhs.row : column < rhs.column; }
+		inline bool operator >(const VisPos& rhs) const { return row != rhs.row ? row > rhs.row : column > rhs.column; }
+		inline bool operator <=(const VisPos& rhs) const { return row != rhs.row ? row < rhs.row : column <= rhs.column; }
+		inline bool operator >=(const VisPos& rhs) const { return row != rhs.row ? row > rhs.row : column >= rhs.column; }
+
+		inline VisPos operator -(const VisPos& rhs) const { return VisPos(row - rhs.row, column - rhs.column); }
+		inline VisPos operator +(const VisPos& rhs) const { return VisPos(row + rhs.row, column + rhs.column); }
+
+		size_t row = 0;
+		size_t column = 0;
+	};
+
+	// access editor's configuration options
+	inline void SetTabSize(size_t value) { config.tabSize = value; }
+	inline size_t GetTabSize() const { return config.tabSize; }
+	inline void SetInsertSpacesOnTabs(bool value) { config.insertSpacesOnTabs = value; }
+	inline bool IsInsertSpacesOnTabs() const { return config.insertSpacesOnTabs; }
+	inline void SetLineSpacing(float value) { config.lineSpacing = std::max(1.0f, std::min(2.0f, value)); }
+	inline float GetLineSpacing() const { return config.lineSpacing; }
+	inline void SetWordWrapEnabled(bool value) { config.wordWrap = value; }
+	inline bool IsWordWrapEnabled() const { return config.wordWrap; }
+	inline void SetReadOnlyEnabled(bool value) { config.readOnly = value; }
+	inline bool IsReadOnlyEnabled() const { return config.readOnly; }
+	inline void SetCaretsVisible(bool value) { config.caretsVisible = value; }
+	inline bool IsCaretsVisible() const { return config.caretsVisible; }
+	inline void SetAutoIndentEnabled(bool value) { config.autoIndent = value; }
+	inline bool IsAutoIndentEnabled() const { return config.autoIndent; }
+	inline void SetShowWhitespacesEnabled(bool value) { config.showSpaces = value; config.showTabs = value; }
+	inline bool IsShowWhitespacesEnabled() const { return config.showSpaces && config.showTabs; }
+	inline void SetShowSpacesEnabled(bool value) { config.showSpaces = value; }
+	inline bool IsShowSpacesEnabled() const { return config.showSpaces; }
+	inline void SetShowTabsEnabled(bool value) { config.showTabs = value; }
+	inline bool IsShowTabsEnabled() const { return config.showTabs; }
+	inline void SetShowLineNumbersEnabled(bool value) { config.showLineNumbers = value; }
+	inline bool IsShowLineNumbersEnabled() const { return config.showLineNumbers; }
+	inline void SetShowMiniMapEnabled(bool value) { config.showMiniMap = value; }
+	inline bool IsShowMiniMapEnabled() const { return config.showMiniMap; }
+	inline void SetMiniMapColumns(size_t value) { config.miniMapColumns = value; }
+	inline size_t GetMiniMapColumns() const { return config.miniMapColumns; }
+	inline void SetShowScrollbarMiniMapEnabled(bool value) { config.showScrollbarMiniMap = value; }
+	inline bool IsShowScrollbarMiniMapEnabled() const { return config.showScrollbarMiniMap; }
+	inline void SetShowPanScrollIndicatorEnabled(bool value) { config.showPanScrollIndicator = value; }
+	inline bool IsShowPanScrollIndicatorEnabled() const { return config.showPanScrollIndicator; }
+	inline void SetShowMatchingBrackets(bool value) { config.showMatchingBrackets = value; if (!value) { config.lineFolding = false; } }
+	inline bool IsShowingMatchingBrackets() const { return config.showMatchingBrackets; }
+	inline void SetCompletePairedGlyphs(bool value) { config.completePairedGlyphs = value; }
+	inline bool IsCompletingPairedGlyphs() const { return config.completePairedGlyphs; }
+	inline void SetLineFoldingEnabled(bool value) { config.lineFolding = value; if (value) { config.showMatchingBrackets = true; } }
+	inline bool IsLineFoldingEnabled() const { return config.lineFolding; }
+	inline void SetOverwriteEnabled(bool value) { config.overwrite = value; }
+	inline bool IsOverwriteEnabled() const { return config.overwrite; }
+	inline void SetMiddleMousePanMode() { config.panMode = true; }
+	inline void SetMiddleMouseScrollMode() { config.panMode = false; }
+	inline bool IsMiddleMousePanMode() const { return config.panMode; }
+	inline void SetLineNumberLeftMargin(size_t value) { config.leftMargin = value; } // margins are expressed in glyphs
+	inline size_t GetLineNumberLeftMargin() const { return config.leftMargin; }
+	inline void SetDecorationLeftMargin(size_t value) { config.decorationMargin = value; }
+	inline size_t GetDecorationLeftMargin() const { return config.decorationMargin; }
+	inline void SetTextLeftMargin(size_t value) { config.textMargin = value; }
+	inline size_t GetTextLeftMargin() const { return config.textMargin; }
 
 	// access text (using UTF-8 encoded strings)
 	// (see note below on cursor and scroll manipulation after setting new text)
 	inline void SetText(const std::string_view& text) { setText(text); }
 	inline std::string GetText() const { return document.getText(); }
-	inline std::string GetCursorText(size_t cursor) const { return getCursorText(cursor); }
 
-	inline std::string GetLineText(int line) const {
-		return (line < 0 || line > static_cast<int>(document.size())) ? "" : document.getLineText(line);
+	inline std::string GetCursorText(size_t cursor) const {
+		return cursor < cursors.size() ? document.getSectionText(cursors[cursor].getSelectionStart(), cursors[cursor].getSelectionEnd()) : "";
 	}
 
-	inline std::string GetSectionText(int startLine, int startColumn, int endLine, int endColumn) const {
-		return document.getSectionText(
-			document.normalizeCoordinate(Coordinate(startLine, startColumn)),
-			document.normalizeCoordinate(Coordinate(endLine, endColumn)));
+	inline std::string GetLineText(size_t line) const {
+		return line < document.size() ? document.getLineText(line) : "";
 	}
 
-	inline void ReplaceSectionText(int startLine, int startColumn, int endLine, int endColumn, const std::string_view& text) {
-		return replaceSectionText(
-			document.normalizeCoordinate(Coordinate(startLine, startColumn)),
-			document.normalizeCoordinate(Coordinate(endLine, endColumn)),
-			text
-		);
-	}
+	inline std::string GetSectionText(DocPos start, DocPos end) const { return document.getSectionText(normalizePos(start), normalizePos(end)); }
+	inline std::string GetSectionText(const DocSelection& selection) const { return GetSectionText(selection.start, selection.end); }
+	inline void ReplaceSectionText(DocPos start, DocPos end, const std::string_view& text) { replaceSectionText(normalizePos(start), normalizePos(end), text); }
+	inline void ReplaceSectionText(const DocSelection& selection, const std::string_view& text) { ReplaceSectionText(selection.start, selection.end, text); }
 
-	inline void ClearText() { SetText(""); }
+	inline void ClearText() { setText(""); }
 
 	inline bool IsEmpty() const { return document.isEmpty(); }
-	inline int GetLineCount() const { return document.lineCount(); }
+	inline size_t GetLineCount() const { return document.size(); }
 
 	// render the text editor in a Dear ImGui context
-	inline void Render(const char* title, const ImVec2& size=ImVec2(), bool border=false) { render(title, size, border); }
+	// note: if you overwrite windowFlags to for instance add ImGuiWindowFlags_NoSavedSettings
+	// ensure you keep the default as they are required for the editor
+	// - ImGuiWindowFlags_NoNavInputs to ensure cursor keys are passed to the editor
+	// - ImGuiWindowFlags_NoMove to ensure mouse drag event are passed to the editor
+	// - ImGuiWindowFlags_HorizontalScrollbar to ensure a horizontal scrollbar is rendered when required
+	inline void Render(const char* title, const ImVec2& size=ImVec2(), ImGuiChildFlags childFlags=0, ImGuiWindowFlags windowFlags=ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_HorizontalScrollbar) { render(title, size, childFlags, windowFlags); }
 
 	// programmatically set focus on the editor
 	inline void SetFocus() { focusOnEditor = true; }
 
 	// clipboard actions
-	inline void Cut() { if (!readOnly) cut(); }
+	inline void Cut() { if (!config.readOnly) cut(); }
 	inline void Copy() const { copy(); }
-	inline void Paste() { if (!readOnly) paste(); }
-	inline void Undo() { if (!readOnly) undo(); }
-	inline void Redo() { if (!readOnly) redo(); }
-	inline bool CanUndo() const { return !readOnly && transactions.canUndo(); };
-	inline bool CanRedo() const { return !readOnly && transactions.canRedo(); };
+	inline void Paste() { if (!config.readOnly) paste(); }
+	inline void Undo() { if (!config.readOnly) undo(); }
+	inline void Redo() { if (!config.readOnly) redo(); }
+	inline bool CanUndo() const { return !config.readOnly && transactions.canUndo(); };
+	inline bool CanRedo() const { return !config.readOnly && transactions.canRedo(); };
 	inline size_t GetUndoIndex() const { return transactions.getUndoIndex(); };
 
 	// manipulate cursors and selections (line numbers are zero-based)
-	inline void SetCursor(int line, int column) { moveTo(document.normalizeCoordinate(Coordinate(line, column)), false); }
 	inline void SelectAll() { selectAll(); }
-	inline void SelectLine(int line) { if (line >= 0 && line < document.lineCount()) selectLine(line); }
-	inline void SelectLines(int start, int end) { if (start >= 0 && end < document.lineCount() && start <= end) selectLines(start, end); }
-	inline void SelectRegion(int startLine, int startColumn, int endLine, int endColumn) { selectRegion(startLine, startColumn, endLine, endColumn); }
+	inline void SelectLine(size_t line) { if (line < document.size()) selectLine(line); }
+	inline void SelectLines(size_t start, size_t end) { if (end < document.size() && start <= end) { selectLines(start, end); }}
+	inline void SelectRegion(DocPos start, DocPos end) { selectRegion(normalizePos(start), normalizePos(end)); }
 	inline void SelectToBrackets(bool includeBrackets=true) { selectToBrackets(includeBrackets); }
-	inline void GrowSelectionsToCurlyBrackets() { growSelectionsToCurlyBrackets(); }
-	inline void ShrinkSelectionsToCurlyBrackets() { shrinkSelectionsToCurlyBrackets(); }
+	inline void GrowSelections() { growSelections(); }
+	inline void ShrinkSelections() { shrinkSelections(); }
 	inline void AddNextOccurrence() { addNextOccurrence(); }
 	inline void SelectAllOccurrences() { selectAllOccurrences(); }
 	inline bool AnyCursorHasSelection() const { return cursors.anyHasSelection(); }
@@ -145,34 +200,17 @@ public:
 
 	// get cursor positions (the meaning of main and current is explained in README.md)
 	inline size_t GetNumberOfCursors() const { return cursors.size(); }
-	inline void GetCursor(int& line, int& column, size_t cursor) const { return getCursor(line, column, cursor); }
-	inline void GetCursor(int& startLine, int& startColumn, int& endLine, int& endColumn, size_t cursor) const { return getCursor(startLine, startColumn, endLine, endColumn, cursor); }
-	inline void GetMainCursor(int& line, int& column) const { return getCursor(line, column, cursors.getMainIndex()); }
-	inline void GetCurrentCursor(int& line, int& column) const { return getCursor(line, column, cursors.getCurrentIndex()); }
+	inline DocPos GetCursorPosition(size_t cursor) const { return getCursorPosition(cursor); }
+	inline DocPos GetMainCursorPosition() const { return getCursorPosition(cursors.getMainIndex()); }
+	inline DocPos GetCurrentCursorPosition() const { return getCursorPosition(cursors.getCurrentIndex()); }
+	inline DocSelection GetCursorSelection(size_t cursor) const { return getCursorSelection(cursor); }
+	inline DocSelection GetMainCursorSelection() const { return getCursorSelection(cursors.getMainIndex()); }
+	inline DocSelection GetCurrentCursorSelection() const { return getCursorSelection(cursors.getCurrentIndex()); }
 
-	// alternative API for cursor and selection position using lightweight out struct (line and column are zero-based)
-	struct CursorPosition {
-		CursorPosition() = default;
-		CursorPosition(int l, int c) : line(l), column(c) {}
-		int line = 0;
-		int column = 0;
-	};
-
-	struct CursorSelection {
-		CursorSelection() = default;
-		CursorSelection(CursorPosition s, CursorPosition e) : start(s), end(e) {}
-		CursorPosition start;
-		CursorPosition end;
-	};
-
-	inline CursorPosition GetMainCursorPosition() const { CursorPosition p; getCursor(p.line, p.column, cursors.getMainIndex()); return p; }
-	inline CursorPosition GetCurrentCursorPosition() const { CursorPosition p; getCursor(p.line, p.column, cursors.getCurrentIndex()); return p; }
-	inline CursorPosition GetCursorPosition(size_t cursor) const { CursorPosition p; getCursor(p.line, p.column, cursor); return p; }
-	inline CursorSelection GetCursorSelection(size_t cursor) const { CursorSelection s; getCursor(s.start.line, s.start.column, s.end.line, s.end.column, cursor); return s; }
-	inline CursorSelection GetMainCursorSelection() const { return GetCursorSelection(cursors.getMainIndex()); }
-
-	// get the word at a screen position
-	std::string GetWordAtScreenPos(const ImVec2& screenPos) const;
+	// get information at mouse position (e.g. from ImGui::GetMousePos())
+	inline bool IsMousePosOverGlyph(const ImVec2& mousePos) const { return isMousePosOverGlyph(mousePos); }
+	inline DocPos GetDocPosAtMousePos(const ImVec2& mousePos) const {return  getDocPosAtMousePos(mousePos); }
+	inline std::string GetWordAtMousePos(const ImVec2& mousePos) const { return getWordAtMousePos(mousePos); }
 
 	// scrolling support
 	enum class Scroll {
@@ -181,16 +219,17 @@ public:
 		alignBottom
 	};
 
-	inline void ScrollToLine(int line, Scroll alignment) { scrollToLine(line, alignment); }
-	inline int GetFirstVisibleLine() const { return firstVisibleLine; }
-	inline int GetLastVisibleLine() const { return lastVisibleLine; }
-	inline int GetFirstVisibleColumn() const { return firstVisibleColumn; }
-	inline int GetLastVisibleColumn() const { return lastVisibleColumn; }
+	inline void ScrollToLine(size_t line, Scroll alignment) { scrollToLine(line, alignment); }
+	inline size_t GetFirstVisibleRow() const { return firstVisibleRow; }
+	inline size_t GetLastVisibleRow() const { return lastVisibleRow; }
+	inline size_t GetFirstVisibleColumn() const { return firstVisibleColumn; }
+	inline size_t GetLastVisibleColumn() const { return lastVisibleColumn; }
 
-	inline float GetLineHeight() const { return glyphSize.y; }
-	inline float GetGlyphWidth() const { return glyphSize.x; }
+	// specify a new cursor position and scroll to it (if required)
+	// if the new position is currently in a folded region, it will be automatically unfolded
+	inline void SetCursor(DocPos pos) { setCursor(pos); }
 
-	// note on setting cursor and scrolling
+	// note on setting scrolling and cursor position
 	//
 	// calling SetCursor or ScrollToLine has no effect until the next call to Render
 	// this is because we can only do layout calculations when we are in a Dear ImGui drawing context
@@ -204,14 +243,28 @@ public:
 	// * then call ScrollToLine to mark the exact scroll location (it cancels the possible SetCursor scroll request)
 	// * call Render to properly update the entire state
 	//
-	// this works on opening the editor as well as later
+	// this works while opening the editor as well as later
+
+	// get glyph size in pixels
+	inline float GetLineHeight() const { return glyphSize.y; }
+	inline float GetGlyphWidth() const { return glyphSize.x; }
+
+	// coordinate transformation
+	inline VisPos DocPos2VisPos(DocPos pos) const { return docPos2VisPos(normalizePos(pos)); }
+	inline DocPos VisPos2DocPos(VisPos pos) const { return visPos2DocPos(normalizePos(pos)); }
+
+	// see if a specified document location is visible (not folded and currently on screen)
+	inline bool IsDocPosVisible(DocPos pos) const { return isDocPosVisible(normalizePos(pos)); }
+
+	// see if a visual position covers a glyph
+	inline bool IsVisPosOverGlyph(VisPos pos) const { return typeSetter.isVisPosOverGlyph(pos); }
 
 	// find/replace support
 	inline void SelectFirstOccurrenceOf(const std::string_view& text, bool caseSensitive=true, bool wholeWord=false) { selectFirstOccurrenceOf(text, caseSensitive, wholeWord); }
 	inline void SelectNextOccurrenceOf(const std::string_view& text, bool caseSensitive=true, bool wholeWord=false) { selectNextOccurrenceOf(text, caseSensitive, wholeWord); }
 	inline void SelectAllOccurrencesOf(const std::string_view& text, bool caseSensitive=true, bool wholeWord=false) { selectAllOccurrencesOf(text, caseSensitive, wholeWord); }
-	inline void ReplaceTextInCurrentCursor(const std::string_view& text) { if (!readOnly) replaceTextInCurrentCursor(text); }
-	inline void ReplaceTextInAllCursors(const std::string_view& text) { if (!readOnly) replaceTextInAllCursors(text); }
+	inline void ReplaceTextInCurrentCursor(const std::string_view& text) { if (!config.readOnly) replaceTextInCurrentCursor(text); }
+	inline void ReplaceTextInAllCursors(const std::string_view& text) { if (!config.readOnly) replaceTextInAllCursors(text); }
 
 	inline void OpenFindReplaceWindow() { openFindReplace(); }
 	inline void CloseFindReplaceWindow() { closeFindReplace(); }
@@ -224,35 +277,31 @@ public:
 	inline void FindAll() { findAll(); }
 
 	// access markers (line numbers are zero-based)
-	inline void AddMarker(int line, ImU32 lineNumberColor, ImU32 textColor, const std::string_view& lineNumberTooltip, const std::string_view& textTooltip) { addMarker(line, lineNumberColor, textColor, lineNumberTooltip, textTooltip); }
+	inline void AddMarker(size_t line, ImU32 lineNumberColor, ImU32 textColor, const std::string_view& lineNumberTooltip, const std::string_view& textTooltip) { addMarker(line, lineNumberColor, textColor, lineNumberTooltip, textTooltip); }
 	inline void ClearMarkers() { clearMarkers(); }
 	inline bool HasMarkers() const { return markers.size() != 0; }
 
 	// specify a change callback (called when changes are made (including undo/redo))
 	// the delay parameter specifies a time in miliseconds that the editor will wait for before calling
 	// which helps in case you don't need to track every keystroke
-	// passing nullptr deactivates the callback
+	// passing nullptr for callback deactivates the feature
 	inline void SetChangeCallback(std::function<void()> callback, int delay=0) {
 		delayedChangeCallback = callback;
-		delayedChangeDelay = std::chrono::milliseconds{delay};
+		delayedChangeDelay = std::chrono::milliseconds(delay);
 	}
 
 	// detailed change report passed to callback below
-	// this callback is different from the one above as is reports every change (not just a summary) and is very detailed
+	// this callback is different from the one above as it reports every change (not just a summary) and is very detailed
 	// the insert flag states whether the change was an insert (true) or a delete (false)
 	// in case of an overwrite, there will be two actions (first a delete and then an insert)
 	// the start parameters refer to the insert point or the start of the delete
 	// the end parameters refer to the end of the inserted text or the end of the deleted text
 	// the text parameter contains the inserted or deleted text
-	// line, column and index values are zero-based
+	// line and index values are zero-based
 	struct Change {
 		bool insert;
-		int startLine;
-		int startColumn;
-		int startIndex;
-		int endLine;
-		int endColumn;
-		int endIndex;
+		DocPos start;
+		DocPos end;
 		std::string text;
 	};
 
@@ -260,70 +309,93 @@ public:
 	// it provides a list of changes made to the document in a single transaction (in the right order)
 	// be carefull with this callback as it gets very verbose (called on every keystroke, delete, cut, paste, undo and redo)
 	// passing nullptr deactivates the callback
-	inline void SetTransactionCallback(std::function<void(std::vector<Change>&)> callback) { transactionCallback = callback; }
+	inline void SetTransactionCallback(std::function<void(const std::vector<Change>&)> callback) { transactions.setCallback(callback); }
 
 	// line-based callbacks (line numbers are zero-based)
 	// insertor callback is called when for each line inserted and the result is used as the new line specific user data
 	// deletor callback is called for each line deleted (line specific user data is passed to callback)
 	// setting either callback to nullptr will deactivate that callback
-	inline void SetInsertor(std::function<void*(int line)> callback) { document.setInsertor(callback); }
-	inline void SetDeletor(std::function<void(int line, void* data)> callback) { document.setDeletor(callback); }
+	inline void SetInsertor(std::function<void*(size_t line)> callback) { document.setInsertor(callback); }
+	inline void SetDeletor(std::function<void(size_t line, void* data)> callback) { document.setDeletor(callback); }
 
 	// line-based user data (line numbers are zero-based)
 	// allowing integrators to associate external data with select lines or all lines
 	// user data is an opaque void* that must be managed externally
-	// user data is also passed to the decorator callback (see below)
-	// user data is attached to a line and additions/insertions/deletions don't effect this
+	// user data is also passed to the decorator and popup callbacks (see below)
+	// user data is attached to a line and insertions/deletions don't effect this
 	// if a line with user data is removed, it won't come back on a redo
 	// the deletor callback (if specified) is called when a line is deleted (see above)
-	inline void SetUserData(int line, void* data) { document.setUserData(line, data); }
-	inline void* GetUserData(int line) const { return document.getUserData(line); }
-	inline void IterateUserData(std::function<void(int line, void* data)> callback) const { document.iterateUserData(callback); }
+	inline void SetUserData(size_t line, void* data) { document.setUserData(line, data); }
+	inline void* GetUserData(size_t line) const { return document.getUserData(line); }
+	inline void IterateUserData(std::function<void(size_t line, void* data)> callback) const { document.iterateUserData(callback); }
 
 	// line-based decoration
 	struct Decorator {
-		int line; // zero-based
+		size_t line; // zero-based
 		float width;
 		float height;
 		ImVec2 glyphSize;
 		void* userData;
 	};
 
-	// positive width is number of pixels, negative with is number of glyphs
-	inline void SetLineDecorator(float width, std::function<void(Decorator& decorator)> callback) {
+	// setup a line decorator (width is number of glyphs)
+	inline void SetLineDecorator(size_t width, std::function<void(Decorator& decorator)> callback) {
 		decoratorWidth = width;
 		decoratorCallback = callback;
 	}
 
-	inline void ClearLineDecorator() { SetLineDecorator(0.0f, nullptr); }
-	inline bool HasLineDecorator() const { return decoratorWidth != 0.0f && decoratorCallback != nullptr; }
+	inline void ClearLineDecorator() { SetLineDecorator(0, nullptr); }
+	inline bool HasLineDecorator() const { return decoratorWidth != 0 && decoratorCallback != nullptr; }
 
-	// setup context menu callbacks (these are called when a user right clicks line numbers or somewhere in the text)
-	// the editor sets up the popup menus, the callback has to populate them
-	inline void SetLineNumberContextMenuCallback(std::function<void(int line)> callback) { lineNumberContextMenuCallback = callback; }
+	// setup right click or hover callbacks
+	// the editor sets up a popup menu in the right location
+	// the callback has to populate it
+	// context callbacks activate on a right click
+	// hover callbacks are just based on position (no mouse buttons required)
+	struct PopupData {
+		DocPos pos;
+		void* userData;
+	};
+
+	inline void SetLineNumberContextMenuCallback(std::function<void(PopupData& data)> callback) { lineNumberContextMenuCallback = callback; }
 	inline void ClearLineNumberContextMenuCallback() { SetLineNumberContextMenuCallback(nullptr); }
 	inline bool HasLineNumberContextMenuCallback() const { return lineNumberContextMenuCallback != nullptr; }
 
-	inline void SetTextContextMenuCallback(std::function<void(int line, int column)> callback) { textContextMenuCallback = callback; }
+	inline void SetTextContextMenuCallback(std::function<void(PopupData& data)> callback) { textContextMenuCallback = callback; }
 	inline void ClearTextContextMenuCallback() { SetTextContextMenuCallback(nullptr); }
 	inline bool HasTextContextMenuCallback() const { return textContextMenuCallback != nullptr; }
 
+	inline void SetTextHoverCallback(std::function<void(PopupData& data)> callback) { textHoverCallback = callback; }
+	inline void ClearTextHoverCallback() { SetTextHoverCallback(nullptr); }
+	inline bool HasTextHoverCallback() const { return textHoverCallback != nullptr; }
+
+	// line folding support (only works when line folding is activated)
+	inline void FoldAroundLine(size_t line) { if (config.lineFolding) { lineFold.foldAroundLine(document, normalizeLine(line)); } }
+	inline void UnfoldAroundLine(size_t line) { if (config.lineFolding) { lineFold.unfoldAroundLine(document, normalizeLine(line)); } }
+	inline void ToggleAtLine(size_t line) { if (config.lineFolding) { lineFold.toggleAtLine(document, normalizeLine(line)); } }
+	inline void UnfoldAll() { if (config.lineFolding) { lineFold.unfoldAll(document); } }
+
+	inline bool IsLineFoldable(size_t line) const { return isLineFoldable(normalizeLine(line)); }
+	inline bool IsLineFolded(size_t line) const { return isLineFolded(normalizeLine(line)); }
+	inline bool IsLineVisible(size_t line) const { return isLineVisible(normalizeLine(line)); }
+	inline bool IsLineHidden(size_t line) const { return isLineHidden(normalizeLine(line)); }
+
 	// useful functions to work on selections
 	// NOTE: functions provided to FilterSelections or FilterLines should accept and return UTF-8 encoded strings
-	inline void IndentLines() { if (!readOnly) indentLines(); }
-	inline void DeindentLines() { if (!readOnly) deindentLines(); }
-	inline void MoveUpLines() { if (!readOnly) moveUpLines(); }
-	inline void MoveDownLines() { if (!readOnly) moveDownLines(); }
-	inline void ToggleComments() { if (!readOnly && language) toggleComments(); }
-	inline void FilterSelections(std::function<std::string(std::string_view)> filter) { if (!readOnly) filterSelections(filter); }
-	inline void SelectionToLowerCase() { if (!readOnly) selectionToLowerCase(); }
-	inline void SelectionToUpperCase() { if (!readOnly) selectionToUpperCase(); }
+	inline void IndentLines() { if (!config.readOnly) indentLines(); }
+	inline void DeindentLines() { if (!config.readOnly) deindentLines(); }
+	inline void MoveUpLines() { if (!config.readOnly) moveUpLines(); }
+	inline void MoveDownLines() { if (!config.readOnly) moveDownLines(); }
+	inline void ToggleComments() { if (!config.readOnly && config.language) toggleComments(); }
+	inline void FilterSelections(std::function<std::string(std::string_view)> filter) { if (!config.readOnly) filterSelections(filter); }
+	inline void SelectionToLowerCase() { if (!config.readOnly) selectionToLowerCase(); }
+	inline void SelectionToUpperCase() { if (!config.readOnly) selectionToUpperCase(); }
 
 	// useful functions to work on entire text
-	inline void StripTrailingWhitespaces() { if (!readOnly) stripTrailingWhitespaces(); }
-	inline void FilterLines(std::function<std::string(std::string_view)> filter) { if (!readOnly) filterLines(filter); }
-	inline void TabsToSpaces() { if (!readOnly) tabsToSpaces(); }
-	inline void SpacesToTabs() { if (!readOnly) spacesToTabs(); }
+	inline void StripTrailingWhitespaces() { if (!config.readOnly) stripTrailingWhitespaces(); }
+	inline void FilterLines(std::function<std::string(std::string_view)> filter) { if (!config.readOnly) filterLines(filter); }
+	inline void TabsToSpaces() { if (!config.readOnly) tabsToSpaces(); }
+	inline void SpacesToTabs() { if (!config.readOnly) spacesToTabs(); }
 
 	// color palette support
 	enum class Color : char {
@@ -352,8 +424,7 @@ public:
 		count
 	};
 
-	class Palette : public std::array<ImU32, static_cast<size_t>(Color::count)> {
-	public:
+	struct Palette : public std::array<ImU32, static_cast<size_t>(Color::count)> {
 		inline ImU32 get(Color color) const { return at(static_cast<size_t>(color)); }
 	};
 
@@ -365,17 +436,30 @@ public:
 	static const Palette& GetDarkPalette();
 	static const Palette& GetLightPalette();
 
+	// line break options
+	enum class BreakOption : char {
+		mustBreak,
+		allowBreak,
+		noBreak,
+		undefined
+	};
+
 	// a single colored character (a glyph)
-	class Glyph {
-	public:
+	struct Glyph {
 		// constructors
 		Glyph() = default;
 		Glyph(ImWchar cp) : codepoint(cp) {}
 		Glyph(ImWchar cp, Color col) : codepoint(cp), color(col) {}
 
-		// properties
+		// unicode codepoint for this glyph
 		ImWchar codepoint = 0;
+
+		// color for this glyph if a language is specified
+		// maintained by the Colorizer and the Bracketeer overlays
 		Color color = Color::text;
+
+		// maintained by the TypeSetter overlay
+		BreakOption breakOption = BreakOption::undefined;
 	};
 
 	// iterator used in language-specific tokenizers
@@ -396,7 +480,7 @@ public:
 		inline pointer operator->() const { return &(glyph->codepoint); }
 		inline Iterator& operator++() { glyph++; return *this; }
 		inline Iterator operator++(int) { Iterator tmp = *this; glyph++; return tmp; }
-		inline size_t operator-(const Iterator& a) { return glyph - a.glyph; }
+		inline size_t operator-(const Iterator& a) { return static_cast<size_t>(glyph - a.glyph); }
 		inline friend bool operator==(const Iterator& a, const Iterator& b) { return a.glyph == b.glyph; };
 		inline friend bool operator!=(const Iterator& a, const Iterator& b) { return !(a.glyph == b.glyph); };
 		inline friend bool operator<(const Iterator& a, const Iterator& b) { return a.glyph < b.glyph; };
@@ -410,8 +494,7 @@ public:
 	};
 
 	// language support
-	class Language {
-	public:
+	struct Language {
 		// name of the language
 		std::string name;
 
@@ -431,6 +514,13 @@ public:
 		std::string commentStart;
 		std::string commentEnd;
 
+		// functions to help tokenize multilevel, multiline comments (can be nullptr if language doesn't have this feature)
+		// start and end refer to the characters being tokenized
+		// functions should return an iterator to the character after the detected token and set level
+		// returning start means no token was found
+		std::function<Iterator(Iterator start, Iterator end, size_t& level)> commentLevelStart;
+		std::function<Iterator(Iterator start, Iterator end, size_t& level)> commentLevelEnd;
+
 		// flags specifying whether language supports single quoted ['] and/or double quoted [""] strings
 		bool hasSingleQuotedStrings = false;
 		bool hasDoubleQuotedStrings = false;
@@ -446,8 +536,24 @@ public:
 		// character inside string used to escape the next character (can be 0 if language doesn't have this feature)
 		ImWchar stringEscape = 0;
 
+		// functions to help tokenize multilevel, multiline strings (can be nullptr if language doesn't have this feature)
+		// start and end refer to the characters being tokenized
+		// functions should return an iterator to the character after the detected token and set level
+		// returning start means no token was found
+		std::function<Iterator(Iterator start, Iterator end, size_t& level)> stringLevelStart;
+		std::function<Iterator(Iterator start, Iterator end, size_t& level)> stringLevelEnd;
+
+		// does the language use indentation for blocks (e.g Python)
+		bool indentationForBlocks = false;
+
 		// set of keywords, declarations, identifiers used in the language (can be blank if language doesn't have these features)
 		// if language is not case sensitive, all entries should be in lower case
+
+		// guidance for these categories
+		// 1. these categories refer to different colors in the color palette
+		// 2. keywords are typically used to highlight control/reserved words in a language (palette color keyword)
+		// 3. declarations are used in strongly typed languages to highlight builtin types or the keywords to create a type (palette color declaration)
+		// 4. identifiers are used to color the language predefined variables  (palette color knownIdentifier) differently from the user variables (palette color identifier)
 		std::unordered_set<std::string> keywords;
 		std::unordered_set<std::string> declarations;
 		std::unordered_set<std::string> identifiers;
@@ -462,7 +568,7 @@ public:
 		std::function<Iterator(Iterator start, Iterator end)> getIdentifier;
 		std::function<Iterator(Iterator start, Iterator end)> getNumber;
 
-		// function to implement custom tokenizer
+		// function to implement custom tokenizer (can be nullptr if language doesn't have this feature)
 		// if a token is found, function should return an iterator to the character after the token and set the color
 		std::function<Iterator(Iterator start, Iterator end, Color& color)> customTokenizer;
 
@@ -480,25 +586,21 @@ public:
 		static const Language* Sql();
 	};
 
-	inline void SetLanguage(const Language* l) { language = l; languageChanged = true; }
-	inline const Language* GetLanguage() const { return language; };
-	inline bool HasLanguage() const { return language != nullptr; }
-	inline std::string GetLanguageName() const { return language == nullptr ? "None" : language->name; }
+	void SetLanguage(const Language* language);
+	inline const Language* GetLanguage() const { return config.language; };
+	inline bool HasLanguage() const { return config.language != nullptr; }
+	inline std::string GetLanguageName() const { return config.language == nullptr ? "None" : config.language->name; }
+	inline void SetLanguageChangeCallback(std::function<void()> callback) { languageChangeCallback = callback; }
 
 	// iterate through identifiers detected by the colorizer (based on current language)
 	inline void IterateIdentifiers(std::function<void(const std::string& identifier)> callback) const { document.iterateIdentifiers(callback); }
 
 	// autocomplete state (acts as API between editor and outer application)
-	class AutoCompleteState {
-	public:
-		// current context (strings = UTF-8, columns = Nth visible column and indices = Nth codepoint)
-		// to understand the difference between column and index, think like a tab :-)
+	struct AutoCompleteState {
+		// current context
 		std::string searchTerm;
-		size_t line;
-		size_t searchTermStartColumn;
-		size_t searchTermStartIndex;
-		size_t searchTermEndColumn;
-		size_t searchTermEndIndex;
+		DocPos searchTermStart;
+		DocPos searchTermEnd;
 
 		bool inIdentifier;
 		bool inNumber;
@@ -524,8 +626,7 @@ public:
 	};
 
 	// autocomplete configuration (defaults are like Visual Studio Code)
-	class AutoCompleteConfig {
-	public:
+	struct AutoCompleteConfig {
 		// specifies whether typing by the user triggers autocomplete
 		bool triggerOnTyping = true;
 
@@ -538,25 +639,24 @@ public:
 
 		// manual trigger key sequence (default is Ctrl+space on all platforms, even MacOS)
 		// remember Dear ImGui reverses Ctrl and Command on MacOS
-#if __APPLE__
-		ImGuiKeyChord triggerShortcut = ImGuiMod_Super | ImGuiKey_Space;
-#else
-		ImGuiKeyChord triggerShortcut = ImGuiMod_Ctrl | ImGuiKey_Space;
-#endif
+		#if __APPLE__
+			ImGuiKeyChord triggerShortcut = ImGuiMod_Super | ImGuiKey_Space;
+		#else
+			ImGuiKeyChord triggerShortcut = ImGuiMod_Ctrl | ImGuiKey_Space;
+		#endif
 
 		// see if single suggestions are automatically inserted
 		// this only works when triggered manually
 		bool autoInsertSingleSuggestions = false;
-
-		// see if the popup is dismissed silently when typing produces no suggestions
-		// a manual trigger still shows the noSuggestionsLabel feedback (and this respects suggestionsPromise)
-		bool dismissWhenEmpty = false;
 
 		// delay in milliseconds between autocomplete trigger and suggestions popup
 		std::chrono::milliseconds triggerDelay{200};
 
 		// text label used when no suggestions are available (this allows for internationalization)
 		std::string noSuggestionsLabel = "No suggestions";
+
+		// width of suggestion popup expressed in number of glyphs
+		size_t suggestionWidth = 30;
 
 		// called when autocomplete is configured, active and the editor needs an updated suggestions list
 		// callback must populate and order suggestions in state object
@@ -573,66 +673,14 @@ public:
 	};
 
 	// configure and activate autocomplete (passing nullptr deactivates it)
-	inline void SetAutoCompleteConfig(const AutoCompleteConfig* config) { autocomplete.setConfig(config); }
+	inline void SetAutoCompleteConfig(const AutoCompleteConfig* autoCompleteConfig) { autocomplete.setConfig(autoCompleteConfig); }
 
 	// provide autocomplete suggestions asynchronously (in case a callback takes to long and lookup is handled in a separate thread/process)
 	// this call is not threadsafe and must be called from the rendering thread (you must synchronize with your lookup thread yourself)
 	inline void SetAutoCompleteSuggestions(const std::vector<std::string>& suggestions) { autocomplete.setSuggestions(suggestions); }
 
-	// utility class to support some autocomplete implementations
-	// this is not used by default but can be used in autocomplete callbacks (see example app)
-	class Trie {
-	public:
-		// constructor
-		Trie() { clear(); }
-
-		// clear word tree
-		inline void clear() { root = std::make_unique<Node>(); }
-
-		// insert word (UTF-8 encoded) into tree
-		void insert(const std::string_view& word);
-
-		// populate list of suggestions based on provided search term (which is UTF-8 encoded)
-		// limit is maximum number of suggestions returned after they are sorted by relevance
-		// maxSkippedLetters is a the largest number of letters that can be skipped to find the next match
-		// this allows for missing letters (out of order letters are not taken into account)
-		void findSuggestions(std::vector<std::string>& suggestions, const std::string_view& searchTerm, size_t limit=20, size_t maxSkippedLetters=2);
-
-	private:
-		// definition of single node in the word graph
-		struct Node {
-			std::unordered_map<ImWchar, std::unique_ptr<Node>> children;
-			std::string word;
-		};
-
-		// the root node
-		std::unique_ptr<Node> root;
-
-		// maximum number of letters that can be skipped skip in matching algorithm
-		size_t maxSkip;
-
-		// search term as codepoint vector
-		std::vector<ImWchar> searchCodepoints;
-
-		// possible autocomplete candidates
-		struct Candidate {
-			Candidate(const Node* n, size_t c) : node(n), cost(c) {}
-			bool operator<(const Candidate& rhs) const { return cost < rhs.cost; }
-			bool operator==(const Candidate& rhs) const { return node == rhs.node; }
-			const Node* node;
-			size_t cost;
-		};
-
-		std::vector<Candidate> candidates;
-
-		// utility functions
-		void evaluateNode(const Node* node, size_t index, size_t cost, size_t skip);
-		void addCandidates(const Node* node, size_t cost);
-	};
-
 	// support functions for unicode codepoints
-	class CodePoint {
-	public:
+	struct CodePoint {
 		static std::string_view::const_iterator skipBOM(std::string_view::const_iterator i, std::string_view::const_iterator end);
 		static std::string_view::const_iterator read(std::string_view::const_iterator i, std::string_view::const_iterator end, ImWchar* codepoint);
 		static size_t write(char* i, ImWchar codepoint); // must point to buffer of 4 characters (returns number of characters written)
@@ -644,6 +692,7 @@ public:
 		static bool isXidContinue(ImWchar codepoint);
 		static bool isLower(ImWchar codepoint);
 		static bool isUpper(ImWchar codepoint);
+		static bool isEastAsian(ImWchar codepoint);
 		static ImWchar toUpper(ImWchar codepoint);
 		static ImWchar toLower(ImWchar codepoint);
 
@@ -713,7 +762,68 @@ public:
 		}
 	};
 
+	// configuration for line break algorithm used when word wrap is active
+	struct LineBreakConfig {
+		// wrap mode (false = simple mode, true = unicode line break mode)
+		bool useUnicodeAnnex14 = false;
+
+		// simple mode options (strings of UTF-8 encoded glyphs)
+		std::string breakAfter = " \t{[(";
+		std::string breakBefore = ".";
+
+		// unicode line breaking options
+		// based on the unicode standard annex #14 which identifies break
+		// opportunities expressed as rules which can be (de)activated below
+		// see https://www.unicode.org/reports/tr14 for details
+		bool lb2 = true;
+		bool lb3 = true;
+		bool lb4 = true;
+		bool lb5 = true;
+		bool lb6 = true;
+		bool lb7 = true;
+		bool lb8 = true;
+		bool lb8a = true;
+		bool lb9 = true;
+		bool lb10 = true;
+		bool lb11 = true;
+		bool lb12 = true;
+		bool lb12a = true;
+		bool lb13 = true;
+		bool lb14 = true;
+		bool lb15a = true;
+		bool lb15b = true;
+		bool lb15c = true;
+		bool lb15d = true;
+		bool lb16 = true;
+		bool lb17 = true;
+		bool lb18 = true;
+		bool lb19 = true;
+		bool lb19a = true;
+		bool lb20 = true;
+		bool lb20a = true;
+		bool lb21 = true;
+		bool lb21a = true;
+		bool lb21b = true;
+		bool lb22 = true;
+		bool lb23 = true;
+		bool lb23a = true;
+		bool lb24 = true;
+		bool lb25 = true;
+		bool lb26 = true;
+		bool lb27 = true;
+		bool lb28 = true;
+		bool lb28a = true;
+		bool lb29 = true;
+		bool lb30 = true;
+		bool lb30a = true;
+		bool lb30b = true;
+	};
+
+	// set the line break configuration
+	inline void SetLineBreakConfig(LineBreakConfig& newConfig) { typeSetter.setLineBreakConfig(newConfig); }
+
 	// set the current ImGui context
+	//
 	// this is ONLY necessary if you are compiling this widget as a DLL (which is NOT recommended)
 	// it sets the global variable GImGui, which is not shared across DLL boundaries
 	// see GImGui documentation in imgui.cpp for more details
@@ -722,64 +832,237 @@ public:
 protected:
 	//
 	// below is the private API
-	// private members (function and variables) start with a lowercase character
-	// private class names start with a lowercase character
+	// private members (functions and variables) start with a lowercase character
+	// private type names start with a uppercase character
 	//
 
-	class Coordinate {
-		// represent a character coordinate from the user's point of view, i. e. consider an uniform grid
-		// on the screen as it is rendered, and each cell has its own coordinate, starting from 0
-		//
-		// tabs are counted as [1..tabsize] count spaces, depending on how many spaces are necessary to
-		// reach the next tab stop
-		//
-		// for example, coordinate (1, 5) represents the character 'B' in a line "\tABC", when tabsize = 4,
-		// because it is rendered as "    ABC" on the screen
+	// everybody needs a friend
+	friend class TextDiff;
 
-	public:
-		Coordinate() = default;
-		Coordinate(int l, int c) : line(l), column(c) {}
+	// editor configuration
+	struct Config {
+		// options
+		size_t tabSize = 4;
+		bool insertSpacesOnTabs = false;
+		float lineSpacing = 1.0f;
+		bool wordWrap = false;
+		bool readOnly = false;
+		bool caretsVisible = true;
+		bool autoIndent = true;
+		bool showSpaces = true;
+		bool showTabs = true;
+		bool showLineNumbers = true;
+		bool showMiniMap = false;
+		size_t miniMapColumns = 0;
+		bool showScrollbarMiniMap = true;
+		bool showMatchingBrackets = true;
+		bool completePairedGlyphs = true;
+		bool lineFolding = false;
+		bool overwrite = false;
+		bool panMode = true;
+		bool showPanScrollIndicator = true;
+		size_t leftMargin = 1; // margins are expressed in number of glyphs
+		size_t decorationMargin = 1;
+		size_t textMargin = 2;
 
-		inline bool operator ==(const Coordinate& o) const { return line == o.line && column == o.column; }
-		inline bool operator !=(const Coordinate& o) const { return line != o.line || column != o.column; }
-		inline bool operator <(const Coordinate& o) const { return line != o.line ? line < o.line : column < o.column; }
-		inline bool operator >(const Coordinate& o) const { return line != o.line ? line > o.line : column > o.column; }
-		inline bool operator <=(const Coordinate& o) const { return line != o.line ? line < o.line : column <= o.column; }
-		inline bool operator >=(const Coordinate& o) const { return line != o.line ? line > o.line : column >= o.column; }
+		// language support
+		const Language* language = nullptr;
 
-		inline Coordinate operator -(const Coordinate& o) const { return Coordinate(line - o.line, column - o.column); }
-		inline Coordinate operator +(const Coordinate& o) const { return Coordinate(line + o.line, column + o.column); }
+		// word wrap limits
+		size_t wordWrapColumns = 0;
+	} config;
 
-		static inline Coordinate invalid() { static Coordinate invalid(-1, -1); return invalid; }
-		inline bool isValid() const { return line >= 0 && column >= 0; }
-
-		int line = 0;
-		int column = 0;
+	// colorizer/tokenizer state
+	enum class LineState : char {
+		inText,
+		inComment,
+		inCommentLevel1,
+		inCommentLevel2,
+		inCommentLevel3,
+		inCommentLevel4,
+		inCommentLevel5,
+		inCommentLevel6,
+		inCommentLevel7,
+		inSingleQuotedString,
+		inDoubleQuotedString,
+		inOtherString,
+		inOtherStringAlt,
+		inStringLevel0,
+		inStringLevel1,
+		inStringLevel2,
+		inStringLevel3,
+		inStringLevel4,
+		inStringLevel5,
+		inStringLevel6,
+		inStringLevel7
 	};
+
+	static inline bool lineStateInComment(LineState state) { return state >= LineState::inComment && state <= LineState::inCommentLevel7; }
+	static inline bool lineStateInString(LineState state) { return state >= LineState::inSingleQuotedString && state <= LineState::inStringLevel7; }
+	static inline bool lineStateInStringLevel(LineState state) { return state >= LineState::inStringLevel0 && state <= LineState::inStringLevel7; }
+	static inline LineState commentLevelToLineState(size_t level) { return static_cast<LineState>(static_cast<int>(LineState::inComment) + level); }
+	static inline LineState stringLevelToLineState(size_t level) { return static_cast<LineState>(static_cast<int>(LineState::inStringLevel0) + level); }
+	static constexpr size_t maxCommentLevel = static_cast<int>(LineState::inCommentLevel7) - static_cast<int>(LineState::inComment);
+	static constexpr size_t maxStringLevel = static_cast<int>(LineState::inStringLevel7) - static_cast<int>(LineState::inStringLevel0);
+
+	// line folding state
+	enum class FoldingState : char {
+		foldable,
+		folded,
+		visible,
+		hidden
+	};
+
+	// information for wrapped lines
+	struct LineSection {
+		LineSection() = default;
+
+		LineSection(size_t startIndex, size_t endIndex, size_t columns, size_t indent) :
+			startIndex(startIndex),endIndex(endIndex), columns(columns), indent(indent) {}
+
+		size_t startIndex;
+		size_t endIndex;
+		size_t columns;
+		size_t indent;
+	};
+
+	using LineSections = std::vector<LineSection>;
+
+	// a single line in a document
+	struct Line : public std::vector<Glyph> {
+		// line indent in number of columns maintained by Document
+		size_t indent = 0;
+
+		// color state maintained by the Colorizer overlay
+		bool needsColorizing = true;
+		LineState state = LineState::inText;
+
+		// line folding state maintained by the LineFold overlay
+		FoldingState foldingState = FoldingState::visible;
+
+		// typesetting state maintained by the TypeSetter overlay
+		bool needsTypeSetting = true;
+		size_t row = 0;
+		size_t rows = 0;
+		size_t columns = 0;
+		std::shared_ptr<LineSections> sections;
+
+		// marker reference (0 means no marker for this line)
+		size_t marker = 0;
+
+		// user data associated with this line
+		void* userData = nullptr;
+	};
+
+	// the document being edited (Lines of Glyphs)
+	class Document : public std::vector<Line> {
+	public:
+		// constructor
+		Document() { emplace_back(); }
+
+		// manipulate document text (strings should be UTF-8 encoded)
+		void setText(const Config& config, const std::string_view& text);
+		void setText(const Config& config, const std::vector<std::string_view>& text);
+		DocPos insertText(const Config& config, DocPos start, const std::string_view& text);
+		void deleteText(const Config& config, DocPos start, DocPos end);
+
+		// access document text (strings are UTF-8 encoded)
+		std::string getText() const;
+		std::string getLineText(size_t line) const;
+		std::string getSectionText(DocPos start, DocPos end) const;
+		ImWchar getCodePoint(DocPos location) const;
+
+		// get line or color state
+		inline LineState getLineState(size_t line) const { return at(line).state; }
+		Color getColor(DocPos location) const;
+
+		// see if document is empty
+		inline bool isEmpty() const { return size() == 1 && at(0).size() == 0; }
+
+		// coordinate operations in context of document
+		DocPos getLeft(DocPos from, bool wordMode=false) const;
+		DocPos getRight(DocPos from, bool wordMode=false) const;
+		DocPos getTop() const;
+		DocPos getBottom() const;
+		DocPos getStartOfLine(DocPos from) const;
+		DocPos getEndOfLine(DocPos from) const;
+		inline DocPos getNextLine(DocPos from) const { return getRight(getEndOfLine(from)); }
+
+		// search in document
+		DocPos findWordStart(DocPos from, bool wordOnly=false) const;
+		DocPos findWordEnd(DocPos from, bool wordOnly=false) const;
+		bool findText(DocPos from, const std::string_view& text, bool caseSensitive, bool wholeWord, DocPos& start, DocPos& end) const;
+
+		// see if document was updated this frame
+		inline bool isUpdated() const { return updated; }
+		inline void resetUpdated() { updated = false; }
+
+		// line-based callbacks
+		inline void setInsertor(std::function<void*(size_t line)> callback) { insertor = callback; }
+		inline void setDeletor(std::function<void(size_t line, void* data)> callback) { deletor = callback; }
+
+		// access line user data
+		void setUserData(size_t line, void* data);
+		void* getUserData(size_t line) const;
+		void iterateUserData(std::function<void(size_t line, void* data)> callback) const;
+
+		// iterate through document to find identifiers
+		void iterateIdentifiers(std::function<void(const std::string& identifier)> callback) const;
+
+		// utility functions
+		bool isWholeWord(DocPos start, DocPos end) const;
+		inline bool isEndOfLine(DocPos from) const { return from.index == at(from.line).size(); }
+		inline bool isLastLine(size_t line) const { return line == size() - 1; }
+		DocPos findPreviousNonWhiteSpace(DocPos from, bool includeEndOfLine=true) const;
+		DocPos findNextNonWhiteSpace(DocPos from, bool includeEndOfLine=true) const;
+		DocPos normalizePos(DocPos pos) const;
+		inline size_t normalizeLine(size_t line) const { return line >= size() ? size() - 1 : line; }
+
+		DocPos getLeftBeforeHiddenLines(DocPos pos) const;
+		DocPos getRightAfterHiddenLines(DocPos pos) const;
+
+	private:
+		bool updated = false;
+
+		std::function<void*(size_t)> insertor;
+		std::function<void(size_t, void*)> deletor;
+
+		void appendLine();
+		void insertLine(size_t offset);
+		void deleteLines(size_t start, size_t end);
+		void clearDocument();
+		void updateIndents(const Config& config, size_t start, size_t end);
+	} document;
 
 	// a single cursor
 	class Cursor {
 	public:
 		// constructors
 		Cursor() = default;
-		Cursor(Coordinate coordinate) : start(coordinate), end(coordinate) {}
-		Cursor(Coordinate s, Coordinate e) : start(s), end(e) {}
+		Cursor(DocPos position) : start(position), end(position) {}
+		Cursor(DocPos start, DocPos end) : start(start), end(end) {}
 
 		// update the cursor
-		inline void update(Coordinate coordinate) { end = coordinate; updated = true; }
-		inline void update(Coordinate s, Coordinate e) { start = s; end = e; updated = true; }
-		inline void update(Coordinate coordinate, bool keep) { if (keep) update(coordinate); else update(coordinate, coordinate); updated = true; }
+		inline void update(DocPos position) { end = position; updated = true; }
+		inline void update(DocPos s, DocPos e) { start = s; end = e; updated = true; }
+		inline void update(DocPos position, bool keep) { if (keep) update(position); else update(position, position); updated = true; }
+
+		// grow the cursor either to the left or the right
+		void grow(DocPos position);
 
 		// adjust cursor for insert/delete operations
 		// (these functions assume that insert or delete points are before the cursor)
-		void adjustForInsert(Coordinate insertStart, Coordinate insertEnd);
-		void adjustForDelete(Coordinate deleteStart, Coordinate deleteEnd);
+		void adjustForInsert(DocPos insertStart, DocPos insertEnd);
+		void adjustForDelete(DocPos deleteStart, DocPos deleteEnd);
+
+		// ensure cursor is not on hidden line
+		void ensureNotHidden(const Document& document);
 
 		// access cursor properties
-		inline Coordinate getInteractiveStart() const { return start; }
-		inline Coordinate getInteractiveEnd() const { return end; }
-		inline Coordinate getSelectionStart() const { return start < end ? start : end; }
-		inline Coordinate getSelectionEnd() const { return start > end ? start : end; }
+		inline DocPos getInteractiveStart() const { return start; }
+		inline DocPos getInteractiveEnd() const { return end; }
+		inline DocPos getSelectionStart() const { return start < end ? start : end; }
+		inline DocPos getSelectionEnd() const { return start > end ? start : end; }
 		inline bool hasSelection() const { return start != end; }
 
 		inline void resetToStart() { update(getSelectionStart(), getSelectionStart()); }
@@ -794,20 +1077,26 @@ protected:
 		inline void setUpdated(bool value) { updated = value; }
 		inline bool isUpdated() const { return updated; }
 
+		inline void setPreferredColumn(size_t column) { preferredColumn = column; }
+		inline size_t getPreferredColumn() const { return preferredColumn; }
+
 	private:
 		// helper functions
-		Coordinate adjustCoordinateForInsert(Coordinate coordinate, Coordinate insertStart, Coordinate insertEnd);
-		Coordinate adjustCoordinateForDelete(Coordinate coordinate, Coordinate deleteStart, Coordinate deleteEnd);
+		static DocPos adjustCoordinateForInsert(DocPos position, DocPos insertStart, DocPos insertEnd);
+		static DocPos adjustCoordinateForDelete(DocPos position, DocPos deleteStart, DocPos deleteEnd);
 
 		// properties
-		Coordinate start{0, 0};
-		Coordinate end{0, 0};
+		DocPos start;
+		DocPos end;
 		bool main = false;
 		bool current = true;
 		bool updated = true;
+
+		// only used during up/down keyboard navigation
+		size_t preferredColumn = 0;
 	};
 
-	// the current list of cursors
+	// overlay to track the current list of cursors
 	class Cursors : public std::vector<Cursor> {
 	public:
 		// constructor
@@ -817,17 +1106,20 @@ protected:
 		void reset();
 
 		// erase all cursors and specify a new one
-		inline void setCursor(Coordinate coordinate) { setCursor(coordinate, coordinate); }
-		void setCursor(Coordinate start, Coordinate end);
+		inline void setCursor(DocPos position) { setCursor(position, position); }
+		void setCursor(DocPos start, DocPos end);
 
 		// add a cursor to the list
-		inline void addCursor(Coordinate c) { addCursor(c, c); }
-		void addCursor(Coordinate cursorStart, Coordinate cursorEnd);
+		inline void addCursor(DocPos c) { addCursor(c, c); }
+		void addCursor(DocPos cursorStart, DocPos cursorEnd);
 
-		// update the current cursor (the one last added)
-		inline void updateCurrentCursor(Coordinate coordinate) { at(current).update(coordinate); }
-		inline void updateCurrentCursor(Coordinate start, Coordinate end) { at(current).update(start, end); }
-		inline void updateCurrentCursor(Coordinate coordinate, bool keep) { at(current).update(coordinate, keep); }
+		// update the current cursor (the one added last)
+		inline void updateCurrentCursor(DocPos position) { at(current).update(position); }
+		inline void updateCurrentCursor(DocPos start, DocPos end) { at(current).update(start, end); }
+		inline void updateCurrentCursor(DocPos position, bool keep) { at(current).update(position, keep); }
+
+		// grow the current cursor either to the left or the right
+		inline void growCurrentCursor(DocPos position) { at(current).grow(position); }
 
 		// check cursor status
 		inline bool hasMultiple() const { return size() > 1; }
@@ -852,168 +1144,24 @@ protected:
 		inline size_t getMainIndex() const { return main; }
 		inline Cursor& getCurrent() { return at(current); }
 		inline size_t getCurrentIndex() const { return current; }
-		inline iterator getMainAsIterator() { return begin() + main; }
-		inline iterator getCurrentAsIterator() { return begin() + current; }
+		inline iterator getMainAsIterator() { return begin() + static_cast<Iterator::difference_type>(main); }
+		inline iterator getCurrentAsIterator() { return begin() + static_cast<Iterator::difference_type>(current); }
 
 		// update cursors
-		void update();
+		void update(const Document& document);
 
 		// adjust cursors for insert/delete operations
 		// (these functions assume that insert or delete points are before the cursor)
-		void adjustForInsert(iterator start, Coordinate insertStart, Coordinate insertEnd);
-		void adjustForDelete(iterator start, Coordinate deleteStart, Coordinate deleteEnd);
+		void adjustForInsert(iterator start, DocPos insertStart, DocPos insertEnd);
+		void adjustForDelete(iterator start, DocPos deleteStart, DocPos deleteEnd);
 
 	private:
 		size_t main = 0;
 		size_t current = 0;
 	} cursors;
 
-	// the list of text markers
-	class Marker {
-	public:
-		Marker(ImU32 lc, ImU32 tc, const std::string_view& lt, const std::string_view& tt) :
-			lineNumberColor(lc), textColor(tc), lineNumberTooltip(lt), textTooltip(tt) {}
-
-		ImU32 lineNumberColor;
-		ImU32 textColor;
-		std::string lineNumberTooltip;
-		std::string textTooltip;
-	};
-
-	std::vector<Marker> markers;
-
-	// tokenizer state
-	enum class State : char {
-		inText,
-		inComment,
-		inSingleQuotedString,
-		inDoubleQuotedString,
-		inOtherString,
-		inOtherStringAlt
-	};
-
-	// a single line in a document
-	class Line : public std::vector<Glyph> {
-	public:
-		// state at start of line
-		State state = State::inText;
-
-		// marker reference (0 means no marker for this line)
-		size_t marker = 0;
-
-		// width of this line (in visible columns)
-		int maxColumn = 0;
-
-		// do we need to (re)colorize this line
-		bool colorize = true;
-
-		// user data associated with this line
-		void* userData = nullptr;
-	};
-
-	// the document being edited (Lines of Glyphs)
-	class Document : public std::vector<Line> {
-	public:
-		// constructor
-		Document() { emplace_back(); }
-
-		// access document's tab size and processing options
-		inline void setTabSize(int value) { tabSize = value; }
-		inline int getTabSize() const { return tabSize; }
-		inline void setInsertSpacesOnTabs(bool value) { insertSpacesOnTabs = value; }
-		inline bool isInsertSpacesOnTabs() const { return insertSpacesOnTabs; }
-
-		// manipulate document text (strings should be UTF-8 encoded)
-		void setText(const std::string_view& text);
-		void setText(const std::vector<std::string_view>& text);
-		Coordinate insertText(Coordinate start, const std::string_view& text);
-		void deleteText(Coordinate start, Coordinate end);
-
-		// access document text (strings are UTF-8 encoded)
-		std::string getText() const;
-		std::string getLineText(int line) const;
-		std::string getSectionText(Coordinate start, Coordinate end) const;
-		ImWchar getCodePoint(Coordinate location) const;
-
-		// get line or color state
-		inline State getLineState(int line) const { return at(line).state; }
-		Color getColor(Coordinate location) const;
-
-		// see if document is empty
-		inline bool isEmpty() const { return size() == 1 && at(0).size() == 0; }
-
-		// get number of lines (as an int)
-		inline int lineCount() const { return static_cast<int>(size()); }
-
-		// update maximum column numbers for this document and the specified lines
-		void updateMaximumColumn(int first, int last);
-		inline int getMaxColumn() const { return maxColumn; }
-
-		// translate visible column to line index (and visa versa)
-		size_t getIndex(const Line& line, int column) const;
-		inline size_t getIndex(Coordinate coordinate) const { return getIndex(at(coordinate.line), coordinate.column); }
-		int getColumn(const Line& line, size_t index) const;
-		inline int getColumn(int line, size_t index) const { return getColumn(at(line), index); }
-
-		// coordinate operations in context of document
-		Coordinate getUp(Coordinate from, int lines=1) const;
-		Coordinate getDown(Coordinate from, int lines=1) const;
-		Coordinate getLeft(Coordinate from, bool wordMode=false) const;
-		Coordinate getRight(Coordinate from, bool wordMode=false) const;
-		Coordinate getTop() const;
-		Coordinate getBottom() const;
-		Coordinate getStartOfLine(Coordinate from) const;
-		Coordinate getEndOfLine(Coordinate from) const;
-		inline Coordinate getNextLine(Coordinate from) const { return getRight(getEndOfLine(from)); }
-
-		// search in document
-		Coordinate findWordStart(Coordinate from, bool wordOnly=false) const;
-		Coordinate findWordEnd(Coordinate from, bool wordOnly=false) const;
-		bool findText(Coordinate from, const std::string_view& text, bool caseSensitive, bool wholeWord, Coordinate& start, Coordinate& end) const;
-
-		// see if document was updated this frame (can only be called once)
-		inline bool isUpdated() { auto result = updated; updated = false; return result; }
-		inline void resetUpdated() { updated = false; }
-
-		// line-based callbacks
-		inline void setInsertor(std::function<void*(int line)> callback) { insertor = callback; }
-		inline void setDeletor(std::function<void(int line, void* data)> callback) { deletor = callback; }
-
-		// access line user data
-		void setUserData(int line, void* data);
-		void* getUserData(int line) const;
-		void iterateUserData(std::function<void(int line, void* data)> callback) const;
-
-		// iterate through document to find identifiers
-		void iterateIdentifiers(std::function<void(const std::string& identifier)> callback) const;
-
-		// utility functions
-		bool isWholeWord(Coordinate start, Coordinate end) const;
-		inline bool isEndOfLine(Coordinate from) const { return getIndex(from) == at(from.line).size(); }
-		inline bool isLastLine(int line) const { return line == lineCount() - 1; }
-		Coordinate findPreviousNonWhiteSpace(Coordinate from, bool includeEndOfLine=true) const;
-		Coordinate findNextNonWhiteSpace(Coordinate from, bool includeEndOfLine=true) const;
-		Coordinate normalizeCoordinate(Coordinate coordinate) const;
-		void normalizeCoordinate(float line, float column, Coordinate& glyphCoordinate, Coordinate& cursorCoordinate) const;
-
-	private:
-		int tabSize = 4;
-		bool insertSpacesOnTabs = false;
-		int maxColumn = 0;
-		bool updated = false;
-
-		std::function<void*(int)> insertor;
-		std::function<void(int, void*)> deletor;
-
-		void appendLine();
-		void insertLine(int line);
-		void deleteLines(int start, int end);
-		void clearDocument();
-	} document;
-
 	// single action to be performed on the document as part of a larger transaction
-	class Action {
-	public:
+	struct Action {
 		// action types
 		enum class Type : char {
 			insertText,
@@ -1022,12 +1170,12 @@ protected:
 
 		// constructors
 		Action() = default;
-		Action(Type t, Coordinate s, Coordinate e, const std::string_view& txt) : type(t), start(s), end(e), text(txt) {}
+		Action(Type t, DocPos s, DocPos e, const std::string_view& txt) : type(t), start(s), end(e), text(txt) {}
 
 		// properties
 		Type type;
-		Coordinate start;
-		Coordinate end;
+		DocPos start;
+		DocPos end;
 		std::string text;
 	};
 
@@ -1041,11 +1189,8 @@ protected:
 		inline const Cursors& getAfterState() const { return after; }
 
 		// add actions by type
-		void addInsert(Coordinate start, Coordinate end, std::string_view text) { emplace_back(Action::Type::insertText, start, end, text); };
-		void addDelete(Coordinate start, Coordinate end, std::string_view text) { emplace_back(Action::Type::deleteText, start, end, text); };
-
-		// get number of actions
-		inline int actions() const { return static_cast<int>(size()); }
+		void addInsert(DocPos start, DocPos end, std::string_view text) { emplace_back(Action::Type::insertText, start, end, text); };
+		void addDelete(DocPos start, DocPos end, std::string_view text) { emplace_back(Action::Type::deleteText, start, end, text); };
 
 	private:
 		// properties
@@ -1053,7 +1198,7 @@ protected:
 		Cursors after;
 	};
 
-	// transaction list to support do/undo/redo
+	// overlay for managing the transaction list to support do/undo/redo
  	class Transactions : public std::vector<std::shared_ptr<Transaction>> {
 	public:
 		// reset the transactions
@@ -1062,14 +1207,14 @@ protected:
 		// create a new transaction
 		static inline std::shared_ptr<Transaction> create() { return std::make_shared<Transaction>(); }
 
-		// add a transaction to the list, execute it and make it undoable
+		// add a transaction to the list and make it undoable
 		void add(std::shared_ptr<Transaction> transaction);
 
 		// undo the last transaction
-		void undo(Document& document, Cursors& cursors);
+		void undo(const Config& config, Document& document, Cursors& cursors);
 
 		// redo the last undone transaction;
-		void redo(Document& document, Cursors& cursors);
+		void redo(const Config& config, Document& document, Cursors& cursors);
 
 		// get status information
 		inline size_t getUndoIndex() const { return undoIndex; }
@@ -1077,71 +1222,243 @@ protected:
 		inline bool canRedo() const { return undoIndex < size(); }
 		inline size_t getVersion() const { return version; }
 
+		// set transaction callback
+		inline void setCallback(std::function<void(const std::vector<Change>&)> cb) { callback = cb; }
+
 	private:
 		size_t undoIndex = 0;
 		size_t version = 0;
+		std::function<void(std::vector<Change>&)> callback;
 	} transactions;
 
-	// text colorizer (handles language tokenizing)
+	// overlay to colorizer text (based on language tokenizing)
 	class Colorizer {
 	public:
-		// update colors in entire document
-		void updateEntireDocument(Document& document, const Language* language);
-
-		// update colors in changed lines in specified document
-		void updateChangedLines(Document& document, const Language* language);
+		// update state (if required)
+		bool update(const Config& config, Document& document);
 
 	private:
 		// update color in a single line
-		State update(Line& line, const Language* language);
+		LineState updateLine(Line& line);
 
 		// see if string matches part of line
-		bool matches(Line::iterator start, Line::iterator end, const std::string_view& text);
+		static bool matches(Line::iterator start, Line::iterator end, const std::string_view& text);
 
 		// set color for specified range of glyphs
-		inline void setColor(Line::iterator start, Line::iterator end, Color color) { while (start < end) (start++)->color = color; }
+		static inline void setColor(Line::iterator start, Line::iterator end, Color color) {
+			while (start < end) (start++)->color = color;
+		}
+
+		// current state
+		const Language* language = nullptr;
 	} colorizer;
 
-	// details about bracketed text
-	class BracketPair {
-	public:
-		BracketPair(ImWchar sc, Coordinate s, ImWchar ec, Coordinate e, int l) : startChar(sc), start(s), endChar(ec), end(e), level(l) {}
-		ImWchar startChar;
-		Coordinate start;
-		ImWchar endChar;
-		Coordinate end;
-		int level;
+	// overlay to manage details about bracketed text
+	struct BracketPair {
+		BracketPair(ImWchar startChar, DocPos start, ImWchar endChar, DocPos end, size_t level, bool visible) :
+			startChar(startChar), start(start), endChar(endChar), end(end), level(level), visible(visible) {}
 
-		inline bool isAfter(Coordinate location) const { return start > location; }
-		inline bool isAround(Coordinate location) const { return start < location && end >= location; }
+		BracketPair(DocPos start, DocPos end) : startChar(0), start(start), endChar(0), end(end), level(0), visible(false) {}
+
+			ImWchar startChar;
+		DocPos start;
+		ImWchar endChar;
+		DocPos end;
+		size_t level;
+		bool visible;
+
+		inline bool isAfter(DocPos location) const { return start > location; }
+		inline bool isAround(DocPos location) const { return start < location && end >= location; }
+
+		inline bool operator ==(const BracketPair& rhs) const { return start == rhs.start && end == rhs.end; }
 	};
 
-	// class responsible for matching brackets
+	// overlay for matching brackets (visible and invisible)
+	// invisible brackets are for languages who's blocks are indent based (e.h. Python)
 	class Bracketeer : public std::vector<BracketPair> {
 	public:
-		// reset the bracketeer
-		void reset();
-
-		// update the list of bracket pairs in the document and colorize the relevant glyphs
-		void update(Document& document);
+		// update state (if required)
+		void update(const Config& config, Document& document);
 
 		// find relevant brackets
-		iterator getEnclosingBrackets(Coordinate location);
-		iterator getEnclosingCurlyBrackets(Coordinate first, Coordinate last);
-		iterator getInnerCurlyBrackets(Coordinate first, Coordinate last);
+		const_iterator getEnclosingBrackets(DocPos location) const;
+		const_iterator getEnclosingBrackets(DocPos first, DocPos last) const;
+		const_iterator getInnerBrackets(DocPos first, DocPos last) const;
+
+		// see if bracketeer was updated this frame
+		inline bool isUpdated() const { return updated; }
+		inline void resetUpdated() { updated = false; }
 
 		// utility functions
-		static inline bool isBracketCandidate(Glyph& glyph) {
+		static inline bool isBracketCandidate(const Glyph& glyph) {
 			return glyph.color == Color::punctuation ||
 				glyph.color == Color::matchingBracketLevel1 ||
 				glyph.color == Color::matchingBracketLevel2 ||
 				glyph.color == Color::matchingBracketLevel3 ||
 				glyph.color == Color::matchingBracketError;
 		}
+
+	private:
+		bool showMatchingBrackets = false;
+		const Language* language = nullptr;
+		bool updated = false;
 	} bracketeer;
 
-	// autocomplete class
-	class Autocomplete {
+	// captured a single line fold opportunity
+	struct Fold {
+		Fold() = default;
+		Fold(size_t start, size_t end) : start(start), end(end) {}
+		size_t start;
+		size_t end;
+	};
+
+	// overlay for managing line folding
+	class LineFold : public std::vector<Fold> {
+	public:
+		// update state (if required)
+		bool update(const Config& config, Document& document, const Bracketeer& bracketeer);
+
+		// (un)fold line
+		void foldAroundLine(Document& document, size_t line);
+		void unfoldAroundLine(Document& document, size_t line);
+		void toggleAtLine(Document& document, size_t line);
+		void unfoldAll(Document& document);
+
+		static inline bool isFoldable(const Document& document, size_t line) {return document[line].foldingState == FoldingState::foldable; }
+		static inline bool isFolded(const Document& document, size_t line) {return document[line].foldingState == FoldingState::folded; }
+		static inline bool isVisible(const Document& document, size_t line) {return document[line].foldingState == FoldingState::visible; }
+		static inline bool isHidden(const Document& document, size_t line) {return document[line].foldingState == FoldingState::hidden; }
+
+		// see if line folding was updated this frame
+		inline bool isUpdated() const { return updated; }
+		inline void resetUpdated() { updated = false; }
+
+	private:
+		// properties
+		bool lineFolding = false;
+		bool updated = false;
+		bool forceUpdate = true;
+	} lineFold;
+
+	// break lines when word wrap is active
+	struct LineBreak {
+		// classify glyphs on a line by applying line breaking rule
+		void classify(Line& line);
+
+		// configuration
+		LineBreakConfig config;
+		bool updateSets = true;
+		std::unordered_set<ImWchar> breakAfter;
+		std::unordered_set<ImWchar> breakBefore;
+		static void updateSet(std::unordered_set<ImWchar>& set, std::string_view text);
+	};
+
+	// class representing a single visible row
+	struct Row {
+		Row() = default;
+		Row(size_t line, size_t section, size_t columns) : line(line), section(section), columns(columns) {}
+		size_t line;
+		size_t section;
+		size_t columns;
+	};
+
+	// overlay for mapping a logical document structure to a visual layout
+	class TypeSetter : public std::vector<Row> {
+	public:
+		// update state (if required)
+		bool update(const Config& config, Document& document, const LineFold& lineFold);
+
+		// convert coordinates
+		VisPos docPos2VisPos(const Document& document, DocPos pos) const;
+		DocPos visPos2DocPos(const Document& document, VisPos pos) const;
+		void screenPos2DocPos(const Document& document, ImVec2 screenPos, DocPos& glyphPos, DocPos& cursorPos) const;
+
+		// normalize
+		VisPos normalizePos(VisPos pos) const;
+
+		// see if position is over text
+		bool isVisPosOverGlyph(VisPos pos) const;
+
+		// get information
+		inline size_t getRowCount() const { return totalRows; }
+		inline size_t getColumnCount() const { return totalColumns; }
+
+		// set line break configuration
+		inline void setLineBreakConfig(LineBreakConfig& lineBreakConfig) {
+			lineBreak.config = lineBreakConfig;
+			lineBreak.updateSets = true;
+		}
+
+		// see if type setter was updated this frame
+		inline bool isUpdated() const { return updated; }
+		inline void resetUpdated() { updated = false; }
+
+	private:
+		// update layout of specified line
+		void updateLine(Line& line);
+
+		// wrap line and count number of visible rows
+		void wrapLine(Line& line);
+
+		// current state
+		size_t tabSize = 0;
+		bool wordWrap = false;
+		size_t wordWrapColumns = 0;
+		bool updated = false;
+
+		size_t totalRows = 0;
+		size_t totalColumns = 0;
+
+		// support for line break calculations
+		LineBreak lineBreak;
+	} typeSetter;
+
+	// overlay with layout details for a full minimap
+	struct MiniMap {
+		// update state (if required)
+		bool update(const Config& config, const Document& document, const TypeSetter& typeSetter);
+
+		// properties
+		struct Section {
+			Section(size_t start, size_t end, Color color) : start(start), end(end), color(color) {}
+			size_t start;
+			size_t end;
+			Color color;
+		};
+
+		struct Row {
+			std::vector<Section> sections;
+			ImU32 color = 0;
+		};
+
+		std::vector<Row> rows;
+		bool showMiniMap = false;
+
+		// support functions
+		void processLine(
+			const Line& line,
+			const Config& config,
+			size_t index,
+			size_t column,
+			size_t endColumn);
+	} miniMap;
+
+	// the list of text markers
+	struct Marker {
+		Marker(ImU32 lc, ImU32 tc, const std::string_view& lt, const std::string_view& tt) :
+			lineNumberColor(lc), textColor(tc), lineNumberTooltip(lt), textTooltip(tt) {}
+
+		ImU32 lineNumberColor;
+		ImU32 textColor;
+		std::string lineNumberTooltip;
+		std::string textTooltip;
+	};
+
+	using Markers = std::vector<Marker>;
+	Markers markers;
+
+	// autocomplete support
+	class AutoComplete {
 	public:
 		// set the autocomplete configuration
 		void setConfig(const AutoCompleteConfig* c);
@@ -1155,7 +1472,7 @@ protected:
 		void cancel();
 
 		// update autocomplete state and render (if required)
-		bool render(Document& document, Cursors& cursors, const Language* language, float textOffset, ImVec2 glyphSize);
+		bool render(Document& document, Cursors& cursors, TypeSetter& typesetter, const Language* language, float textOffset, ImVec2 glyphSize);
 
 		// specify a new set of suggestions
 		void setSuggestions(const std::vector<std::string>& suggestions);
@@ -1163,9 +1480,9 @@ protected:
 		// get information
 		inline bool isActive() const { return active; }
 		inline bool hasSuggestions() const { return state.suggestions.size() > 0 || state.suggestionsPromise; }
-		bool isSpecialKeyPressed() const;
+		static bool isSpecialKeyPressed();
 		inline ImGuiKeyChord getTriggerShortcut() const { return configuration.triggerShortcut; }
-		inline Coordinate getStart() const { return startLocation; }
+		inline DocPos getStart() const { return startLocation; }
 		inline std::string getReplacement() { return currentSelection < state.suggestions.size() ? state.suggestions[currentSelection] : ""; }
 
 	private:
@@ -1174,14 +1491,13 @@ protected:
 		bool active = false;
 		bool requestActivation = false;
 		bool requestDeactivation = false;
-		Coordinate currentLocation;
-		Coordinate startLocation;
+		DocPos currentLocation;
+		DocPos startLocation;
 		std::chrono::system_clock::time_point activationTime;
 		AutoCompleteConfig configuration;
 		AutoCompleteState state;
 		bool triggeredManually = false;
 		size_t currentSelection = 0;
-		static constexpr float suggestionWidth = 250.0f;
 
 		// support functions
 		void start(Cursors& cursors);
@@ -1193,31 +1509,49 @@ protected:
 	void setText(const std::string_view& text);
 
 	// render (parts of) the text editor
-	void render(const char* title, const ImVec2& size, bool border);
+	void render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags);
+	void renderActiveBracketBackground();
 	void renderSelections();
-	void renderMarkers();
-	void renderMatchingBrackets();
+	void renderTextMarkers();
+	void renderMatchingBracketLines();
 	void renderText();
 	void renderCursors();
-	void renderMargin();
+	void renderLineNumberMarkers();
 	void renderLineNumbers();
 	void renderDecorations();
+	void renderFoldIndicators();
+	void renderMiniMap();
 	void renderScrollbarMiniMap();
 	void renderPanScrollIndicator();
-	void renderFindReplace(ImVec2 pos, float width);
+	void renderFindReplace();
+	void renderPopups();
+
+	// update editor state after changes caused by API calls or user interactions
+	void updateState();
 
 	// keyboard and mouse interactions
 	void handleKeyboardInputs();
 	void handleMouseInteractions();
 
+	// check visibility of a document position
+	bool isDocPosVisible(DocPos pos) const;
+
+	// coordinate transformation/normalization
+	inline VisPos docPos2VisPos(DocPos pos) const { return typeSetter.docPos2VisPos(document, pos); }
+	inline DocPos visPos2DocPos(VisPos pos) const { return typeSetter.visPos2DocPos(document, pos); }
+
+	inline size_t normalizeLine(size_t line) const { return document.normalizeLine(line); }
+	inline DocPos normalizePos(DocPos pos) const { return document.normalizePos(pos); }
+	inline VisPos normalizePos(VisPos pos) const { return typeSetter.normalizePos(pos); }
+
 	// manipulate selections/cursors
 	void selectAll();
-	void selectLine(int line);
-	void selectLines(int startLine, int endLine);
-	void selectRegion(int startLine, int startColumn, int endLine, int endColumn);
+	void selectLine(size_t line);
+	void selectLines(size_t startLine, size_t endLine);
+	void selectRegion(DocPos start, DocPos end);
 	void selectToBrackets(bool includeBrackets);
-	void growSelectionsToCurlyBrackets();
-	void shrinkSelectionsToCurlyBrackets();
+	void growSelections();
+	void shrinkSelections();
 
 	void cut();
 	void copy() const;
@@ -1226,13 +1560,19 @@ protected:
 	void redo();
 
 	// access cursor locations
-	void getCursor(int& line, int& column, size_t cursor) const;
-	void getCursor(int& startLine, int& startColumn, int& endLine, int& endColumn, size_t cursor) const;
-	std::string	getCursorText(size_t cursor) const;
+	DocPos getCursorPosition(size_t cursor) const;
+	DocSelection getCursorSelection(size_t cursor) const;
+
+	// get information at mouse position (e.g. from ImGui::GetMousePos())
+	bool isMousePosOverGlyph(const ImVec2& mousePos) const;
+	DocPos getDocPosAtMousePos(const ImVec2& mousePos) const;
+	std::string getWordAtMousePos(const ImVec2& mousePos) const;
 
 	// scrolling support
+	void setCursor(DocPos pos);
+	void scrollToLine(size_t line, Scroll alignment);
+	void handlePossibleScrolling();
 	void makeCursorVisible();
-	void scrollToLine(int line, Scroll alignment);
 
 	// find/replace support
 	void selectFirstOccurrenceOf(const std::string_view& text, bool caseSensitive, bool wholeWord);
@@ -1243,7 +1583,7 @@ protected:
 
 	void replaceTextInCurrentCursor(const std::string_view& text);
 	void replaceTextInAllCursors(const std::string_view& text);
-	void replaceSectionText(const Coordinate& start, const Coordinate& end, const std::string_view& text);
+	void replaceSectionText(const DocPos& start, const DocPos& end, const std::string_view& text);
 
 	void openFindReplace();
 	void closeFindReplace();
@@ -1254,19 +1594,19 @@ protected:
 	void replaceAll();
 
 	// marker support
-	void addMarker(int line, ImU32 lineNumberColor, ImU32 textColor, const std::string_view& lineNumberTooltip, const std::string_view& textTooltip);
+	void addMarker(size_t line, ImU32 lineNumberColor, ImU32 textColor, const std::string_view& lineNumberTooltip, const std::string_view& textTooltip);
 	void clearMarkers();
 
 	// cursor/selection functions
-	void moveUp(int lines, bool select);
-	void moveDown(int lines, bool select);
+	void moveUp(size_t rows, bool select);
+	void moveDown(size_t rows, bool select);
 	void moveLeft(bool select, bool wordMode);
 	void moveRight(bool select, bool wordMode);
-	void moveToTop(bool select);
-	void moveToBottom(bool select);
-	void moveToStartOfLine(bool select);
-	void moveToEndOfLine(bool select);
-	void moveTo(Coordinate coordinate, bool select);
+	inline void moveToTop(bool select) { moveTo(document.getTop(), select); }
+	inline void moveToBottom(bool select) { moveTo(document.getBottom(), select); }
+	inline void moveToStartOfLine(bool select) { moveTo(document.getStartOfLine(cursors.getCurrent().getInteractiveEnd()), select); }
+	inline void moveToEndOfLine(bool select) { moveTo(document.getEndOfLine(cursors.getCurrent().getInteractiveEnd()), select); }
+	void moveTo(DocPos coordinate, bool select);
 
 	// add/delete characters
 	void handleCharacter(ImWchar character);
@@ -1304,59 +1644,69 @@ protected:
 	void insertTextIntoAllCursors(std::shared_ptr<Transaction> transaction, const std::string_view& text);
 	void deleteTextFromAllCursors(std::shared_ptr<Transaction> transaction);
 	void autoIndentAllCursors(std::shared_ptr<Transaction> transaction);
-	Coordinate insertText(std::shared_ptr<Transaction> transaction, Coordinate start, const std::string_view& text);
-	void deleteText(std::shared_ptr<Transaction> transaction, Coordinate start, Coordinate end);
+	DocPos insertText(std::shared_ptr<Transaction> transaction, DocPos start, const std::string_view& text);
+	void deleteText(std::shared_ptr<Transaction> transaction, DocPos start, DocPos end);
 
-	// editor options
-	float lineSpacing = 1.0f;
-	bool readOnly = false;
-	bool autoIndent = true;
-	bool showSpaces = true;
-	bool showTabs = true;
-	bool showLineNumbers = true;
-	bool showScrollbarMiniMap = true;
-	bool showMatchingBrackets = true;
-	bool completePairedGlyphs = true;
-	bool overwrite = false;
+	// folding support
+	inline bool isLineFoldable(size_t line) const { return lineFold.isFoldable(document, line); }
+	inline bool isLineFolded(size_t line) const { return lineFold.isFolded(document, line); }
+	inline bool isLineVisible(size_t line) const { return lineFold.isVisible(document, line); }
+	inline bool isLineHidden(size_t line) const { return lineFold.isHidden(document, line); }
 
 	// rendering context
+	static constexpr size_t invalidLine = std::numeric_limits<size_t>::max();
+
+	bool editorVisible = false;
+	float cursorWidth;
+	ImVec2 cursorScreenPos;
+	ImVec2 visibleSize;
+
 	ImFont* font;
 	float fontSize;
 	ImVec2 glyphSize;
-	ImVec2 lastRenderOrigin;
+
 	float lineNumberLeftOffset;
 	float lineNumberRightOffset;
 	float decorationOffset;
-	float textOffset;
-	float visibleHeight;
-	int visibleLines;
-	int firstVisibleLine;
-	int lastVisibleLine;
-	float visibleWidth;
-	int visibleColumns;
-	int firstVisibleColumn;
-	int lastVisibleColumn;
-	float verticalScrollBarSize;
-	float horizontalScrollBarSize;
-	float cursorAnimationTimer = 0.0f;
-	bool ensureCursorIsVisible = false;
-	int scrollToLineNumber = -1;
-	Scroll scrollToAlignment = Scroll::alignMiddle;
-	bool showMatchingBracketsChanged = false;
-	bool languageChanged = false;
+	float foldIndicatorOffset;
+	float textLeftOffset;
+	float textRightOffset;
+	float miniMapOffset;
 
-	float decoratorWidth = 0.0f;
+	ImVec2 textSize;
+	ImVec2 totalSize;
+	size_t firstVisibleRow = 0;
+	size_t lastVisibleRow = 0;
+	size_t firstVisibleColumn = 0;
+	size_t lastVisibleColumn = 0;
+
+	float miniMapWidth;
+	size_t firstMiniMapRow;
+	size_t lastMiniMapRow;
+	bool miniMapIsScrollbar = false;
+	float miniMapScrollStart;
+	float miniMapScrollY;
+
+	float miniMapRowHeight;
+	float miniMapColumnHeight;
+	float miniMapColumnWidth;
+	static constexpr float miniMapAlpha = 0.45f;
+	static constexpr float miniMapViewPortAlpha = 0.15f;
+	static constexpr float miniMapViewPortActiveAlpha = 0.3f;
+
+	float cursorAnimationTimer = 0.0f;
+	size_t scrollToLineNumber = invalidLine;
+	Scroll scrollToAlignment = Scroll::alignMiddle;
+	DocPos ensureVisiblePos{invalidLine, 0};
+
+	size_t decoratorWidth = 0;
 	std::function<void(Decorator&)> decoratorCallback;
 
-	std::function<void(int line)> lineNumberContextMenuCallback;
-	std::function<void(int line, int column)> textContextMenuCallback;
-	int contextMenuLine = 0;
-	int contextMenuColumn = 0;
-
-	int leftMargin = 1; // margins are expressed in glyphs
-	static constexpr int decorationMargin = 1;
-	static constexpr int textMargin = 2;
-	static constexpr int cursorWidth = 1;
+	std::function<void(PopupData& data)> lineNumberContextMenuCallback;
+	std::function<void(PopupData& data)> textContextMenuCallback;
+	std::function<void(PopupData& data)> textHoverCallback;
+	ImVec2 popUpWindowPos;
+	DocPos popupDocPos;
 
 	// find and replace context
 	std::string findButtonLabel = "Find";
@@ -1373,27 +1723,25 @@ protected:
 	bool wholeWordFind = false;
 
 	// interaction context
+	bool navigatingVertically = false;
 	float lastClickTime = -1.0f;
 	ImWchar completePairCloser = 0;
-	Coordinate completePairLocation;
-	bool panMode = true;
+	DocPos completePairLocation;
 	bool panning = false;
 	bool scrolling = false;
 	ImVec2 scrollStart;
-	bool showPanScrollIndicator = true;
+	bool selectingText = false;
 	std::function<void()> delayedChangeCallback;
 	std::chrono::milliseconds delayedChangeDelay;
 	std::chrono::system_clock::time_point delayedChangeReportTime;
 	bool delayedChangeDetected = false;
-	std::function<void(std::vector<Change>&)> transactionCallback;
+	std::function<void()> languageChangeCallback;
 
 	// color palette support
-	void updatePalette();
+	void updatePalettes();
 	static Palette defaultPalette;
 	Palette paletteBase;
 	Palette palette;
+	Palette miniMapPalette;
 	float paletteAlpha;
-
-	// language support
-	const Language* language = nullptr;
 };

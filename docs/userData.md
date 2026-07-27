@@ -15,15 +15,17 @@ There is also a mechanism to attach callbacks (**SetInsertor** and **SetDeletor*
 for when lines are inserted or deleted in a document. This can be used to allocate
 and deallocate user data on each line. Given that these callbacks are independent, the
 Deletor callback could also be used to manage user data on select lines like removing
-breakpoints from deleted lines. The callbacks can be turned off by calling (**SetInsertor** and **SetDeletor**) again with nullptr as the argument. If the callbacks are in place when loading text, you'll get a callback for each line. If
+breakpoints from deleted lines. The callbacks can be turned off by calling
+(**SetInsertor** and **SetDeletor**) again with nullptr as the argument. If the
+callbacks are in place when loading text, you'll get a callback for each line. If
 they are in place when clearing or disposing an editor instance, you get a callback
 for each deleted line. It is therefore important to (re)set callbacks at the right
 time to get the desired effect.
 
-User data pointers are also passed to the optional decorator callback allowing
-integrators to quickly access their data when rendering line decorations. Last but
-not least, there is a user data iterator (**IterateUserData**) which calls a
-callback on each line that has user data attached.
+User data pointers are also passed to the optional decorator and context menu
+callback allowing integrators to quickly access their data when rendering menus or
+line decorations. Last but not least, there is a user data iterator (**IterateUserData**)
+which calls a callback on each line that has user data attached.
 
 So to use these mechanisms to manage user data on each line you can use a
 pattern like:
@@ -44,7 +46,7 @@ editor.SetDeletor([]([[maybe_unused]] int line, void* userData) {
 	delete data;
 });
 
-editor.SetLineDecorator(40.0f, [](TextEditor::Decorator& decorator) {
+editor.SetLineDecorator(40.0f, [](const TextEditor::Decorator& decorator) {
 	auto data = static_cast<UserData*>(decorator.userData);
 
 	if (data.somethingImportant) {
@@ -83,7 +85,7 @@ editor.SetDeletor([]([[maybe_unused]] int line, void* userData) {
 	}
 });
 
-editor.SetLineDecorator(40.0f, [](TextEditor::Decorator& decorator) {
+editor.SetLineDecorator(40.0f, [](const TextEditor::Decorator& decorator) {
 	if (decorator.userData) {
 		auto data = static_cast<UserData*>(decorator.userData);
 		// render breakpoint based on user data

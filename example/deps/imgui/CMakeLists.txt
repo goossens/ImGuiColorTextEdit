@@ -4,7 +4,22 @@
 #	This work is licensed under the terms of the MIT license.
 #	For a copy, see <https://opensource.org/licenses/MIT>.
 
-FetchContent_Populate(imgui QUIET GIT_REPOSITORY "https://github.com/ocornut/imgui" GIT_TAG "v1.92.7")
+FetchContent_Populate(imgui QUIET GIT_REPOSITORY "https://github.com/ocornut/imgui" GIT_TAG "v1.92.8")
+
+if(D3D11)
+	set(BACKEND_SOURCES
+		${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp
+		${imgui_SOURCE_DIR}/backends/imgui_impl_win32.h
+		${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp
+		${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.h)
+
+else()
+	set(BACKEND_SOURCES
+		${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
+		${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.h
+		${imgui_SOURCE_DIR}/backends/imgui_impl_sdlgpu3.cpp
+		${imgui_SOURCE_DIR}/backends/imgui_impl_sdlgpu3.h)
+endif()
 
 set(IMGUI_SOURCES
 	${imgui_SOURCE_DIR}/imgui.h
@@ -17,10 +32,7 @@ set(IMGUI_SOURCES
 	${imgui_SOURCE_DIR}/imstb_rectpack.h
 	${imgui_SOURCE_DIR}/imstb_textedit.h
 	${imgui_SOURCE_DIR}/imstb_truetype.h
-	${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
-	${imgui_SOURCE_DIR}/backends/imgui_impl_sdlgpu3.cpp
-	${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.h
-	${imgui_SOURCE_DIR}/backends/imgui_impl_sdlgpu3.h)
+	${BACKEND_SOURCES})
 
 add_library(imgui STATIC ${IMGUI_SOURCES})
 # target_compile_definitions(imgui PUBLIC "IMGUI_USE_WCHAR32")
@@ -29,4 +41,6 @@ target_compile_definitions(imgui PUBLIC "IMGUI_DISABLE_OBSOLETE_FUNCTIONS")
 target_compile_definitions(imgui PUBLIC "IMGUI_DISABLE_OBSOLETE_KEYIO")
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
 
-target_link_libraries(imgui SDL3_Headers)
+if (NOT D3D11)
+	target_link_libraries(imgui SDL3_Headers)
+endif()

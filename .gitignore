@@ -12,6 +12,7 @@
 
 # Editor files
 /.vscode
+/.cache
 *.bak
 Save/*
 

@@ -9,13 +9,6 @@
 
 
 //
-//	Include files
-//
-
-#include <cstdint>
-
-
-//
 //	Static variables
 //
 

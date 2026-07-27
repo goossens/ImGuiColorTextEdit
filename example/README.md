@@ -1,8 +1,9 @@
-# TextEditor Example
+# TextEditor/TextDiff Example
 
 This directory contains a full example on how to use the TextEditor widget.
 It implements a poor man's editor complete with menubar, statusbar,
-file selectors, status tracking and autocomplete.
+file selectors, status tracking, word wrapping, line folding, minimaps,
+autocomplete and an example Language Server Protocol (LSP) bridge.
 
 ![Screenshot](screenshot.png)
 
@@ -10,6 +11,10 @@ It uses the SDL3 GPU rendering backend and comes with CMake support so
 you should be able to run it on MacOS, Linux and Windows. Here are
 the instructions on how to get started based on platform and
 development tools.
+
+Recently an optional DirectX version 11 backend has been added to facilitate
+testing. To use the DirectX backend instead of the SDL3 GPU backend,
+define D3D11 in your build environment before compiling.
 
 ## Visual Studio Code
 
@@ -50,3 +55,15 @@ development tools.
 		- **cmake -B ../build -G "Ninja Multi-Config"**
 		- **cmake --build ../build --config Debug**
 	- The executable should now be at **ImGuiColorTextEdit/build/Debug/example**
+
+## Credits
+
+The example application used the following third party open source packages
+(which are automatically downloaded by the build process):
+
+* [SDL3](https://github.com/libsdl-org/SDL) - cross-platform library designed to make it easy to write multi-media software released under the [zlib license](https://opensource.org/licenses/Zlib).
+* [Dear ImGui](https://github.com/ocornut/imgui) - graphical user interface library released under the [MIT license](https://opensource.org/licenses/MIT).
+* [ImGuiFileDialog](https://github.com/aiekick/ImGuiFileDialog) - file selection dialog for Dear ImGui released under the [MIT license](https://opensource.org/licenses/MIT).
+* [dtl](https://github.com/cubicdaiya/dtl) - a difference template library by [Tatsuhiko Kubo (cubicdaiya)](https://github.com/cubicdaiya) released under the [BSD License](https://opensource.org/license/bsd-3-clause).
+* [LSP Framework](https://github.com/leon-bckl/lsp-framework) - a framework to implement
+[Language Server Protocol (LSP)](https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/) servers and clients by [ Leon Buckel](https://github.com/leon-bckl) released under the [MIT license](https://opensource.org/licenses/MIT).

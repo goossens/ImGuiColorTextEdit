@@ -1,6 +1,9 @@
 name: MacOS
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   verify-macos:
