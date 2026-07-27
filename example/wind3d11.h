@@ -15,6 +15,7 @@
 #define WIN32_LEAN_AND_MEAN
 #undef APIENTRY
 
+#include <cstring>
 #include <format>
 #include <string>
 
@@ -96,7 +97,7 @@ int example() {
 
 	// setup our font
 	ImFontConfig config;
-	std::memcpy(config.Name, "DejaVu", 7);
+	std::strncpy(config.Name, "DejaVu", sizeof(config.Name));
 	config.FontDataOwnedByAtlas = false;
 	io.Fonts->Clear();
 	io.Fonts->AddFontFromMemoryCompressedTTF(static_cast<const void*>(&dejavu), dejavuSize, 15.0f, &config);

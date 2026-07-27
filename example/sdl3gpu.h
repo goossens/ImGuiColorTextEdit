@@ -12,6 +12,7 @@
 //	Include files
 //
 
+#include <cstring>
 #include <format>
 #include <string>
 
@@ -42,7 +43,12 @@ int example() {
 		SDL_WINDOW_HIGH_PIXEL_DENSITY;
 
     float mainScale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
-	SDL_Window* window = SDL_CreateWindow("TextEditor Example", 1280 * mainScale, 720 * mainScale, windowFlags);
+
+	SDL_Window* window = SDL_CreateWindow(
+		"TextEditor Example",
+		static_cast<int>(1280 * mainScale),
+		static_cast<int>(720 * mainScale),
+		windowFlags);
 
 	if (window == nullptr) {
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Error: SDL_CreateWindow(): %s\n", SDL_GetError());
@@ -91,7 +97,7 @@ int example() {
 
 	// setup our font
 	ImFontConfig config;
-	std::memcpy(config.Name, "DejaVu", 7);
+	std::strncpy(config.Name, "DejaVu", sizeof(config.Name));
 	config.FontDataOwnedByAtlas = false;
 	io.Fonts->Clear();
 	io.Fonts->AddFontFromMemoryCompressedTTF(static_cast<const void*>(&dejavu), dejavuSize, 15.0f, &config);
