@@ -12,7 +12,7 @@
 //	Include files
 //
 
-#include <cstring>
+#include <algorithm>
 #include <format>
 #include <string>
 
@@ -42,7 +42,7 @@ int example() {
 		SDL_WINDOW_RESIZABLE |
 		SDL_WINDOW_HIGH_PIXEL_DENSITY;
 
-    float mainScale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
+	float mainScale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
 	SDL_Window* window = SDL_CreateWindow(
 		"TextEditor Example",
@@ -82,10 +82,10 @@ int example() {
 	io.IniFilename = nullptr;
 	ImGui::StyleColorsDark();
 
-    // setup scaling
-    ImGuiStyle& style = ImGui::GetStyle();
-    style.ScaleAllSizes(mainScale);
-    style.FontScaleDpi = mainScale;
+	// setup scaling
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.ScaleAllSizes(mainScale);
+	style.FontScaleDpi = mainScale;
 
 	// setup platform/renderer backend
 	ImGui_ImplSDL3_InitForSDLGPU(window);
@@ -97,7 +97,7 @@ int example() {
 
 	// setup our font
 	ImFontConfig config;
-	std::strncpy(config.Name, "DejaVu", sizeof(config.Name));
+	std::copy_n("DejaVu", 7, config.Name);
 	config.FontDataOwnedByAtlas = false;
 	io.Fonts->Clear();
 	io.Fonts->AddFontFromMemoryCompressedTTF(static_cast<const void*>(&dejavu), dejavuSize, 15.0f, &config);
