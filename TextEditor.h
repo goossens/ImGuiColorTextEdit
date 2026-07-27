@@ -338,14 +338,14 @@ public:
 		void* userData;
 	};
 
-	// positive width is number of pixels, negative with is number of glyphs
-	inline void SetLineDecorator(float width, std::function<void(Decorator& decorator)> callback) {
+	// setup a line decorator (width is number of glyphs)
+	inline void SetLineDecorator(size_t width, std::function<void(Decorator& decorator)> callback) {
 		decoratorWidth = width;
 		decoratorCallback = callback;
 	}
 
-	inline void ClearLineDecorator() { SetLineDecorator(0.0f, nullptr); }
-	inline bool HasLineDecorator() const { return decoratorWidth != 0.0f && decoratorCallback != nullptr; }
+	inline void ClearLineDecorator() { SetLineDecorator(0, nullptr); }
+	inline bool HasLineDecorator() const { return decoratorWidth != 0 && decoratorCallback != nullptr; }
 
 	// setup right click or hover callbacks
 	// the editor sets up a popup menu in the right location
@@ -1699,7 +1699,7 @@ protected:
 	Scroll scrollToAlignment = Scroll::alignMiddle;
 	DocPos ensureVisiblePos{invalidLine, 0};
 
-	float decoratorWidth = 0.0f;
+	size_t decoratorWidth = 0;
 	std::function<void(Decorator&)> decoratorCallback;
 
 	std::function<void(PopupData& data)> lineNumberContextMenuCallback;

@@ -1129,7 +1129,7 @@ void Editor::toggleLineMarkers() {
 void Editor::toggleLineDecorator() {
 	// see if we are turning it on or off
 	if (showLineDecorator) {
-		editor.SetLineDecorator(50.0f, [](const TextEditor::Decorator& decorator) {
+		editor.SetLineDecorator(3, [](const TextEditor::Decorator& decorator) {
 			if (decorator.line == 10 || decorator.line == 15|| decorator.line == 16) {
 				auto size = decorator.height - 1.0f;
 

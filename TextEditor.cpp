@@ -89,13 +89,9 @@ void TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 			lineNumberRightOffset += glyphSize.x;
 		}
 
-		if (decoratorWidth > 0.0f) {
+		if (decoratorWidth) {
 			decorationOffset = lineNumberRightOffset + config.decorationMargin * glyphSize.x;
-			textLeftOffset = decorationOffset + decoratorWidth + config.decorationMargin * glyphSize.x;
-
-		} else if (decoratorWidth < 0.0f) {
-			decorationOffset = lineNumberRightOffset + config.decorationMargin * glyphSize.x;
-			textLeftOffset = decorationOffset + (-decoratorWidth + config.decorationMargin) * glyphSize.x;
+			textLeftOffset = decorationOffset + (decoratorWidth + config.textMargin) * glyphSize.x;
 
 		} else {
 			decorationOffset = lineNumberRightOffset;
@@ -572,9 +568,9 @@ void TextEditor::renderLineNumbers() {
 //
 
 void TextEditor::renderDecorations() {
-	if (decoratorWidth != 0.0f && decoratorCallback) {
+	if (decoratorWidth && decoratorCallback) {
 		auto position = ImVec2(ImGui::GetWindowPos().x + decorationOffset, cursorScreenPos.y + glyphSize.y * firstVisibleRow);
-		auto widthInPixels = (decoratorWidth < 0.0f) ? -decoratorWidth * glyphSize.x: decoratorWidth;
+		auto widthInPixels = decoratorWidth * glyphSize.x;
 		Decorator decorator{0, widthInPixels, glyphSize.y, glyphSize, nullptr};
 
 		for (size_t i = firstVisibleRow; i <= lastVisibleRow; i++) {

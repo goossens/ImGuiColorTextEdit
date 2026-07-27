@@ -1,15 +1,14 @@
 # Line Decorator
 
-The text editor provides an option to add a line decorator. This decorator gets called for each visible line and the integrator can render whatever they want in the requested space and can also handle user inputs the usual Dear ImGui way.
+The text editor provides an option to add a line decorator. This decorator gets called for each visible line and the integrator can render whatever they want in the requested space (which is reserved between the line number
+and the text) and can also handle user inputs the usual Dear ImGui way.
 
-Below is an example where a 41 pixel wide column is requested for custom decorations and the provided callback renders a regular ImGui Button and also draws a custom button with a red circle. The first button has a tooltip and the second button responds to a right-click with a popup to demonstrate some of the possibilities.
+Below is an example where a space with the width of 3 glyphs is requested for custom decorations and the provided callback renders a regular ImGui Button and also draws a custom button with a red circle. The first button has a tooltip and the second button responds to a right-click with a popup to demonstrate some of the possibilities.
 
 When the line decorator is called, the ImGui position is already set (so you can render ImGui widgets immediately) and a new ID scope is established (to avoid ID collisions between lines). If you push style changes, make sure you also pop them before leaving the callback.
 
-If you don't want to express the decorator width in pixels, you can pass a negative number which is interpreted as the width of a specified number of glyphs.
-
 ```c++
-editor.SetLineDecorator(41.0f, [](const TextEditor::Decorator& decorator) {
+editor.SetLineDecorator(3, [](const TextEditor::Decorator& decorator) {
 	if (decorator.line == 10 || decorator.line == 15|| decorator.line == 16) {
 		auto size = decorator.height - 1.0f;
 
