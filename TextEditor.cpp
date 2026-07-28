@@ -2325,7 +2325,7 @@ void TextEditor::toggleComments() {
 
 		// process all lines in this cursor
 		for (auto line = cursorStart.line; line <= cursorEnd.line; line++) {
-			if (DocPos(line, 0) != cursorEnd && document[line].size()) {
+			if ((!cursor->hasSelection() || DocPos(line, 0) != cursorEnd) && document[line].size()) {
 				// see if line starts with a comment (after possible leading whitespaces)
 				size_t start = 0;
 				size_t i = 0;
@@ -2340,7 +2340,13 @@ void TextEditor::toggleComments() {
 
 				if (i == comment.size()) {
 					auto deleteStart = DocPos(line, start);
-					auto deleteEnd = DocPos(line, start + comment.size() + 1);
+					auto endOfComment = start + i;
+
+					if (endOfComment < document[line].size() - 1 && document[line][endOfComment].codepoint == ' ') {
+						endOfComment++;
+					}
+
+					auto deleteEnd = DocPos(line, endOfComment);
 					deleteText(transaction, deleteStart, deleteEnd);
 					cursors.adjustForDelete(cursor, deleteStart, deleteEnd);
 
