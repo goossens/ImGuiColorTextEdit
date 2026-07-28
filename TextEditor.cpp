@@ -1048,7 +1048,7 @@ void TextEditor::handleKeyboardInputs() {
 		else if (!config.readOnly && isShortcut && ImGui::IsKeyPressed(ImGuiKey_RightBracket)) { indentLines(); }
 		else if (!config.readOnly && isAltOnly && ImGui::IsKeyPressed(ImGuiKey_UpArrow)) { moveUpLines(); }
 		else if (!config.readOnly && isAltOnly && ImGui::IsKeyPressed(ImGuiKey_DownArrow)) { moveDownLines(); }
-		else if (!config.readOnly && config.language && isShortcut && ImGui::IsKeyPressed(ImGuiKey_Slash)) { toggleComments(); }
+		else if (!config.readOnly && config.language && isOptionalShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_Slash)) { toggleComments(); }
 
 		// find/replace support
 		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_F)) {
