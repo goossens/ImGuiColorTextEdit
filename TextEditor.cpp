@@ -2247,7 +2247,7 @@ void TextEditor::moveUpLines() {
 	if (cursors[0].getSelectionStart().line != 0) {
  		auto transaction = startTransaction();
 
-		for (auto cursor = cursors.begin(); cursor <= cursors.end(); cursor++) {
+		for (auto cursor = cursors.begin(); cursor < cursors.end(); cursor++) {
 			auto start = cursor->getSelectionStart();
 			auto end = cursor->getSelectionEnd();
 
