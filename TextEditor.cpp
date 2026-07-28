@@ -2187,16 +2187,12 @@ void TextEditor::indentLines() {
 
 		// process all lines in this cursor
 		for (auto line = cursorStart.line; line <= cursorEnd.line; line++) {
-			if (DocPos(line, 0) != cursorEnd && document[line].size()) {
+			if ((!cursor->hasSelection() || DocPos(line, 0) != cursorEnd) && document[line].size()) {
 				auto insertStart = DocPos(line, 0);
 				auto insertEnd = insertText(transaction, insertStart, "\t");
-				cursors.adjustForInsert(cursor, insertStart, insertEnd);
+				cursors.adjustForInsert(cursor, insertStart, insertEnd, true);
 			}
 		}
-
-		cursorStart.index += cursorStart.index ? 1 : 0;
-		cursorEnd.index += cursorEnd.index ? 1 : 0;
-		cursor->update(cursorStart, cursorEnd);
 	}
 
 	endTransaction(transaction);
@@ -2216,7 +2212,7 @@ void TextEditor::deindentLines() {
 		auto cursorEnd = cursor->getSelectionEnd();
 
 		for (auto line = cursorStart.line; line <= cursorEnd.line; line++) {
-			if (cursorStart == cursorEnd || (DocPos(line, 0) != cursorEnd && document[line].size())) {
+			if ((!cursor->hasSelection() || DocPos(line, 0) != cursorEnd) && document[line].size()) {
 				// determine how many whitespaces are available at the start with a max of tabSize columns
 				size_t column = 0;
 				size_t index = 0;
@@ -2232,7 +2228,7 @@ void TextEditor::deindentLines() {
 
 				if (deleteEnd != deleteStart) {
 					deleteText(transaction, deleteStart, deleteEnd);
-					cursors.adjustForDelete(cursor, deleteStart, deleteEnd);
+					cursors.adjustForDelete(cursor, deleteStart, deleteEnd, true);
 				}
 			}
 		}
@@ -2348,12 +2344,12 @@ void TextEditor::toggleComments() {
 
 					auto deleteEnd = DocPos(line, endOfComment);
 					deleteText(transaction, deleteStart, deleteEnd);
-					cursors.adjustForDelete(cursor, deleteStart, deleteEnd);
+					cursors.adjustForDelete(cursor, deleteStart, deleteEnd, true);
 
 				} else {
 					auto insertStart = DocPos(line, start);
 					auto insertEnd = insertText(transaction, insertStart, comment + " ");
-					cursors.adjustForInsert(cursor, insertStart, insertEnd);
+					cursors.adjustForInsert(cursor, insertStart, insertEnd, true);
 				}
 			}
 		}
@@ -3103,8 +3099,10 @@ void TextEditor::Cursors::update(const Document& document) {
 //	TextEditor::Cursors::adjustForInsert
 //
 
-void TextEditor::Cursors::adjustForInsert(iterator start, DocPos insertStart, DocPos insertEnd) {
-	for (auto cursor = start + 1; cursor < end(); cursor++) {
+void TextEditor::Cursors::adjustForInsert(iterator start, DocPos insertStart, DocPos insertEnd, bool includeCurrent) {
+	auto first = includeCurrent ? start : start + 1;
+
+	for (auto cursor = first; cursor < end(); cursor++) {
 		cursor->adjustForInsert(insertStart, insertEnd);
 	}
 }
@@ -3114,8 +3112,10 @@ void TextEditor::Cursors::adjustForInsert(iterator start, DocPos insertStart, Do
 //	TextEditor::Cursors::adjustForDelete
 //
 
-void TextEditor::Cursors::adjustForDelete(iterator start, DocPos deleteStart, DocPos deleteEnd) {
-	for (auto cursor = start + 1; cursor < end(); cursor++) {
+void TextEditor::Cursors::adjustForDelete(iterator start, DocPos deleteStart, DocPos deleteEnd, bool includeCurrent) {
+	auto first = includeCurrent ? start : start + 1;
+
+	for (auto cursor = first; cursor < end(); cursor++) {
 		cursor->adjustForDelete(deleteStart, deleteEnd);
 	}
 }

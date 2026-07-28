@@ -1151,9 +1151,8 @@ protected:
 		void update(const Document& document);
 
 		// adjust cursors for insert/delete operations
-		// (these functions assume that insert or delete points are before the cursor)
-		void adjustForInsert(iterator start, DocPos insertStart, DocPos insertEnd);
-		void adjustForDelete(iterator start, DocPos deleteStart, DocPos deleteEnd);
+		void adjustForInsert(iterator start, DocPos insertStart, DocPos insertEnd, bool includeCurrent=false);
+		void adjustForDelete(iterator start, DocPos deleteStart, DocPos deleteEnd, bool includeCurrent=false);
 
 	private:
 		size_t main = 0;
