@@ -211,15 +211,15 @@ See GImGui documentation in imgui.cpp for more details.
 	- Shift-Tab de-indents current line or current lines.
 	- Alt-UpArrow moves current or all selected lines up.
 	- Alt-DownArrow moves current or all selected lines down.
-	- Ctrl-/ toggles line comments for current or selected lines if language with single line comments is specified.
+	- Ctrl-/ or Ctrl-L toggle line comments for current or selected lines if language with single line comments is specified.
 
 - Find & Replace:
-	- Ctrl-f opens the find and replace window.
-	- If text is selected when Ctrl-f is hit, the selected text is used as the search term if the start and end are on the same line. Else if the cursor is in a word when Ctrl-f is hit, that word is used as the search term.
+	- Ctrl-F opens the find and replace window.
+	- If text is selected when Ctrl-F is hit, the selected text is used as the search term if the start and end are on the same line. Else if the cursor is in a word when Ctrl-F is hit, that word is used as the search term.
 	- In all other cases, the previous search term is used.
 	- When the search and replace window is visible, hitting the ESC button closes it.
-	- Shift-Ctrl-f finds all instances and makes them separate cursors.
-	- Ctrl-g finds the next instance of the search term.
+	- Shift-Ctrl-F finds all instances and makes them separate cursors.
+	- Ctrl-G finds the next instance of the search term.
 
 - AutoComplete:
 	- Once configured, Ctrl-space (or a custom key combination) triggers a manual autocomplete (even on MacOS as Cmd-space globally triggers Spotlight searching on that platform).
