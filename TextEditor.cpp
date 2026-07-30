@@ -3913,7 +3913,7 @@ void TextEditor::Document::deleteLines(size_t start, size_t end) {
 
 void TextEditor::Document::clearDocument() {
 	if (deletor) {
-		for (size_t i = 0; i <= size(); i++) {
+		for (size_t i = 0; i < size(); i++) {
 			deletor(i, at(i).userData);
 		}
 	}
