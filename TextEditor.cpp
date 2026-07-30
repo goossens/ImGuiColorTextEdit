@@ -982,7 +982,7 @@ void TextEditor::handleKeyboardInputs() {
 		auto ctrl = ImGui::IsKeyDown(ImGuiMod_Ctrl);
 		auto alt = ImGui::IsKeyDown(ImGuiMod_Alt);
 		auto super = ImGui::IsKeyDown(ImGuiMod_Super);
-	    auto meta = ImGui::GetIO().ConfigMacOSXBehaviors ? alt : ctrl;
+		auto meta = ImGui::GetIO().ConfigMacOSXBehaviors ? alt : ctrl;
 
 		auto isNoModifiers = !ctrl && !shift && !alt;
 		auto isShortcut = ctrl && !shift && !alt;
@@ -993,7 +993,7 @@ void TextEditor::handleKeyboardInputs() {
 		auto isOptionalShift = !ctrl && !alt;
 		auto isOptionalAlt = !ctrl && !shift;
 		auto isMetaShift = ImGui::GetIO().ConfigMacOSXBehaviors ? !ctrl && shift && !alt && super : !ctrl && shift && alt;
-    	auto isOptionalMetaShift = ImGui::GetIO().ConfigMacOSXBehaviors ? !ctrl : !alt;
+		auto isOptionalMetaShift = ImGui::GetIO().ConfigMacOSXBehaviors ? !ctrl : !alt;
 
 		// ignore specific keys when autocomplete is active, they will be handled later
 		if (autocomplete.isActive() && autocomplete.isSpecialKeyPressed()) {
@@ -2246,7 +2246,7 @@ void TextEditor::deindentLines() {
 void TextEditor::moveUpLines() {
 	// don't move up if first line is in one of the cursors
 	if (cursors[0].getSelectionStart().line != 0) {
- 		auto transaction = startTransaction();
+		auto transaction = startTransaction();
 
 		for (auto cursor = cursors.begin(); cursor < cursors.end(); cursor++) {
 			auto start = cursor->getSelectionStart();
@@ -6415,7 +6415,7 @@ static inline TextEditor::BreakOption lb9(LineBreakState& state) {
 	static const std::unordered_set<LBC> BKCRLFNLSPZW = {LBC::bk, LBC::cr, LBC::lf, LBC::nl, LBC::sp, LBC::zw};
 
 	// treat X (CM | ZWJ)* as if it were X
-  	// where X is any line break class except BK, CR, LF, NL, SP, or ZW
+	// where X is any line break class except BK, CR, LF, NL, SP, or ZW
 	if (BKCRLFNLSPZW.find(state.current.cls) == BKCRLFNLSPZW.end() &&
 		(state.next.cls == LBC::cm || state.next.cls == LBC::zwj)) {
 
@@ -6983,8 +6983,8 @@ static inline TextEditor::BreakOption lb26(const LineBreakState& state) {
 			break;
 
 		default:
-		  return TextEditor::BreakOption::undefined;
-  	}
+			return TextEditor::BreakOption::undefined;
+	}
 
 	return TextEditor::BreakOption::undefined;
 }
@@ -7016,7 +7016,7 @@ static inline TextEditor::BreakOption lb27(const LineBreakState& state) {
 			break;
 
 		default:
-		  return TextEditor::BreakOption::undefined;
+			return TextEditor::BreakOption::undefined;
 	}
 
 	return TextEditor::BreakOption::undefined;
@@ -7148,14 +7148,14 @@ static inline TextEditor::BreakOption lb30b(const LineBreakState& state) {
 }
 
 
-#define RULE(r) 													\
+#define RULE(r)														\
 	result = r(state);												\
 																	\
 	if (result != TextEditor::BreakOption::undefined) {				\
 		return result;												\
 	}
 
-#define RULE2(r) 													\
+#define RULE2(r)													\
 	if (config.r) {													\
 		RULE(r)														\
 	}
@@ -13605,7 +13605,7 @@ const TextEditor::Language* TextEditor::Language::Sql() {
 			"treat", "trigger", "trim", "trim_array", "true", "truncate", "uescape", "union", "unique", "unknown", "unnest",
 			"update", "upper", "user", "using", "value", "values", "value_of", "varbinary", "varchar", "varying", "var_pop",
 			"var_samp", "versioning", "when", "whenever", "where", "width_bucket", "window", "with", "within", "without", "year"
-	   };
+		};
 
 		for (auto& keyword : keywords) { language.keywords.insert(keyword); }
 

@@ -954,6 +954,7 @@ protected:
 		void* userData = nullptr;
 	};
 
+
 	// the document being edited (Lines of Glyphs)
 	class Document : public std::vector<Line> {
 	public:
@@ -1179,7 +1180,7 @@ protected:
 	};
 
 	// a collection of actions for a complete transaction
- 	class Transaction : public std::vector<Action> {
+	class Transaction : public std::vector<Action> {
 	public:
 		// access state before/after transactions
 		inline void setBeforeState(const Cursors& cursors) { before = cursors; }
@@ -1198,7 +1199,7 @@ protected:
 	};
 
 	// overlay for managing the transaction list to support do/undo/redo
- 	class Transactions : public std::vector<std::shared_ptr<Transaction>> {
+	class Transactions : public std::vector<std::shared_ptr<Transaction>> {
 	public:
 		// reset the transactions
 		void reset();
