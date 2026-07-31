@@ -278,12 +278,18 @@ void Editor::render() {
 
 	} else if (state == State::confirmError) {
 		renderConfirmError();
+
+	} else if (state == State::addSquiggle) {
+		renderAddSquiggle();
+
+	} else if (state == State::clearSquiggles) {
+		renderClearSquiggle();
 	}
 
 	ImGui::End();
 	ImGui::PopStyleVar();
 
-	// render debug information as a notification (if required)
+	// render debug information (if required)
 	if (showDebugInformation) {
 		renderDebugInformation();
 	}
@@ -478,6 +484,10 @@ void Editor::renderMenuBar() {
 			if (ImGui::MenuItem("Show Context Menus", nullptr, &showContextMenus)) { toggleContextMenus(); }
 			if (ImGui::MenuItem("Enable Unicode Line Break Algorithm", nullptr, &enableUnicodeLineBreakAlgorithm)) { toggleLineBreak(); }
 			ImGui::Separator();
+			if (ImGui::MenuItem("Add Squiggle(s)", nullptr, nullptr, editor.AnyCursorHasSelection())) { showAddSquiggle(); }
+			if (ImGui::MenuItem("Clear Squiggles", nullptr, nullptr, editor.HasSquiggles())) { clearSquiggles(); }
+			if (ImGui::MenuItem("Clear Squiggles by Type", nullptr, nullptr, editor.HasSquiggles())) { showClearSquiggles(); }
+			ImGui::Separator();
 			ImGui::MenuItem("Show Debug Information", nullptr, &showDebugInformation);
 			ImGui::EndMenu();
 		}
@@ -666,6 +676,26 @@ void Editor::showConfirmQuit() {
 void Editor::showError(const std::string &message) {
 	errorMessage = message;
 	state = State::confirmError;
+	popup = true;
+}
+
+
+//
+//	Editor::showAddSquiggle
+//
+
+void Editor::showAddSquiggle() {
+	state = State::addSquiggle;
+	popup = true;
+}
+
+
+//
+//	Editor::showClearSquiggles
+//
+
+void Editor::showClearSquiggles() {
+	state = State::clearSquiggles;
 	popup = true;
 }
 
@@ -874,6 +904,91 @@ void Editor::renderConfirmError() {
 
 
 //
+//	Editor::renderAddSquiggle
+//
+
+void Editor::renderAddSquiggle() {
+	if (popup) {
+		ImGui::OpenPopup("Add Squiggle");
+		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		popup = false;
+	}
+
+	if (ImGui::BeginPopupModal("Add Squiggle", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		auto type = static_cast<int>(squiggleType);
+		if (ImGui::SliderInt("Type", &type, 1, 5)) { squiggleType = static_cast<size_t>(type); }
+		ImGui::ColorEdit4("Color", (float*) &squiggleColor);
+		ImGui::InputText("Tool Tip", squiggleToolTip, sizeof(squiggleToolTip));
+		ImGui::Separator();
+
+		static constexpr float buttonWidth = 80.0f;
+		ImGui::Indent(ImGui::GetContentRegionAvail().x - buttonWidth * 2.0f - 5.0f);
+
+		if (ImGui::Button("OK", ImVec2(buttonWidth, 0.0f))) {
+			ImU32 color = squiggleColor;
+
+			for (size_t i = 0; i < editor.GetNumberOfCursors(); i++) {
+				auto selection = editor.GetCursorSelection(i);
+
+				if (selection.start != selection.end) {
+					editor.AddSquiggle(selection.start, selection.end, squiggleType, color, squiggleToolTip);
+				}
+			}
+
+			state = State::edit;
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::SameLine(0.0f, 5.0f);
+
+		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+			state = State::edit;
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+}
+
+
+//
+//	Editor::renderClearSquiggle
+//
+
+void Editor::renderClearSquiggle() {
+	if (popup) {
+		ImGui::OpenPopup("Clear Squiggles");
+		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		popup = false;
+	}
+
+	if (ImGui::BeginPopupModal("Clear Squiggles", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		auto type = static_cast<int>(squiggleType);
+		if (ImGui::SliderInt("Type", &type, 1, 5)) { squiggleType = static_cast<size_t>(type); }
+		ImGui::Separator();
+
+		static constexpr float buttonWidth = 80.0f;
+		ImGui::Indent(ImGui::GetContentRegionAvail().x - buttonWidth * 2.0f - 5.0f);
+
+		if (ImGui::Button("OK", ImVec2(buttonWidth, 0.0f))) {
+			editor.ClearSquiggles(squiggleType);
+			state = State::edit;
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::SameLine(0.0f, 5.0f);
+
+		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+			state = State::edit;
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+}
+
+
+//
 //	renderDebugInformation
 //
 
@@ -887,6 +1002,7 @@ void Editor::renderDebugInformation() {
 
 		auto& io = ImGui::GetIO();
 		auto& style = ImGui::GetStyle();
+
 		information += "Dear ImGui:\n";
 		information += std::format("io.DisplaySize: {}, {}\n", io.DisplaySize.x, io.DisplaySize.y);
 		information += std::format("io.DisplayFramebufferScale: {}, {}\n", io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
@@ -1217,4 +1333,24 @@ void Editor::toggleLineBreak() {
 	lineBreakConfig.useUnicodeAnnex14 = enableUnicodeLineBreakAlgorithm;
 	editor.SetWordWrapEnabled(true);
 	editor.SetLineBreakConfig(lineBreakConfig);
+}
+
+
+//
+//	Editor::clearSquiggles
+//
+
+void Editor::clearSquiggles() {
+	if (editor.AnyCursorHasSelection()) {
+		for (size_t i = 0; i < editor.GetNumberOfCursors(); i++) {
+			auto selection = editor.GetCursorSelection(i);
+
+			if (selection.start != selection.end) {
+				editor.ClearSquiggles(selection.start, selection.end);
+			}
+		}
+
+	} else {
+		editor.ClearSquiggles();
+	}
 }

@@ -59,6 +59,8 @@ private:
 	void showConfirmClose(std::function<void()> callback);
 	void showConfirmQuit();
 	void showError(const std::string& message);
+	void showAddSquiggle();
+	void showClearSquiggles();
 
 	void renderDiff();
 	void renderFileOpen();
@@ -66,6 +68,8 @@ private:
 	void renderConfirmClose();
 	void renderConfirmQuit();
 	void renderConfirmError();
+	void renderAddSquiggle();
+	void renderClearSquiggle();
 
 	void renderDebugInformation();
 
@@ -114,6 +118,7 @@ private:
 	void toggleLineDecorator();
 	void toggleContextMenus();
 	void toggleLineBreak();
+	void clearSquiggles();
 
 	bool demoTrieAutoComplete = false;
 	bool demoLspBridge = false;
@@ -130,6 +135,10 @@ private:
 
 	std::function<std::string()> getBackendDebugInformation;
 
+	size_t squiggleType = 1;
+	ImColor squiggleColor{1.0f, 0.2f, 0.0f, 0.8f};
+	char squiggleToolTip[128] = {};
+
 	// notification system
 	Notifications notifications;
 
@@ -142,6 +151,8 @@ private:
 		saveFileAs,
 		confirmClose,
 		confirmQuit,
-		confirmError
+		confirmError,
+		addSquiggle,
+		clearSquiggles
 	} state = State::edit;
 };

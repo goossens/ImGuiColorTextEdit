@@ -80,6 +80,7 @@ features are however included.
 - Folding works on brackets (for all languages) and on indentation for languages like Python.
 - Provides optional autocomplete framework (see [more information here](docs/autocomplete.md), default is off).
 - Has marker API to specify lines and/or line numbers to highlight and optional show tooltips (see [example](docs/markers.md)).
+- Has squiggle API to underline parts of the text like Visual Studio Code to highlight and optional show tooltips.
 - Has optional full minimap similar to Visual Studio Code.
 - Has optional scrollbar minimap to just render current cursor, selections and marker locations.
 - Provides middle-mouse pan and scroll functions like CAD programs and browsers.

@@ -53,6 +53,8 @@ void TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 	// get font information
 	font = ImGui::GetFont();
 	fontSize = ImGui::GetFontSize();
+	fontScaleDpi = ImGui::GetStyle().FontScaleDpi;
+
 	glyphSize = ImVec2(ImGui::CalcTextSize("#").x, ImGui::GetTextLineHeightWithSpacing() * config.lineSpacing);
 
 	// ensure editor has focus (if required)
@@ -99,10 +101,9 @@ void TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		}
 
 		if (config.showMiniMap) {
-			auto fontScale = ImGui::GetStyle().FontScaleDpi;
-			miniMapRowHeight = 3.0f * fontScale;
-			miniMapColumnHeight = 2.0f * fontScale;
-			miniMapColumnWidth = 1.0f * fontScale;
+			miniMapRowHeight = 3.0f * fontScaleDpi;
+			miniMapColumnHeight = 2.0f * fontScaleDpi;
+			miniMapColumnWidth = 1.0f * fontScaleDpi;
 
 			if (config.miniMapColumns == 0.0f) {
 				miniMapWidth = std::floor(
@@ -147,7 +148,7 @@ void TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		}
 
 		// determine width of cursor
-		cursorWidth = 1.0f * ImGui::GetStyle().FontScaleDpi;
+		cursorWidth = 1.0f * fontScaleDpi;
 
 		// setup clipping over the text area
 		auto drawList = ImGui::GetWindowDrawList();
@@ -163,6 +164,7 @@ void TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		renderSelections();
 		renderTextMarkers();
 		renderMatchingBracketLines();
+		renderSquiggles();
 		renderText();
 		renderCursors();
 
@@ -335,11 +337,12 @@ void TextEditor::renderTextMarkers() {
 					drawList->AddRectFilled(start, end, marker.textColor);
 
 					if (marker.textTooltip.size() && ImGui::IsMouseHoveringRect(start, end)) {
-						ImGui::PushStyleColor(ImGuiCol_PopupBg, marker.textColor);
-						ImGui::BeginTooltip();
-						ImGui::TextUnformatted(marker.textTooltip.c_str());
-						ImGui::EndTooltip();
-						ImGui::PopStyleColor();
+						if (ImGui::BeginTooltip()) {
+							ImGui::PushStyleColor(ImGuiCol_PopupBg, marker.textColor);
+							ImGui::TextUnformatted(marker.textTooltip.c_str());
+							ImGui::PopStyleColor();
+							ImGui::EndTooltip();
+						}
 					}
 				}
 			}
@@ -375,6 +378,129 @@ void TextEditor::renderMatchingBracketLines() {
 					}
 				}
 			}
+		}
+	}
+}
+
+//
+//	renderSquiggle
+//
+
+inline static void renderSquiggle(float left, float right, float top, float bottom, float thickness, ImU32 color, const char* tooltip) {
+	auto drawList = ImGui::GetWindowDrawList();
+	auto height = bottom - top;
+	auto size = height * 0.2f;
+	auto offset = top + height * 0.8f;
+	ImVec2 point(left, offset);
+	bool down = true;
+
+	ImVec2 topLeft{left, top};
+	ImVec2 bottomRight{right, bottom};
+	drawList->PushClipRect(topLeft, bottomRight, true);
+
+	while (point.x < right) {
+		ImVec2 next{point.x + size, down ? offset + size : offset};
+		drawList->AddLine(point, next, color, thickness);
+		point = next;
+		down = !down;
+	}
+
+	drawList->PopClipRect();
+
+	if (*tooltip && ImGui::IsMouseHoveringRect(topLeft, bottomRight)) {
+		if (ImGui::BeginTooltip()) {
+			ImGui::TextUnformatted(tooltip);
+			ImGui::EndTooltip();
+		}
+	}
+}
+
+
+//
+//	TextEditor::renderSquiggles
+//
+
+void TextEditor::renderSquiggles() {
+	if (squiggles.size()) {
+		ImVec2 rowScreenPos = cursorScreenPos + ImVec2(textLeftOffset, firstVisibleRow * glyphSize.y);
+
+		// only process all visible rows
+		for (size_t i = firstVisibleRow; i <= lastVisibleRow; i++) {
+			// determine visible boundaries for this row
+			auto& line = document[typeSetter[i].line];
+			size_t index;
+			size_t column;
+			size_t endColumn;
+
+			if (config.wordWrap && line.sections) {
+				const auto& section = line.sections->at(typeSetter[i].section);
+				index = section.startIndex;
+				column = section.indent;
+				endColumn = section.columns;
+
+			} else {
+				index = 0;
+				column = 0;
+				endColumn = line.columns;
+			}
+
+			// setup squiggles
+			bool inSquiggle = false;
+			size_t squiggleIndex = 0;
+			float squiggleLeft = 0.0f;
+			float thickness = 1.2f * fontScaleDpi;
+
+			// only process all visible columns
+			while (column < endColumn && column <= lastVisibleColumn) {
+				auto& glyph = line[index++];
+				auto codepoint = glyph.codepoint;
+				ImVec2 glyphPos(rowScreenPos.x + column * glyphSize.x, rowScreenPos.y);
+
+				// handle squiggles
+				if (glyph.squiggle) {
+					auto nextIndex = glyph.squiggle - 1;
+
+					if (inSquiggle) {
+						if (squiggleIndex != nextIndex) {
+							// render squiggle and start new one
+							auto& squiggle = squiggles[squiggleIndex];
+							renderSquiggle(squiggleLeft, glyphPos.x, glyphPos.y, glyphPos.y + glyphSize.y, thickness, squiggle.color, squiggle.tooltip.c_str());
+							squiggleIndex = nextIndex;
+							squiggleLeft = glyphPos.x;
+						}
+
+					} else {
+						// start new squiggle
+						inSquiggle = true;
+						squiggleIndex = nextIndex;
+						squiggleLeft = glyphPos.x;
+					}
+
+				} else if (inSquiggle) {
+					// render squiggle
+					auto& squiggle = squiggles[squiggleIndex];
+					renderSquiggle(squiggleLeft, glyphPos.x, glyphPos.y, glyphPos.y + glyphSize.y, thickness, squiggle.color, squiggle.tooltip.c_str());
+					inSquiggle = false;
+				}
+
+				// handle tabs
+				if (codepoint == '\t') {
+					column += config.tabSize - (column % config.tabSize);
+
+				// handle regular glyphs
+				} else {
+					column++;
+				}
+			}
+
+			if (inSquiggle) {
+				// render last squiggle on line
+				auto& squiggle = squiggles[squiggleIndex];
+				auto glyphPos = cursorScreenPos + ImVec2(textLeftOffset + typeSetter[i].columns * glyphSize.x, i * glyphSize.y);
+				renderSquiggle(squiggleLeft, glyphPos.x, glyphPos.y, glyphPos.y + glyphSize.y, thickness, squiggle.color, squiggle.tooltip.c_str());
+			}
+
+			rowScreenPos.y += glyphSize.y;
 		}
 	}
 }
@@ -527,11 +653,12 @@ void TextEditor::renderLineNumberMarkers() {
 					drawList->AddRectFilled(start, end, marker.lineNumberColor);
 
 					if (marker.lineNumberTooltip.size() && ImGui::IsMouseHoveringRect(start, end)) {
-						ImGui::PushStyleColor(ImGuiCol_PopupBg, marker.lineNumberColor);
-						ImGui::BeginTooltip();
-						ImGui::TextUnformatted(marker.lineNumberTooltip.c_str());
-						ImGui::EndTooltip();
-						ImGui::PopStyleColor();
+						if (ImGui::BeginTooltip()) {
+							ImGui::PushStyleColor(ImGuiCol_PopupBg, marker.lineNumberColor);
+							ImGui::TextUnformatted(marker.lineNumberTooltip.c_str());
+							ImGui::PopStyleColor();
+							ImGui::EndTooltip();
+						}
 					}
 				}
 			}
@@ -1870,6 +1997,177 @@ void TextEditor::clearMarkers() {
 	}
 
 	markers.clear();
+}
+
+
+//
+//	TextEditor::compressMarkers
+//
+
+void TextEditor::compressMarkers() {
+	if (markers.size()) {
+		// references to current markers
+		struct Reference {
+			bool used = false;
+			bool index = 0;
+		};
+
+		std::vector<Reference> references(markers.size());
+
+		// determine markers still in use
+		for (auto& line : document) {
+			if (line.marker) {
+				references[line.marker - 1].used = true;
+			}
+		}
+
+		// reindex markers
+		size_t index = 0;
+
+		for (auto& reference : references) {
+			if (reference.used) {
+				reference.index = index++;
+			}
+		}
+
+		// apply new index numbers to lines
+		for (auto& line : document) {
+			if (line.marker) {
+				line.marker = references[line.marker - 1].index + 1;
+			}
+		}
+
+		// remove unused markers
+		size_t i = markers.size();
+
+		do {
+			i--;
+
+			if (!references[i].used) {
+				markers.erase(markers.begin() + i);
+			}
+
+		} while (i > 0);
+	}
+}
+
+
+//
+//	TextEditor::addSquiggle
+//
+
+void TextEditor::addSquiggle(DocPos start, DocPos end, size_t type, ImU32 color, const std::string_view& tooltip) {
+	if (start < end) {
+		squiggles.emplace_back(type, color, tooltip);
+		auto index = squiggles.size();
+
+		document.iterateGlyphs(start, end, [index](Glyph& glyph) {
+			glyph.squiggle = index;
+		});
+	}
+}
+
+
+//
+//	TextEditor::clearSquiggles
+//
+
+void TextEditor::clearSquiggles(size_t type) {
+	for (auto& line : document) {
+		for (auto& glyph : line) {
+			if (glyph.squiggle) {
+				if (squiggles[glyph.squiggle - 1].type == type) {
+					glyph.squiggle = 0;
+				}
+			}
+		}
+	}
+
+	compressSquiggles();
+}
+
+
+//
+//	TextEditor::clearSquiggles
+//
+
+void TextEditor::clearSquiggles(DocPos start, DocPos end) {
+	document.iterateGlyphs(start, end, [](Glyph& glyph) {
+		glyph.squiggle = 0;
+	});
+
+	compressSquiggles();
+}
+
+
+//
+//	TextEditor::clearSquiggles
+//
+
+void TextEditor::clearSquiggles() {
+	for (auto& line : document) {
+		for (auto& glyph : line) {
+			glyph.squiggle = 0;
+		}
+	}
+
+	markers.clear();
+}
+
+
+//
+//	TextEditor::compressSquiggles
+//
+
+void TextEditor::compressSquiggles() {
+	if (squiggles.size()) {
+		// references to current squiggles;
+		struct Reference {
+			bool used = false;
+			bool index = 0;
+		};
+
+		std::vector<Reference> references(squiggles.size());
+
+		// determine squiggles still in use
+		for (auto& line : document) {
+			for (auto& glyph : line) {
+				if (glyph.squiggle) {
+					references[glyph.squiggle - 1].used = true;
+				}
+			}
+		}
+
+		// reindex squiggles
+		size_t index = 0;
+
+		for (auto& reference : references) {
+			if (reference.used) {
+				reference.index = index++;
+			}
+		}
+
+		// apply new index numbers to glyphs
+		for (auto& line : document) {
+			for (auto& glyph : line) {
+				if (glyph.squiggle) {
+					glyph.squiggle = references[glyph.squiggle - 1].index + 1;
+				}
+			}
+		}
+
+		// remove unused squiggles
+		size_t i = squiggles.size();
+
+		do {
+			i--;
+
+			if (!references[i].used) {
+				squiggles.erase(squiggles.begin() + i);
+			}
+
+		} while (i > 0);
+	}
 }
 
 
@@ -3378,6 +3676,43 @@ ImWchar TextEditor::Document::getCodePoint(DocPos location) const {
 		return IM_UNICODE_CODEPOINT_INVALID;
 	}
 }
+
+
+//
+//	TextEditor::Document::iterateGlyphs
+//
+
+void TextEditor::Document::iterateGlyphs(DocPos start, DocPos end, std::function<void(Glyph&)> callback) {
+	if (start.line == end.line) {
+		// start and end are on same line
+		for (size_t i = start.index; i < end.index; i++) {
+			callback(at(start.line)[i]);
+		}
+
+	} else {
+		// process remainder of fist line
+		auto last = at(start.line).size();
+
+		for (size_t i = start.index; i < last; i++) {
+			callback(at(start.line)[i]);
+		}
+
+		// process all full lines
+		for (auto line = start.line + 1; line < end.line; line++) {
+			last = at(line).size();
+
+			for (size_t i = 0; i < last; i++) {
+				callback(at(line)[i]);
+			}
+		}
+
+		// process remainder on last line
+		for (size_t i = 0; i < end.index; i++) {
+			callback(at(end.line)[i]);
+		}
+	}
+}
+
 
 //
 //	TextEditor::Document::getColor
