@@ -1055,13 +1055,15 @@ void TextEditor::updateState() {
 	lineFold.update(config, document, bracketeer);
 	cursors.update(document);
 
+	float unused;
+	auto firstVisibleLineFraction = std::modf(ImGui::GetScrollY() / glyphSize.y, &unused);
 	auto previousFirstLine = visPos2DocPos(VisPos(firstVisibleRow, 0)).line;
 
 	if (typeSetter.update(config, document, lineFold)) {
 		// see if we can scroll to preserve the first visible line
 		// but we don't overrule an API scroll request
 		if (scrollToLineNumber == invalidLine) {
-			scrollToLine(previousFirstLine, Scroll::alignTop);
+			scrollToLine(previousFirstLine, Scroll::alignTop, firstVisibleLineFraction);
 		}
 	}
 
@@ -1881,10 +1883,11 @@ void TextEditor::setCursor(DocPos pos) {
 //	TextEditor::scrollToLine
 //
 
-void TextEditor::scrollToLine(size_t line, Scroll alignment) {
+void TextEditor::scrollToLine(size_t line, Scroll alignment, float fraction) {
 	ensureVisiblePos = DocPos(invalidLine, 0);
 	scrollToLineNumber = std::min(line, document.size());
 	scrollToAlignment = alignment;
+	scrollToFraction = fraction;
 
 	if (config.lineFolding) {
 		lineFold.unfoldAroundLine(document, line);
@@ -1936,7 +1939,7 @@ void TextEditor::handlePossibleScrolling() {
 
 		switch (scrollToAlignment) {
 			case Scroll::alignTop:
-				scrollY = row * glyphSize.y;
+				scrollY = (row + scrollToFraction) * glyphSize.y;
 				break;
 
 			case Scroll::alignMiddle:

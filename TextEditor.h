@@ -1593,7 +1593,7 @@ protected:
 
 	// scrolling support
 	void setCursor(DocPos pos);
-	void scrollToLine(size_t line, Scroll alignment);
+	void scrollToLine(size_t line, Scroll alignment, float fraction=0.0f);
 	void handlePossibleScrolling();
 	void makeCursorVisible();
 
@@ -1729,6 +1729,7 @@ protected:
 	float cursorAnimationTimer = 0.0f;
 	size_t scrollToLineNumber = invalidLine;
 	Scroll scrollToAlignment = Scroll::alignMiddle;
+	float scrollToFraction = 0.0f;
 	DocPos ensureVisiblePos{invalidLine, 0};
 
 	size_t decoratorWidth = 0;
