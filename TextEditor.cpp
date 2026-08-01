@@ -1152,6 +1152,7 @@ void TextEditor::handleKeyboardInputs() {
 		else if (isOptionalShift && ImGui::IsKeyPressed(ImGuiKey_End)) { moveToEndOfLine(shift); }
 		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_A)) { selectAll(); }
 		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_D) && cursors.currentCursorHasSelection()) { addNextOccurrence(); }
+		else if (isShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_D) && cursors.currentCursorHasSelection()) { selectAllOccurrences(); }
 
 		// clipboard operations
 		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_X)) { cut(); }

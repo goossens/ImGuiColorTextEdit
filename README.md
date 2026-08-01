@@ -177,7 +177,8 @@ See GImGui documentation in imgui.cpp for more details.
 	- Alt with single left mouse click creates a new cursor on MacOS.
 	- Ctrl with single left mouse click creates a new cursor on Linux and Windows.
 	- Ctrl-A selects all text.
-	- Ctrl-D creates a new cursor and selects the next instance of the current selection.
+	- Ctrl-D creates a new cursor for the next instance of the current cursor's text.
+	- Shift-Ctrl-D creates a new cursor for each instance of the current cursor's text.
 	- Double left mouse clicks on a curly bracket select the content of the relevant block and replaces all previous cursors.
 	- Shift + Double left mouse clicks on a curly bracket select the content of the relevant block including the brackets and replaces all previous cursors.
 	- Double left mouse clicks not on a bracket or parenthesis, select a word. Adding Shift extends current selection.
