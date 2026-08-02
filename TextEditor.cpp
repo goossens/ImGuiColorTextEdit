@@ -1104,25 +1104,7 @@ void TextEditor::handleKeyboardInputs() {
 		auto& io = ImGui::GetIO();
 		io.WantCaptureKeyboard = true;
 		io.WantTextInput = true;
-
-		// get state of modifier keys
-		// Dear ImGui switches the Cmd(Super) and Ctrl keys on MacOS
-		auto shift = ImGui::IsKeyDown(ImGuiMod_Shift);
-		auto ctrl = ImGui::IsKeyDown(ImGuiMod_Ctrl);
-		auto alt = ImGui::IsKeyDown(ImGuiMod_Alt);
-		auto super = ImGui::IsKeyDown(ImGuiMod_Super);
-		auto meta = ImGui::GetIO().ConfigMacOSXBehaviors ? alt : ctrl;
-
-		auto isNoModifiers = !ctrl && !shift && !alt;
-		auto isShortcut = ctrl && !shift && !alt;
-		auto isShiftShortcut = ctrl && shift && !alt;
-		auto isOptionalShiftShortcut = ctrl && !alt;
-		auto isAltOnly = !ctrl && !shift && alt;
-		auto isShiftOnly = !ctrl && shift && !alt;
-		auto isOptionalShift = !ctrl && !alt;
-		auto isOptionalAlt = !ctrl && !shift;
-		auto isMetaShift = ImGui::GetIO().ConfigMacOSXBehaviors ? !ctrl && shift && !alt && super : !ctrl && shift && alt;
-		auto isOptionalMetaShift = ImGui::GetIO().ConfigMacOSXBehaviors ? !ctrl : !alt;
+		auto macOS = io.ConfigMacOSXBehaviors;
 
 		// ignore specific keys when autocomplete is active, they will be handled later
 		if (autocomplete.isActive() && autocomplete.isSpecialKeyPressed()) {
@@ -1136,53 +1118,84 @@ void TextEditor::handleKeyboardInputs() {
 		}
 
 		// cursor movements and selections
-		if (isOptionalShift && ImGui::IsKeyPressed(ImGuiKey_UpArrow)) { moveUp(1, shift); }
-		else if (isOptionalShift && ImGui::IsKeyPressed(ImGuiKey_DownArrow)) { moveDown(1, shift); }
+		if (ImGui::Shortcut(ImGuiKey_UpArrow, ImGuiInputFlags_Repeat)) { moveUp(1, false); }
+		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_UpArrow, ImGuiInputFlags_Repeat)) { moveUp(1, true); }
+		else if (ImGui::Shortcut(ImGuiKey_DownArrow, ImGuiInputFlags_Repeat)) { moveDown(1, false); }
+		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_DownArrow, ImGuiInputFlags_Repeat)) { moveDown(1, true); }
 
-		else if (isMetaShift && ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) { shrinkSelections(); }
-		else if (isMetaShift && ImGui::IsKeyPressed(ImGuiKey_RightArrow)) { growSelections(); }
-		else if (isOptionalMetaShift && ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) { moveLeft(shift, meta); }
-		else if (isOptionalMetaShift && ImGui::IsKeyPressed(ImGuiKey_RightArrow)) { moveRight(shift, meta); }
+		else if (ImGui::Shortcut((macOS ? ImGuiMod_Super : ImGuiMod_Alt) | ImGuiMod_Shift | ImGuiKey_LeftArrow)) { shrinkSelections(); }
+		else if (ImGui::Shortcut((macOS ? ImGuiMod_Super : ImGuiMod_Alt) | ImGuiMod_Shift | ImGuiKey_RightArrow)) { growSelections(); }
 
-		else if (isOptionalShift && ImGui::IsKeyPressed(ImGuiKey_PageUp)) { moveUp(lastVisibleRow - firstVisibleRow - 2, shift); }
-		else if (isOptionalShift && ImGui::IsKeyPressed(ImGuiKey_PageDown)) { moveDown(lastVisibleRow - firstVisibleRow - 2, shift); }
-		else if (isOptionalShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_UpArrow)) { moveToTop(shift); }
-		else if (isOptionalShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_Home)) { moveToTop(shift); }
-		else if (isOptionalShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_DownArrow)) { moveToBottom(shift); }
-		else if (isOptionalShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_End)) { moveToBottom(shift); }
-		else if (isOptionalShift && ImGui::IsKeyPressed(ImGuiKey_Home)) { moveToStartOfLine(shift); }
-		else if (isOptionalShift && ImGui::IsKeyPressed(ImGuiKey_End)) { moveToEndOfLine(shift); }
-		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_A)) { selectAll(); }
-		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_D) && cursors.currentCursorHasSelection()) { addNextOccurrence(); }
-		else if (isShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_D) && cursors.currentCursorHasSelection()) { selectAllOccurrences(); }
+		else if (ImGui::Shortcut(ImGuiKey_LeftArrow, ImGuiInputFlags_Repeat)) { moveLeft(false, false); }
+		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_LeftArrow, ImGuiInputFlags_Repeat)) { moveLeft(true, false); }
+		else if (ImGui::Shortcut((macOS ? ImGuiMod_Alt : ImGuiMod_Ctrl) | ImGuiKey_LeftArrow, ImGuiInputFlags_Repeat)) { moveLeft(false, true); }
+		else if (ImGui::Shortcut((macOS ? ImGuiMod_Alt : ImGuiMod_Ctrl) | ImGuiMod_Shift | ImGuiKey_LeftArrow, ImGuiInputFlags_Repeat)) { moveLeft(true, true); }
+
+		else if (ImGui::Shortcut(ImGuiKey_RightArrow, ImGuiInputFlags_Repeat)) { moveRight(false, false); }
+		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_RightArrow, ImGuiInputFlags_Repeat)) { moveRight(true, false); }
+		else if (ImGui::Shortcut((macOS ? ImGuiMod_Alt : ImGuiMod_Ctrl) | ImGuiKey_RightArrow, ImGuiInputFlags_Repeat)) { moveRight(false, true); }
+		else if (ImGui::Shortcut((macOS ? ImGuiMod_Alt : ImGuiMod_Ctrl) | ImGuiMod_Shift | ImGuiKey_RightArrow, ImGuiInputFlags_Repeat)) { moveRight(true, true); }
+
+		else if (ImGui::Shortcut(ImGuiKey_PageUp, ImGuiInputFlags_Repeat)) { moveUp(lastVisibleRow - firstVisibleRow - 2, false); }
+		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_PageUp, ImGuiInputFlags_Repeat)) { moveUp(lastVisibleRow - firstVisibleRow - 2, true); }
+		else if (ImGui::Shortcut(ImGuiKey_PageDown, ImGuiInputFlags_Repeat)) { moveDown(lastVisibleRow - firstVisibleRow - 2, false); }
+		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_PageDown, ImGuiInputFlags_Repeat)) { moveDown(lastVisibleRow - firstVisibleRow - 2, true); }
+
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_UpArrow)) { moveToTop(false); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Home)) { moveToTop(false); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_UpArrow)) { moveToTop(true); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Home)) { moveToTop(true); }
+
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_DownArrow)) { moveToBottom(false); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_End)) { moveToBottom(false); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_DownArrow)) { moveToBottom(true); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_End)) { moveToBottom(true); }
+
+		else if (ImGui::Shortcut(ImGuiKey_Home)) { moveToStartOfLine(false); }
+		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Home)) { moveToStartOfLine(true); }
+
+		else if (ImGui::Shortcut(ImGuiKey_End)) { moveToEndOfLine(false); }
+		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_End)) { moveToEndOfLine(true); }
+
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_A)) { selectAll(); }
+		else if (cursors.currentCursorHasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D)) { addNextOccurrence(); }
+		else if (cursors.currentCursorHasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_D)) { selectAllOccurrences(); }
 
 		// clipboard operations
-		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_X)) { cut(); }
-		else if (isShiftOnly && ImGui::IsKeyPressed(ImGuiKey_Delete)) { cut(); }
-		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_C)) { copy() ;}
-		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_Insert)) { copy(); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_X)) { cut(); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Delete)) { cut(); }
 
-		else if (!config.readOnly && isShortcut && ImGui::IsKeyPressed(ImGuiKey_V)) { paste(); }
-		else if (!config.readOnly && isShiftOnly && ImGui::IsKeyPressed(ImGuiKey_Insert)) { paste(); }
-		else if (!config.readOnly && isShortcut && ImGui::IsKeyPressed(ImGuiKey_Z)) { undo(); }
-		else if (!config.readOnly && isShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_Z)) { redo(); }
-		else if (!config.readOnly && isShortcut && ImGui::IsKeyPressed(ImGuiKey_Y)) { redo(); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C)) { copy(); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Insert)) { copy(); }
+
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V, ImGuiInputFlags_Repeat)) { paste(); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Insert, ImGuiInputFlags_Repeat)) { paste(); }
+
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_Repeat)) { undo(); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_Repeat)) { redo(); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_Repeat)) { redo(); }
 
 		// remove text
-		else if (!config.readOnly && isOptionalAlt && ImGui::IsKeyPressed(ImGuiKey_Delete)) { handleDelete(alt); }
-		else if (!config.readOnly && isOptionalAlt && ImGui::IsKeyPressed(ImGuiKey_Backspace)) { handleBackspace(alt); }
-		else if (!config.readOnly && isShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_K)) { removeSelectedLines(); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat)) { handleDelete(false); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_Delete, ImGuiInputFlags_Repeat)) { handleDelete(true); }
+
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_Backspace, ImGuiInputFlags_Repeat)) { handleBackspace(false); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_Backspace, ImGuiInputFlags_Repeat)) { handleBackspace(true); }
+
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_K)) { removeSelectedLines(); }
 
 		// text manipulation
-		else if (!config.readOnly && isShortcut && ImGui::IsKeyPressed(ImGuiKey_LeftBracket)) { deindentLines(); }
-		else if (!config.readOnly && isShortcut && ImGui::IsKeyPressed(ImGuiKey_RightBracket)) { indentLines(); }
-		else if (!config.readOnly && isAltOnly && ImGui::IsKeyPressed(ImGuiKey_UpArrow)) { moveUpLines(); }
-		else if (!config.readOnly && isAltOnly && ImGui::IsKeyPressed(ImGuiKey_DownArrow)) { moveDownLines(); }
-		else if (!config.readOnly && config.language && isShortcut && ImGui::IsKeyPressed(ImGuiKey_Slash)) { toggleComments(); }
-		else if (!config.readOnly && config.language && isShortcut && ImGui::IsKeyPressed(ImGuiKey_L)) { toggleComments(); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_LeftBracket, ImGuiInputFlags_Repeat)) { deindentLines(); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_RightBracket, ImGuiInputFlags_Repeat)) { indentLines(); }
+
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_UpArrow)) { moveUpLines(); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_DownArrow)) { moveDownLines(); }
+
+		else if (!config.readOnly && config.language && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Slash)) { toggleComments(); }
+		else if (!config.readOnly && config.language && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_L)) { toggleComments(); }
 
 		// find/replace support
-		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_F)) {
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_F)) {
 			if (autocomplete.isActive()) {
 				autocomplete.cancel();
 				findCancelledAutocomplete = true;
@@ -1191,11 +1204,11 @@ void TextEditor::handleKeyboardInputs() {
 			openFindReplace();
 		}
 
-		else if (isShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_F)) { findAll(); }
-		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_G)) { findNext(); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F)) { findAll(); }
+		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_G, ImGuiInputFlags_Repeat)) { findNext(); }
 
 		// autocomplete support
-		else if (!config.readOnly && ImGui::IsKeyChordPressed(autocomplete.getTriggerShortcut())) {
+		else if (!config.readOnly && ImGui::Shortcut(autocomplete.getTriggerShortcut())) {
 			// don't activate if we have multiple cursors active
 			if (cursors.hasMultiple()) {
 				// TODO: inform user
@@ -1208,19 +1221,21 @@ void TextEditor::handleKeyboardInputs() {
 		}
 
 		// change insert mode
-		else if (isNoModifiers && ImGui::IsKeyPressed(ImGuiKey_Insert)) { config.overwrite = !config.overwrite; }
+		else if (ImGui::Shortcut(ImGuiKey_Insert)) { config.overwrite = !config.overwrite; }
 
 		// handle new line
-		else if (!config.readOnly && isNoModifiers && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter))) { handleCharacter('\n'); }
-		else if (!config.readOnly && isShortcut && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter))) { insertLineBelow(); }
-		else if (!config.readOnly && isShiftShortcut && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter))) { insertLineAbove(); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_Enter, ImGuiInputFlags_Repeat) ) { handleCharacter('\n'); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_KeypadEnter, ImGuiInputFlags_Repeat)) { handleCharacter('\n'); }
+
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Enter, ImGuiInputFlags_Repeat)) { insertLineBelow(); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadEnter, ImGuiInputFlags_Repeat)) { insertLineBelow(); }
+
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Enter, ImGuiInputFlags_Repeat)) { insertLineAbove(); }
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_KeypadEnter, ImGuiInputFlags_Repeat)) { insertLineAbove(); }
 
 		// handle tabs
-		else if (!config.readOnly && isOptionalShift && ImGui::IsKeyPressed(ImGuiKey_Tab)) {
-			if (shift) {
-				deindentLines();
-
-			} else if (cursors.anyHasSelection()) {
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_Tab, ImGuiInputFlags_Repeat)) {
+			if (cursors.anyHasSelection()) {
 				indentLines();
 
 			} else {
@@ -1228,8 +1243,12 @@ void TextEditor::handleKeyboardInputs() {
 			}
 		}
 
+		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Tab, ImGuiInputFlags_Repeat)) {
+				deindentLines();
+		}
+
 		// handle escape key
-		else if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+		else if (ImGui::Shortcut(ImGuiKey_Escape)) {
 			if (autocomplete.isActive()) {
 				autocomplete.cancel();
 
@@ -1244,7 +1263,7 @@ void TextEditor::handleKeyboardInputs() {
 		// handle regular text
 		if (!io.InputQueueCharacters.empty()) {
 			// ignore Ctrl inputs, but need to allow Alt+Ctrl as some keyboards (e.g. German) use AltGR (which is Alt+Ctrl) to input certain characters
-			if (!(ctrl && !alt) && !config.readOnly) {
+			if (!(ImGui::IsKeyDown(ImGuiMod_Ctrl) && !ImGui::IsKeyDown(ImGuiMod_Alt)) && !config.readOnly) {
 				for (auto i = 0; i < io.InputQueueCharacters.size(); i++) {
 					auto character = io.InputQueueCharacters[i];
 

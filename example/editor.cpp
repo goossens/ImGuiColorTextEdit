@@ -502,17 +502,13 @@ void Editor::renderMenuBar() {
 	}
 
 	// handle keyboard shortcuts
-	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::GetIO().WantCaptureKeyboard) {
-		if (ImGui::IsKeyDown(ImGuiMod_Ctrl)) {
-			if (ImGui::IsKeyPressed(ImGuiKey_N)) { newFile(); }
-			else if (ImGui::IsKeyPressed(ImGuiKey_O)) { openFile(); }
-			else if (ImGui::IsKeyPressed(ImGuiKey_S)) { if (filename == "untitled") { showSaveFileAs(); } else { saveFile(); } }
-			else if (ImGui::IsKeyPressed(ImGuiKey_I)) { showDiff(); }
-			else if (ImGui::IsKeyPressed(ImGuiKey_0)) { resetFontSize(); }
-			else if (ImGui::IsKeyPressed(ImGuiKey_Equal)) { increaseFontSize(); }
-			else if (ImGui::IsKeyPressed(ImGuiKey_Minus)) { decreaseFontSize(); }
-		}
-	}
+	if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_N)) { newFile(); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O)) { openFile(); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S)) { if (filename == "untitled") { showSaveFileAs(); } else { saveFile(); } }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_I)) { showDiff(); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_0)) { resetFontSize(); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Equal)) { increaseFontSize(); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Minus)) { decreaseFontSize(); }
 }
 
 
@@ -742,7 +738,7 @@ void Editor::renderDiff() {
 		ImGui::SameLine();
 		ImGui::Indent(buttonOffset);
 
-		if (ImGui::Button("OK", ImVec2(buttonWidth, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+		if (ImGui::Button("OK", ImVec2(buttonWidth, 0.0f)) || ImGui::Shortcut(ImGuiKey_Escape)) {
 			ImGui::CloseCurrentPopup();
 			state = State::edit;
 		}
@@ -834,7 +830,7 @@ void Editor::renderConfirmClose() {
 
 		ImGui::SameLine();
 
-		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f)) || ImGui::Shortcut(ImGuiKey_Escape)) {
 			state = State::edit;
 			ImGui::CloseCurrentPopup();
 		}
@@ -870,7 +866,7 @@ void Editor::renderConfirmQuit() {
 
 		ImGui::SameLine();
 
-		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f)) || ImGui::Shortcut(ImGuiKey_Escape)) {
 			state = State::edit;
 			ImGui::CloseCurrentPopup();
 		}
@@ -898,7 +894,7 @@ void Editor::renderConfirmError() {
 		static constexpr float buttonWidth = 80.0f;
 		ImGui::Indent(ImGui::GetContentRegionAvail().x - buttonWidth);
 
-		if (ImGui::Button("OK", ImVec2(buttonWidth, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+		if (ImGui::Button("OK", ImVec2(buttonWidth, 0.0f)) || ImGui::Shortcut(ImGuiKey_Escape)) {
 			errorMessage.clear();
 			state = State::edit;
 			ImGui::CloseCurrentPopup();
@@ -947,7 +943,7 @@ void Editor::renderAddSquiggle() {
 
 		ImGui::SameLine(0.0f, 5.0f);
 
-		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f)) || ImGui::Shortcut(ImGuiKey_Escape)) {
 			state = State::edit;
 			ImGui::CloseCurrentPopup();
 		}
@@ -984,7 +980,7 @@ void Editor::renderClearSquiggle() {
 
 		ImGui::SameLine(0.0f, 5.0f);
 
-		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f)) || ImGui::Shortcut(ImGuiKey_Escape)) {
 			state = State::edit;
 			ImGui::CloseCurrentPopup();
 		}

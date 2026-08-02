@@ -364,52 +364,24 @@ void TextDiff::IntegratedView::renderScrollbar() {
 			textScroll = static_cast<float>(scroll);
 		}
 
-		if (ImGui::IsWindowFocused()) {
-			textScroll = std::clamp(textScroll - ImGui::GetIO().MouseWheelH * ImGui::GetFontSize(), 0.0f, maxColumnsWidth - textColumnWidth);
+		textScroll = std::clamp(textScroll - ImGui::GetIO().MouseWheelH * ImGui::GetFontSize(), 0.0f, maxColumnsWidth - textColumnWidth);
 
-			if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
-				textScroll = std::max(textScroll - glyphSize.x, 0.0f);
-
-			} else if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
-				textScroll = std::min(textScroll + glyphSize.x, maxColumnsWidth - textColumnWidth);
-
-			} else if (ImGui::IsKeyPressed(ImGuiKey_Home)) {
-				textScroll = 0.0f;
-
-			} else if (ImGui::IsKeyPressed(ImGuiKey_End)) {
-				textScroll = maxColumnsWidth - textColumnWidth;
-			}
-		}
+		if (ImGui::Shortcut(ImGuiKey_LeftArrow, ImGuiInputFlags_Repeat)) { textScroll = std::max(textScroll - glyphSize.x, 0.0f); }
+		else if (ImGui::Shortcut(ImGuiKey_RightArrow, ImGuiInputFlags_Repeat)) { textScroll = std::min(textScroll + glyphSize.x, maxColumnsWidth - textColumnWidth); }
+		else if (ImGui::Shortcut(ImGuiKey_Home)) { textScroll = 0.0f; }
+		else if (ImGui::Shortcut(ImGuiKey_End)) { textScroll = maxColumnsWidth - textColumnWidth; }
 
 	} else {
 		// no scrolling if the text fits
 		textScroll = 0.0f;
 	}
 
-	if (ImGui::IsWindowFocused()) {
-		if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
-			if (ImGui::IsKeyDown(ImGuiMod_Ctrl)) {
-				ImGui::SetScrollY(0.0f);
-
-			} else {
-				ImGui::SetScrollY(std::max(ImGui::GetScrollY() - glyphSize.y, 0.0f));
-			}
-
-		} else if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
-			if (ImGui::IsKeyDown(ImGuiMod_Ctrl)) {
-				ImGui::SetScrollY(ImGui::GetScrollMaxY());
-
-			} else {
-				ImGui::SetScrollY(std::min(ImGui::GetScrollY() + glyphSize.y, ImGui::GetScrollMaxY()));
-			}
-
-		} else if (ImGui::IsKeyPressed(ImGuiKey_PageUp)) {
-			ImGui::SetScrollY(std::max(ImGui::GetScrollY() - (visibleRows - 2) * glyphSize.y, 0.0f));
-
-		} else if (ImGui::IsKeyPressed(ImGuiKey_PageDown)) {
-			ImGui::SetScrollY(std::min(ImGui::GetScrollY() + (visibleRows - 2) * glyphSize.y, ImGui::GetScrollMaxY()));
-		}
-	}
+	if (ImGui::Shortcut(ImGuiKey_UpArrow, ImGuiInputFlags_Repeat)) { ImGui::SetScrollY(std::max(ImGui::GetScrollY() - glyphSize.y, 0.0f)); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_UpArrow)) { ImGui::SetScrollY(0.0f); }
+	else if (ImGui::Shortcut(ImGuiKey_DownArrow, ImGuiInputFlags_Repeat)) { ImGui::SetScrollY(std::min(ImGui::GetScrollY() + glyphSize.y, ImGui::GetScrollMaxY())); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_DownArrow)) { ImGui::SetScrollY(ImGui::GetScrollMaxY()); }
+	else if (ImGui::Shortcut(ImGuiKey_PageUp, ImGuiInputFlags_Repeat)) { ImGui::SetScrollY(std::max(ImGui::GetScrollY() - (visibleRows - 2) * glyphSize.y, 0.0f)); }
+	else if (ImGui::Shortcut(ImGuiKey_PageDown, ImGuiInputFlags_Repeat)) { ImGui::SetScrollY(std::min(ImGui::GetScrollY() + (visibleRows - 2) * glyphSize.y, ImGui::GetScrollMaxY())); }
 }
 
 
@@ -771,52 +743,24 @@ void TextDiff::SideBySideView::renderScrollbars() {
 			textScroll = static_cast<float>(scroll);
 		}
 
-		if (ImGui::IsWindowFocused()) {
-			textScroll = std::clamp(textScroll - ImGui::GetIO().MouseWheelH * ImGui::GetFontSize(), 0.0f, maxColumnsWidth - textColumnWidth);
+		textScroll = std::clamp(textScroll - ImGui::GetIO().MouseWheelH * ImGui::GetFontSize(), 0.0f, maxColumnsWidth - textColumnWidth);
 
-			if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
-				textScroll = std::max(textScroll - glyphSize.x, 0.0f);
-
-			} else if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
-				textScroll = std::min(textScroll + glyphSize.x, maxColumnsWidth - textColumnWidth);
-
-			} else if (ImGui::IsKeyPressed(ImGuiKey_Home)) {
-				textScroll = 0.0f;
-
-			} else if (ImGui::IsKeyPressed(ImGuiKey_End)) {
-				textScroll = maxColumnsWidth - textColumnWidth;
-			}
-		}
+		if (ImGui::Shortcut(ImGuiKey_LeftArrow, ImGuiInputFlags_Repeat)) { textScroll = std::max(textScroll - glyphSize.x, 0.0f); }
+		else if (ImGui::Shortcut(ImGuiKey_RightArrow, ImGuiInputFlags_Repeat)) { textScroll = std::min(textScroll + glyphSize.x, maxColumnsWidth - textColumnWidth); }
+		else if (ImGui::Shortcut(ImGuiKey_Home)) { textScroll = 0.0f; }
+		else if (ImGui::Shortcut(ImGuiKey_End)) { textScroll = maxColumnsWidth - textColumnWidth; }
 
 	} else {
 		// no scrolling if the text fits
 		textScroll = 0.0f;
 	}
 
-	if (ImGui::IsWindowFocused()) {
-		if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
-			if (ImGui::IsKeyDown(ImGuiMod_Ctrl)) {
-				ImGui::SetScrollY(0.0f);
-
-			} else {
-				ImGui::SetScrollY(std::max(ImGui::GetScrollY() - glyphSize.y, 0.0f));
-			}
-
-		} else if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
-			if (ImGui::IsKeyDown(ImGuiMod_Ctrl)) {
-				ImGui::SetScrollY(ImGui::GetScrollMaxY());
-
-			} else {
-				ImGui::SetScrollY(std::min(ImGui::GetScrollY() + glyphSize.y, ImGui::GetScrollMaxY()));
-			}
-
-		} else if (ImGui::IsKeyPressed(ImGuiKey_PageUp)) {
-			ImGui::SetScrollY(std::max(ImGui::GetScrollY() - (visibleRows - 2) * glyphSize.y, 0.0f));
-
-		} else if (ImGui::IsKeyPressed(ImGuiKey_PageDown)) {
-			ImGui::SetScrollY(std::min(ImGui::GetScrollY() + (visibleRows - 2) * glyphSize.y, ImGui::GetScrollMaxY()));
-		}
-	}
+	if (ImGui::Shortcut(ImGuiKey_UpArrow, ImGuiInputFlags_Repeat)) { ImGui::SetScrollY(std::max(ImGui::GetScrollY() - glyphSize.y, 0.0f)); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_UpArrow)) { ImGui::SetScrollY(0.0f); }
+	else if (ImGui::Shortcut(ImGuiKey_DownArrow, ImGuiInputFlags_Repeat)) { ImGui::SetScrollY(std::min(ImGui::GetScrollY() + glyphSize.y, ImGui::GetScrollMaxY())); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_DownArrow)) { ImGui::SetScrollY(ImGui::GetScrollMaxY()); }
+	else if (ImGui::Shortcut(ImGuiKey_PageUp, ImGuiInputFlags_Repeat)) { ImGui::SetScrollY(std::max(ImGui::GetScrollY() - (visibleRows - 2) * glyphSize.y, 0.0f)); }
+	else if (ImGui::Shortcut(ImGuiKey_PageDown, ImGuiInputFlags_Repeat)) { ImGui::SetScrollY(std::min(ImGui::GetScrollY() + (visibleRows - 2) * glyphSize.y, ImGui::GetScrollMaxY())); }
 }
 
 

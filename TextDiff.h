@@ -56,10 +56,9 @@ public:
 
 	// render text diff in a Dear ImGui context
 	// note: if you overwrite windowFlags to for instance add ImGuiWindowFlags_NoSavedSettings
-	// ensure you keep the default as they are required for the diff widget
-	// - ImGuiWindowFlags_NoNavInputs to ensure cursor keys are passed to the diff widget
+	// ensure you keep the default as it is required for the diff widget
 	// - ImGuiWindowFlags_NoMove to ensure mouse drag event are passed to the diff widget
-	void Render(const char* title, const ImVec2& size=ImVec2(), ImGuiChildFlags childFlags=0, ImGuiWindowFlags windowFlags=ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoMove);
+	void Render(const char* title, const ImVec2& size=ImVec2(), ImGuiChildFlags childFlags=0, ImGuiWindowFlags windowFlags=ImGuiWindowFlags_NoMove);
 
 private:
 	// information about a single line

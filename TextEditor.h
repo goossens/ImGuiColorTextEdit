@@ -159,10 +159,9 @@ public:
 	// render the text editor in a Dear ImGui context
 	// note: if you overwrite windowFlags to for instance add ImGuiWindowFlags_NoSavedSettings
 	// ensure you keep the default as they are required for the editor
-	// - ImGuiWindowFlags_NoNavInputs to ensure cursor keys are passed to the editor
 	// - ImGuiWindowFlags_NoMove to ensure mouse drag event are passed to the editor
 	// - ImGuiWindowFlags_HorizontalScrollbar to ensure a horizontal scrollbar is rendered when required
-	inline void Render(const char* title, const ImVec2& size=ImVec2(), ImGuiChildFlags childFlags=0, ImGuiWindowFlags windowFlags=ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_HorizontalScrollbar) { render(title, size, childFlags, windowFlags); }
+	inline void Render(const char* title, const ImVec2& size=ImVec2(), ImGuiChildFlags childFlags=0, ImGuiWindowFlags windowFlags=ImGuiWindowFlags_NoMove | ImGuiWindowFlags_HorizontalScrollbar) { render(title, size, childFlags, windowFlags); }
 
 	// programmatically set focus on the editor
 	inline void SetFocus() { focusOnEditor = true; }
