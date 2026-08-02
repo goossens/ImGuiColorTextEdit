@@ -111,6 +111,7 @@ private:
 	void setLanguageByExtention(const std::string& filename);
 
 	// examples
+	void toggleNavigationMode();
 	void toggleTrieAutoComplete();
 	void toggleLspBridge();
 	void toggleShowWordAtMouse();

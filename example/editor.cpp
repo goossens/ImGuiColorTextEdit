@@ -494,6 +494,8 @@ void Editor::renderMenuBar() {
 			if (ImGui::MenuItem("Clear Squiggles", nullptr, nullptr, editor.HasSquiggles())) { clearSquiggles(); }
 			if (ImGui::MenuItem("Clear Squiggles by Type", nullptr, nullptr, editor.HasSquiggles())) { showClearSquiggles(); }
 			ImGui::Separator();
+			bool navigationMode = ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard;
+			if (ImGui::MenuItem("Keyboard/Gamepad Navigation Mode", " " SHORTCUT "Alt-N", &navigationMode)) { toggleNavigationMode(); }
 			ImGui::MenuItem("Show Debug Information", nullptr, &showDebugInformation);
 			ImGui::EndMenu();
 		}
@@ -509,6 +511,7 @@ void Editor::renderMenuBar() {
 	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_0)) { resetFontSize(); }
 	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Equal)) { increaseFontSize(); }
 	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Minus)) { decreaseFontSize(); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_N, ImGuiInputFlags_RouteAlways)) { toggleNavigationMode(); }
 }
 
 
@@ -1138,6 +1141,26 @@ void Editor::setLanguageByExtention(const std::string& name) {
 
 	} else {
 		setLanguage(nullptr);
+	}
+}
+
+
+//
+//	Editor::toggleNavigationMode
+//
+
+void Editor::toggleNavigationMode() {
+	auto& io = ImGui::GetIO();
+
+	if (io.ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard) {
+		io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
+		io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
+		notifications.Add(Notifications::Type::info, "Keyboard/gamepad navigation mode deactivated");
+
+	} else {
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+		notifications.Add(Notifications::Type::info, "Keyboard/gamepad navigation mode activated");
 	}
 }
 
