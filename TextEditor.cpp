@@ -41,6 +41,7 @@ void TextEditor::setText(const std::string_view& text) {
 	transactions.reset();
 	cursors.clearAll();
 	clearMarkers();
+	clearSquiggles();
 	makeCursorVisible();
 }
 
@@ -1075,6 +1076,19 @@ void TextEditor::updateState() {
 			delayedChangeDetected = true;
 			delayedChangeReportTime = std::chrono::system_clock::now() + delayedChangeDelay;
 		}
+	}
+
+	// compress marker and squiggle lists (if required)
+	if (deletesHappened) {
+		if (markers.size()) {
+			compressMarkers();
+		}
+
+		if (squiggles.size()) {
+			compressSquiggles();
+		}
+
+		deletesHappened = false;
 	}
 
 	// reset overlay "dirty" flags
@@ -2134,7 +2148,7 @@ void TextEditor::clearSquiggles() {
 		}
 	}
 
-	markers.clear();
+	squiggles.clear();
 }
 
 
@@ -3087,6 +3101,7 @@ void TextEditor::deleteText(std::shared_ptr<Transaction> transaction, DocPos sta
 	document.deleteText(config, start, end);
 	transaction->addDelete(start, end, text);
 	makeCursorVisible();
+	deletesHappened = true;
 }
 
 

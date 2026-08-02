@@ -1763,6 +1763,7 @@ protected:
 	bool scrolling = false;
 	ImVec2 scrollStart;
 	bool selectingText = false;
+	bool deletesHappened = false;
 	std::function<void()> delayedChangeCallback;
 	std::chrono::milliseconds delayedChangeDelay;
 	std::chrono::system_clock::time_point delayedChangeReportTime;
