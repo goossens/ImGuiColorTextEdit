@@ -51,7 +51,7 @@ void TrieAutoComplete::Connect(TextEditor* newEditor) {
 	});
 
 	// enable change tracking
-	// we don't track every keystroke, callbacks can be delayed up to 3000 milliseconds
+	// we don't track every keystroke, callbacks can be delayed up to 2000 milliseconds
 	// if you want live tracking, change the 2000 to 0 (performance hit will be minimal for small documents)
 	editor->SetChangeCallback([this]() {
 		buildTrie();

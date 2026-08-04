@@ -161,7 +161,7 @@ public:
 	// ensure you keep the default as they are required for the editor
 	// - ImGuiWindowFlags_NoMove to ensure mouse drag event are passed to the editor
 	// - ImGuiWindowFlags_HorizontalScrollbar to ensure a horizontal scrollbar is rendered when required
-	inline void Render(const char* title, const ImVec2& size=ImVec2(), ImGuiChildFlags childFlags=0, ImGuiWindowFlags windowFlags=ImGuiWindowFlags_NoMove | ImGuiWindowFlags_HorizontalScrollbar) { render(title, size, childFlags, windowFlags); }
+	inline bool Render(const char* title, const ImVec2& size=ImVec2(), ImGuiChildFlags childFlags=0, ImGuiWindowFlags windowFlags=ImGuiWindowFlags_NoMove | ImGuiWindowFlags_HorizontalScrollbar) { return render(title, size, childFlags, windowFlags); }
 
 	// programmatically set focus on the editor
 	inline void SetFocus() { focusOnEditor = true; }
@@ -1530,7 +1530,7 @@ protected:
 	void setText(const std::string_view& text);
 
 	// render (parts of) the text editor
-	void render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags);
+	bool render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags);
 	void renderActiveBracketBackground();
 	void renderSelections();
 	void renderTextMarkers();
@@ -1575,6 +1575,7 @@ protected:
 	void growSelections();
 	void shrinkSelections();
 
+	// clipboard actions
 	void cut();
 	void copy() const;
 	void paste();
@@ -1686,7 +1687,7 @@ protected:
 	// rendering context
 	static constexpr size_t invalidLine = std::numeric_limits<size_t>::max();
 
-	bool editorVisible = false;
+	bool firstFrame = true;
 	float cursorWidth;
 	ImVec2 cursorScreenPos;
 	ImVec2 visibleSize;
@@ -1746,7 +1747,7 @@ protected:
 	std::string replaceButtonLabel = "Replace";
 	std::string replaceAllButtonLabel = "Replace All";
 	bool findReplaceVisible = false;
-	bool focusOnEditor = true;
+	bool focusOnEditor = false;
 	bool focusOnFind = false;
 	bool findCancelledAutocomplete = false;
 	std::string findText;

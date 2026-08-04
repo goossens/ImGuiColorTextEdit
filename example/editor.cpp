@@ -116,6 +116,7 @@ Editor::Editor() {
 
 	setLanguageByExtention(filename);
 	editor.SetShowMiniMapEnabled(true);
+	editor.SetFocus();
 
 	// configure line breaker
 	lineBreakConfig.lb2 = false;
@@ -244,7 +245,7 @@ void Editor::render() {
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-	ImGui::Begin("MainWindow", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_MenuBar);
+	ImGui::Begin("Main Window", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_MenuBar);
 
 	// add a menubar
 	renderMenuBar();
@@ -260,7 +261,7 @@ void Editor::render() {
 	auto statusBarHeight = ImGui::GetFrameHeight() + 2.0f * style.WindowPadding.y;
 	auto editorSize = ImVec2(0.0f, area.y - style.ItemSpacing.y - statusBarHeight);
 	ImGui::PushFont(nullptr, fontSize);
-	editor.Render("TextEditor", editorSize);
+	editor.Render("Text Editor", editorSize);
 	ImGui::PopFont();
 
 	// render a statusbar
@@ -526,7 +527,7 @@ void Editor::renderStatusBar() {
 
 	// create a statusbar window
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, editor.GetPalette().get(TextEditor::Color::background));
-	ImGui::BeginChild("StatusBar", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders);
+	ImGui::BeginChild("Status Bar", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders);
 	ImGui::SetNextItemWidth(120.0f);
 
 	// allow user to select language for colorizing
@@ -1155,11 +1156,15 @@ void Editor::toggleNavigationMode() {
 	if (io.ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard) {
 		io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
+		io.ConfigNavCursorVisibleAuto = true;
+		io.ConfigNavCursorVisibleAlways = false;
 		notifications.Add(Notifications::Type::info, "Keyboard/gamepad navigation mode deactivated");
 
 	} else {
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+		io.ConfigNavCursorVisibleAuto = false;
+		io.ConfigNavCursorVisibleAlways = true;
 		notifications.Add(Notifications::Type::info, "Keyboard/gamepad navigation mode activated");
 	}
 }

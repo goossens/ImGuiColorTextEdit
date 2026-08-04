@@ -5,7 +5,7 @@ would overcomplicate the widget. An optional bridge is however available
 as an addon contained in the **extras** folder. This feature is experimental
 and certainly a work in progress.
 
-The LspBridge class is base on a [LSP Framework](https://github.com/leon-bckl/lsp-framework)
+The LspBridge class is based on a [LSP Framework](https://github.com/leon-bckl/lsp-framework)
 which in turn depends on C++20. So if you want to use this bridge in your
 application, you have to include the framework and ensure you are using
 C++20. The example application does this and you can use it as a guide.
