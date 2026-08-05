@@ -58,15 +58,6 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		return false;
 	}
 
-	// declare item bounding box for clipping and interaction
-	ImGuiContext& g = *GImGui;
-	ImGuiID id = parentWindow->GetID(title);
-	ImRect frameBB(parentWindow->DC.CursorPos, parentWindow->DC.CursorPos + size);
-
-	if (!ImGui::ItemAdd(frameBB, id)) {
-		return false;
-	}
-
 	// get font information
 	font = ImGui::GetFont();
 	fontSize = ImGui::GetFontSize();
@@ -92,9 +83,6 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		// make sure the focus is correct for navigation
 		if (firstFrame) {
 			firstFrame = false;
-
-		} else if (ImGui::IsWindowFocused() && g.ActiveId != id) {
-			ImGui::SetFocusID(id, g.CurrentWindow);
 		}
 
 		// determine current position and visible size
@@ -211,10 +199,25 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 
 		// handle scrolling caused by actions in this frame
 		handlePossibleScrolling();
-	}
 
-	// ensure that EndChild will display a navigation highlight so we can "enter" into it
-	g.CurrentWindow->DC.NavLayersActiveMaskNext |= (1 << g.CurrentWindow->DC.NavLayerCurrent);
+		// handle navigation cursor (if required)
+		if (ImGui::GetIO().ConfigFlags & (ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad)) {
+			ImGuiContext& g = *GImGui;
+
+			if (ImGui::IsWindowFocused()) {
+				ImRect bb{ImGui::GetWindowPos(), ImGui::GetWindowPos() + ImGui::GetWindowSize()};
+				bb.Expand(ImVec2(2.0f, 2.0f));
+
+				bool fullyVisible = g.CurrentWindow->ClipRect.Contains(bb);
+				if (!fullyVisible) { drawList->PushClipRect(bb.Min, bb.Max); }
+				drawList->AddRect(bb.Min, bb.Max, ImGui::GetColorU32(ImGuiCol_NavCursor), g.Style.FrameRounding, fontScaleDpi);
+				if (!fullyVisible) { drawList->PopClipRect(); }
+
+			} else {
+				g.CurrentWindow->DC.NavLayersActiveMaskNext |= (1 << g.CurrentWindow->DC.NavLayerCurrent);
+			}
+		}
+	}
 
 	ImGui::EndChild();
 	ImGui::PopStyleColor();
