@@ -1549,7 +1549,7 @@ protected:
 	void renderPopups();
 
 	// update editor state after changes caused by API calls or user interactions
-	void updateState();
+	bool updateState();
 
 	// keyboard and mouse interactions
 	void handleKeyboardInputs();
