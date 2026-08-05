@@ -242,10 +242,15 @@ void Editor::saveFile() {
 
 void Editor::render() {
 	// create the outer window
+	ImGuiWindowFlags windowFlags =
+		ImGuiWindowFlags_NoDecoration |
+		ImGuiWindowFlags_MenuBar |
+		ImGuiWindowFlags_NoBringToFrontOnFocus;
+
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-	ImGui::Begin("Main Window", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_MenuBar);
+	ImGui::Begin("Main Window", nullptr, windowFlags);
 
 	// add a menubar
 	renderMenuBar();
@@ -309,6 +314,11 @@ void Editor::render() {
 	notifications.Render(ImVec2(
 		mainWindowPos.x + mainWindowSize.x - ImGui::GetStyle().ItemSpacing.x,
 		mainWindowPos.y + mainWindowSize.y - ImGui::GetStyle().ItemSpacing.y - offset));
+
+	// show Dear ImGui metrics (if required)
+	if (showDebugWindow) {
+		ImGui::ShowMetricsWindow();
+	}
 }
 
 
@@ -497,6 +507,7 @@ void Editor::renderMenuBar() {
 			ImGui::Separator();
 			bool navigationMode = ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard;
 			if (ImGui::MenuItem("Keyboard/Gamepad Navigation Mode", " " SHORTCUT "Alt-N", &navigationMode)) { toggleNavigationMode(); }
+			ImGui::MenuItem("Show Dear ImGui Metrics/Debug Window", " " SHORTCUT "Alt-I", &showDebugWindow);
 			ImGui::MenuItem("Show Debug Information", nullptr, &showDebugInformation);
 			ImGui::EndMenu();
 		}
@@ -513,6 +524,7 @@ void Editor::renderMenuBar() {
 	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Equal)) { increaseFontSize(); }
 	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Minus)) { decreaseFontSize(); }
 	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_N, ImGuiInputFlags_RouteAlways)) { toggleNavigationMode(); }
+	else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_I, ImGuiInputFlags_RouteAlways)) { showDebugWindow = !showDebugWindow; }
 }
 
 

@@ -129,6 +129,7 @@ private:
 	bool showContextMenus = false;
 	bool enableUnicodeLineBreakAlgorithm = false;
 	bool showDebugInformation = false;
+	bool showDebugWindow = false;
 
 	TrieAutoComplete trieAutoComplete;
 	LspBridge lsp;
