@@ -59,18 +59,17 @@ int example() {
 	SDL_GPUShaderFormat formatFlags =
 		SDL_GPU_SHADERFORMAT_SPIRV |
 		SDL_GPU_SHADERFORMAT_DXBC |
-		SDL_GPU_SHADERFORMAT_MSL |
-		SDL_GPU_SHADERFORMAT_METALLIB;
+		SDL_GPU_SHADERFORMAT_MSL;
 
-	SDL_GPUDevice* gpu_device = SDL_CreateGPUDevice(formatFlags, true, nullptr);
+	SDL_GPUDevice* gpuDevice = SDL_CreateGPUDevice(formatFlags, true, nullptr);
 
-	if (gpu_device == nullptr) {
+	if (gpuDevice == nullptr) {
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Error: SDL_CreateGPUDevice(): %s\n", SDL_GetError());
 		return -1;
 	}
 
 	// claim window for GPU device
-	if (!SDL_ClaimWindowForGPUDevice(gpu_device, window)) {
+	if (!SDL_ClaimWindowForGPUDevice(gpuDevice, window)) {
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Error: SDL_ClaimWindowForGPUDevice(): %s\n", SDL_GetError());
 		return -1;
 	}
@@ -90,8 +89,8 @@ int example() {
 	// setup platform/renderer backend
 	ImGui_ImplSDL3_InitForSDLGPU(window);
 	ImGui_ImplSDLGPU3_InitInfo initInfo = {};
-	initInfo.Device = gpu_device;
-	initInfo.ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(gpu_device, window);
+	initInfo.Device = gpuDevice;
+	initInfo.ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(gpuDevice, window);
 	initInfo.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
 	ImGui_ImplSDLGPU3_Init(&initInfo);
 
@@ -144,6 +143,21 @@ int example() {
 			continue;
 		}
 
+		// start a new GPU frame
+		SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(gpuDevice);
+
+		if (!commandBuffer) {
+			SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Error: SDL_GPUCommandBuffer(): %s\n", SDL_GetError());
+			return -1;
+		}
+
+		SDL_GPUTexture* swapChainTexture;
+
+		if (!SDL_WaitAndAcquireGPUSwapchainTexture(commandBuffer, window, &swapChainTexture, nullptr, nullptr)) {
+			SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Error: SDL_WaitAndAcquireGPUSwapchainTexture(): %s\n", SDL_GetError());
+			return -1;
+		}
+
 		// start a Dear ImGui frame
 		ImGui_ImplSDLGPU3_NewFrame();
 		ImGui_ImplSDL3_NewFrame();
@@ -154,44 +168,37 @@ int example() {
 
 		// render to the screen
 		ImGui::Render();
-		ImDrawData* draw_data = ImGui::GetDrawData();
-		const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+		ImDrawData* drawData = ImGui::GetDrawData();
+		const bool isMinimized = (drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f);
 
-		// acquire a GPU command buffer and swapchain texture
-		SDL_GPUCommandBuffer* command_buffer = SDL_AcquireGPUCommandBuffer(gpu_device);
-		SDL_GPUTexture* swapchain_texture;
-		SDL_AcquireGPUSwapchainTexture(command_buffer, window, &swapchain_texture, nullptr, nullptr);
+		if (swapChainTexture != nullptr && !isMinimized) {
+			// setup render target
+			ImGui_ImplSDLGPU3_PrepareDrawData(drawData, commandBuffer);
 
-		if (swapchain_texture != nullptr && !is_minimized) {
-			// setup and start a render pass
-			ImGui_ImplSDLGPU3_PrepareDrawData(draw_data, command_buffer);
-
-			SDL_GPUColorTargetInfo target_info = {};
-			target_info.texture = swapchain_texture;
-			target_info.load_op = SDL_GPU_LOADOP_CLEAR;
-			target_info.store_op = SDL_GPU_STOREOP_STORE;
-			target_info.mip_level = 0;
-			target_info.layer_or_depth_plane = 0;
-			target_info.cycle = false;
-			SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(command_buffer, &target_info, 1, nullptr);
+			SDL_GPUColorTargetInfo targetInfo{};
+			targetInfo.texture = swapChainTexture;
+			targetInfo.clear_color = SDL_FColor{0.0f, 0.0f, 0.0f, 1.0f};
+			targetInfo.load_op = SDL_GPU_LOADOP_CLEAR;
+			targetInfo.store_op = SDL_GPU_STOREOP_STORE;
 
 			// render ImGui
-			ImGui_ImplSDLGPU3_RenderDrawData(draw_data, command_buffer, render_pass);
-			SDL_EndGPURenderPass(render_pass);
+			SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(commandBuffer, &targetInfo, 1, nullptr);
+			ImGui_ImplSDLGPU3_RenderDrawData(drawData, commandBuffer, renderPass);
+			SDL_EndGPURenderPass(renderPass);
 		}
 
 		// submit the command buffer
-		SDL_SubmitGPUCommandBuffer(command_buffer);
+		SDL_SubmitGPUCommandBuffer(commandBuffer);
 	}
 
 	// cleanup
-	SDL_WaitForGPUIdle(gpu_device);
+	SDL_WaitForGPUIdle(gpuDevice);
 	ImGui_ImplSDL3_Shutdown();
 	ImGui_ImplSDLGPU3_Shutdown();
 	ImGui::DestroyContext();
 
-	SDL_ReleaseWindowFromGPUDevice(gpu_device, window);
-	SDL_DestroyGPUDevice(gpu_device);
+	SDL_ReleaseWindowFromGPUDevice(gpuDevice, window);
+	SDL_DestroyGPUDevice(gpuDevice);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 	return 0;
