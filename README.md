@@ -102,6 +102,7 @@ features are however included.
 - Provides whitespace indicators for tabs and spaces (can be turned on and off individually or collectively).
 - Supports blinking caret(s)/cursor(s) (can be turned on/off using Dear ImGui's global io.ConfigInputTextCursorBlink flag).
 - Supports caret(s)/cursor(s) hiding through API (default is that they are visible even in readonly mode).
+- Supports custom caret rendering through a callback (see [example](docs/customCaret.md)).
 - No longer uses regular expressions for colorizing text (see below).
 - Provides an example Language Server Protocol (LSP) bridge (see [example](docs/lsp.md)).
 - Provides an optional companion widget to show differences between versions of text (see below).

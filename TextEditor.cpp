@@ -61,7 +61,8 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 	// get font information
 	font = ImGui::GetFont();
 	fontSize = ImGui::GetFontSize();
-	fontScaleDpi = ImGui::GetStyle().FontScaleDpi;
+	auto& style = ImGui::GetStyle();
+	fontScaleDpi = style.FontScaleDpi;
 
 	glyphSize = ImVec2(ImGui::CalcTextSize("#").x, ImGui::GetTextLineHeightWithSpacing() * config.lineSpacing);
 
@@ -158,12 +159,16 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		lastVisibleColumn = static_cast<size_t>(std::ceil((ImGui::GetScrollX() + textSize.x) / glyphSize.x));
 
 		// update color palette (if required)
-		if (paletteAlpha != ImGui::GetStyle().Alpha) {
+		if (paletteAlpha != style.Alpha) {
 			updatePalettes();
 		}
 
 		// determine width of cursor
+#if IMGUI_VERSION_NUM >= 19290
+		cursorWidth =  style.InputTextCursorSize;
+#else
 		cursorWidth = 1.0f * fontScaleDpi;
+#endif
 
 		// setup clipping over the text area
 		auto drawList = ImGui::GetWindowDrawList();
@@ -181,7 +186,7 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		renderMatchingBracketLines();
 		renderSquiggles();
 		renderText();
-		renderCursors();
+		renderCursorCarets();
 
 		// end clipping
 		drawList->PopClipRect();
@@ -632,36 +637,49 @@ void TextEditor::renderText() {
 
 
 //
-//	TextEditor::renderCursors
+//	TextEditor::renderCursorCarets
 //
 
-void TextEditor::renderCursors() {
-	if (config.caretsVisible) {
-		// update cursor animation timer
-		cursorAnimationTimer = std::fmod(cursorAnimationTimer + ImGui::GetIO().DeltaTime, 1.0f);
+void TextEditor::renderCursorCarets() {
+	if (config.caretsVisible && ImGui::IsWindowFocused()) {
+		auto& io = ImGui::GetIO();
+		cursorAnimationTimer += io.DeltaTime;
 
-		if (ImGui::IsWindowFocused()) {
-			if (!ImGui::GetIO().ConfigInputTextCursorBlink || cursorAnimationTimer < 0.5f) {
-				auto drawList = ImGui::GetWindowDrawList();
+		auto drawList = ImGui::GetWindowDrawList();
+		size_t cursorIndex = 0;
 
-				for (auto& cursor : cursors) {
-					auto docPos = cursor.getInteractiveEnd();
+		for (auto& cursor : cursors) {
+			auto docPos = cursor.getInteractiveEnd();
 
-					if (document[docPos.line].foldingState != FoldingState::hidden) {
-						auto pos = docPos2VisPos(docPos);
+			if (document[docPos.line].foldingState != FoldingState::hidden) {
+				auto pos = docPos2VisPos(docPos);
 
-						if (pos.row >= firstVisibleRow && pos.row <= lastVisibleRow) {
-							auto x = cursorScreenPos.x + textLeftOffset + pos.column * glyphSize.x - cursorWidth;
-							auto y = cursorScreenPos.y + pos.row * glyphSize.y;
+				if (pos.row >= firstVisibleRow && pos.row <= lastVisibleRow && pos.column >= firstVisibleColumn && pos.column <= lastVisibleColumn) {
+					auto caretVisible = !io.ConfigInputTextCursorBlink || cursorAnimationTimer <= 0.0f || std::fmod(cursorAnimationTimer, 1.2f) <= 0.8f;
+					auto x = cursorScreenPos.x + textLeftOffset + pos.column * glyphSize.x;
+					auto y = cursorScreenPos.y + pos.row * glyphSize.y;
 
-							drawList->AddRectFilled(
-								ImVec2(x, y),
-								ImVec2(x + cursorWidth, y + glyphSize.y),
-								palette.get(Color::cursor));
-						}
+					// handle custom caret renderer
+					if (customCaretCallback) {
+						CustomCaret caret;
+						caret.drawList = drawList;
+						caret.glyphPos = ImVec2(x, y);
+						caret.glyphSize = glyphSize;
+						caret.caretVisible = caretVisible;
+						caret.caretColor = palette.get(Color::cursor);
+						caret.cursorIndex = cursorIndex;
+						customCaretCallback(caret);
+
+					} else if (caretVisible) {
+						drawList->AddRectFilled(
+							ImVec2(x - cursorWidth, y),
+							ImVec2(x, y + glyphSize.y),
+							palette.get(Color::cursor));
 					}
 				}
 			}
+
+			cursorIndex++;
 		}
 	}
 }
@@ -2050,6 +2068,8 @@ void TextEditor::makeCursorVisible() {
 	if (config.lineFolding) {
 		lineFold.unfoldAroundLine(document, cursors.getCurrent().getInteractiveEnd().line);
 	}
+
+	resetCursorAnimationTimer();
 }
 
 
@@ -3142,6 +3162,7 @@ void TextEditor::deleteText(std::shared_ptr<Transaction> transaction, DocPos sta
 	document.deleteText(config, start, end);
 	transaction->addDelete(start, end, text);
 	makeCursorVisible();
+	resetCursorAnimationTimer();
 	deletesHappened = true;
 }
 

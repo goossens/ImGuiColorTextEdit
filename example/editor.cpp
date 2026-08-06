@@ -498,6 +498,7 @@ void Editor::renderMenuBar() {
 			if (ImGui::MenuItem("Show Word at Mouse", nullptr, &showWordAtMouse)) { toggleShowWordAtMouse(); }
 			if (ImGui::MenuItem("Show Line Markers", nullptr, &showLineMarkers)) { toggleLineMarkers(); }
 			if (ImGui::MenuItem("Show Line Decorator", nullptr, &showLineDecorator)) { toggleLineDecorator(); }
+			if (ImGui::MenuItem("Show Custom Caret", nullptr, &showCustomCaret)) { toggleCustomCaret(); }
 			if (ImGui::MenuItem("Show Context Menus", nullptr, &showContextMenus)) { toggleContextMenus(); }
 			if (ImGui::MenuItem("Enable Unicode Line Break Algorithm", nullptr, &enableUnicodeLineBreakAlgorithm)) { toggleLineBreak(); }
 			ImGui::Separator();
@@ -1329,6 +1330,28 @@ void Editor::toggleLineDecorator() {
 	} else {
 		editor.ClearLineDecorator();
 		notifications.Add(Notifications::Type::info, "line decorator deactivated");
+	}
+}
+
+
+//
+//	Editor::toggleCustomCaret
+//
+
+void Editor::toggleCustomCaret() {
+	if (showCustomCaret) {
+		editor.SetCustomCaretRenderer([](const TextEditor::CustomCaret& caret) {
+			if (caret.caretVisible) {
+				auto color = ImGui::GetColorU32(caret.caretColor, 0.5f);
+				caret.drawList->AddRectFilled(caret.glyphPos, caret.glyphPos + caret.glyphSize, color);
+			}
+		});
+
+		notifications.Add(Notifications::Type::info, "custom caret activated");
+
+	} else {
+		editor.ClearCustomCaretRenderer();
+		notifications.Add(Notifications::Type::info, "custom caret deactivated");
 	}
 }
 

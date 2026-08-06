@@ -353,6 +353,34 @@ public:
 	inline void ClearLineDecorator() { SetLineDecorator(0, nullptr); }
 	inline bool HasLineDecorator() const { return decoratorWidth != 0 && decoratorCallback != nullptr; }
 
+	// custom text cursor (caret) rendering
+	struct CustomCaret {
+		// draw list to submit rendering commands to
+		ImDrawList* drawList;
+
+		// top left corner of glyph where cursor is (in screen coordinates)
+		// can be used directly to submit drawing commands
+		ImVec2 glyphPos;
+
+		// visible size of glyph
+		ImVec2 glyphSize;
+
+		// flag indicating if cursor is visible
+		// this can be ignored if the custom caret has its own animation algorithm
+		bool caretVisible;
+
+		// color of cursor caret as per the current palette
+		// that can also be ignored if custom caret has its own palette of animation
+		ImU32 caretColor;
+
+		// index of the cursor being rendered (in case additional cursor information is required)
+		size_t cursorIndex;
+	};
+
+	inline void SetCustomCaretRenderer(std::function<void(const CustomCaret& caret)> callback) { customCaretCallback = callback; }
+	inline void ClearCustomCaretRenderer() { customCaretCallback = nullptr; }
+	inline bool HasCustomCaretRenderer() const { return customCaretCallback != nullptr; }
+
 	// setup right click or hover callbacks
 	// the editor sets up a popup menu in the right location
 	// the callback has to populate it
@@ -1540,7 +1568,7 @@ protected:
 	void renderMatchingBracketLines();
 	void renderSquiggles();
 	void renderText();
-	void renderCursors();
+	void renderCursorCarets();
 	void renderLineNumberMarkers();
 	void renderLineNumbers();
 	void renderDecorations();
@@ -1687,6 +1715,8 @@ protected:
 	inline bool isLineVisible(size_t line) const { return lineFold.isVisible(document, line); }
 	inline bool isLineHidden(size_t line) const { return lineFold.isHidden(document, line); }
 
+	inline void resetCursorAnimationTimer() { cursorAnimationTimer = -0.3f; }
+
 	// rendering context
 	static constexpr size_t invalidLine = std::numeric_limits<size_t>::max();
 
@@ -1729,7 +1759,7 @@ protected:
 	static constexpr float miniMapViewPortAlpha = 0.15f;
 	static constexpr float miniMapViewPortActiveAlpha = 0.3f;
 
-	float cursorAnimationTimer = 0.0f;
+	float cursorAnimationTimer = -0.3f;
 	size_t scrollToLineNumber = invalidLine;
 	Scroll scrollToAlignment = Scroll::alignMiddle;
 	float scrollToFraction = 0.0f;
@@ -1737,6 +1767,8 @@ protected:
 
 	size_t decoratorWidth = 0;
 	std::function<void(Decorator&)> decoratorCallback;
+
+	std::function<void(const CustomCaret&)> customCaretCallback;
 
 	std::function<void(PopupData& data)> lineNumberContextMenuCallback;
 	std::function<void(PopupData& data)> textContextMenuCallback;
