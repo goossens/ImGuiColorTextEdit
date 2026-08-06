@@ -188,6 +188,8 @@ public:
 	inline void SelectAllOccurrences() { selectAllOccurrences(); }
 	inline bool AnyCursorHasSelection() const { return cursors.anyHasSelection(); }
 	inline bool AllCursorsHaveSelection() const { return cursors.allHaveSelection(); }
+	inline bool CursorHasSelection(size_t cursor) const { return cursors.cursorHasSelection(cursor); }
+	inline bool MainCursorHasSelection() const { return cursors.mainCursorHasSelection(); }
 	inline bool CurrentCursorHasSelection() const { return cursors.currentCursorHasSelection(); }
 	inline void ClearCursors() { cursors.clearAll(); }
 
@@ -1136,6 +1138,7 @@ protected:
 		inline bool hasMultiple() const { return size() > 1; }
 		bool anyHasSelection() const;
 		bool allHaveSelection() const;
+		inline bool cursorHasSelection(size_t cursor) const { return cursor < size() ? at(cursor).hasSelection() : false; }
 		inline bool mainCursorHasSelection() const { return at(main).hasSelection(); }
 		inline bool currentCursorHasSelection() const { return at(current).hasSelection(); }
 		inline bool mainHasUpdate() const { return at(main).isUpdated(); }
