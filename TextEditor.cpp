@@ -205,13 +205,15 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 			ImGuiContext& g = *GImGui;
 
 			if (ImGui::IsWindowFocused()) {
-				ImRect bb{ImGui::GetWindowPos(), ImGui::GetWindowPos() + ImGui::GetWindowSize()};
-				bb.Expand(ImVec2(2.0f, 2.0f));
+				if (!ImGui::GetCurrentWindow()->ScrollbarY) {
+					ImRect bb{ImGui::GetWindowPos(), ImGui::GetWindowPos() + ImGui::GetWindowSize()};
+					bb.Expand(ImVec2(2.0f, 2.0f));
 
-				bool fullyVisible = g.CurrentWindow->ClipRect.Contains(bb);
-				if (!fullyVisible) { drawList->PushClipRect(bb.Min, bb.Max); }
-				drawList->AddRect(bb.Min, bb.Max, ImGui::GetColorU32(ImGuiCol_NavCursor), g.Style.FrameRounding, fontScaleDpi);
-				if (!fullyVisible) { drawList->PopClipRect(); }
+					bool fullyVisible = g.CurrentWindow->ClipRect.Contains(bb);
+					if (!fullyVisible) { drawList->PushClipRect(bb.Min, bb.Max); }
+					drawList->AddRect(bb.Min, bb.Max, ImGui::GetColorU32(ImGuiCol_NavCursor), g.Style.FrameRounding, fontScaleDpi);
+					if (!fullyVisible) { drawList->PopClipRect(); }
+				}
 
 			} else {
 				g.CurrentWindow->DC.NavLayersActiveMaskNext |= (1 << g.CurrentWindow->DC.NavLayerCurrent);
