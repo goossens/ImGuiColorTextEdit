@@ -256,8 +256,8 @@ public:
 	inline bool IsVisPosOverGlyph(VisPos pos) const { return typeSetter.isVisPosOverGlyph(normalizePos(pos)); }
 
 	// find start or end of word from provided position
-	inline DocPos FindWordStart(DocPos pos) const { return document.findWordStart(normalizePos(pos)); }
-	inline DocPos FindWordEnd(DocPos pos) const { return document.findWordEnd(normalizePos(pos)); }
+	inline DocPos FindWordStart(DocPos pos, bool wholeWord=false) const { return document.findWordStart(normalizePos(pos), wholeWord); }
+	inline DocPos FindWordEnd(DocPos pos, bool wholeWord=false) const { return document.findWordEnd(normalizePos(pos), wholeWord); }
 
 	// find/replace support
 	inline void SelectFirstOccurrenceOf(const std::string_view& text, bool caseSensitive=true, bool wholeWord=false) { selectFirstOccurrenceOf(text, caseSensitive, wholeWord); }
@@ -1056,9 +1056,11 @@ protected:
 		void iterateIdentifiers(std::function<void(const std::string& identifier)> callback) const;
 
 		// utility functions
-		bool isWordStart(DocPos pos) const;
-		bool isWordEnd(DocPos pos) const;
-		bool isWholeWord(DocPos start, DocPos end) const;
+		bool isWordStart(DocPos pos, bool wordOnly=false) const;
+		bool isWordEnd(DocPos pos, bool wordOnly=false) const;
+		bool isWholeWord(DocPos start, DocPos end, bool wordOnly=false) const;
+		DocSelection getWholeWord(DocPos pos, bool wordOnly=false) const;
+		inline bool isStartOfLine(DocPos from) const { return from.index == 0; }
 		inline bool isEndOfLine(DocPos from) const { return from.index == at(from.line).size(); }
 		inline bool isLastLine(size_t line) const { return line == size() - 1; }
 		DocPos findPreviousNonWhiteSpace(DocPos from, bool includeEndOfLine=true) const;
