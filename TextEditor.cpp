@@ -1238,8 +1238,11 @@ void TextEditor::handleKeyboardInputs() {
 		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_End)) { moveToEndOfLine(true); }
 
 		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_A)) { selectAll(); }
-		else if (cursors.currentCursorHasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D)) { addNextOccurrence(); }
-		else if (cursors.currentCursorHasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_D)) { selectAllOccurrences(); }
+		else if (cursors.currentCursorHasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D)) { addNextOccurrence(false); }
+		else if (cursors.currentCursorHasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_D)) { addNextOccurrence(true); }
+		else if (cursors.currentCursorHasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_L)) { addNextOccurrence(true); }
+		else if (cursors.currentCursorHasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_D)) { selectAllOccurrences(false); }
+		else if (cursors.currentCursorHasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiMod_Shift | ImGuiKey_D)) { selectAllOccurrences(true); }
 
 		// clipboard operations
 		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_X)) { cut(); }
@@ -5514,13 +5517,13 @@ void TextEditor::selectAllOccurrencesOf(const std::string_view& text, bool caseS
 //	TextEditor::addNextOccurrence
 //
 
-void TextEditor::addNextOccurrence() {
+void TextEditor::addNextOccurrence(bool wholeWord) {
 
 	auto cursor = cursors.getCurrent();
 	auto text = document.getSectionText(cursor.getSelectionStart(), cursor.getSelectionEnd());
 	DocPos start, end;
 
-	if (document.findText(cursor.getSelectionEnd(), text, true, false, start, end)) {
+	if (document.findText(cursor.getSelectionEnd(), text, true, wholeWord, start, end)) {
 		cursors.addCursor(start, end);
 	}
 }
@@ -5530,10 +5533,10 @@ void TextEditor::addNextOccurrence() {
 //	TextEditor::selectAllOccurrences
 //
 
-void TextEditor::selectAllOccurrences() {
+void TextEditor::selectAllOccurrences(bool wholeWord) {
 	auto cursor = cursors.getCurrent();
 	auto text = document.getSectionText(cursor.getSelectionStart(), cursor.getSelectionEnd());
-	selectAllOccurrencesOf(text, true, false);
+	selectAllOccurrencesOf(text, true, wholeWord);
 }
 
 

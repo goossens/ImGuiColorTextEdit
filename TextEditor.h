@@ -184,8 +184,8 @@ public:
 	inline void SelectToBrackets(bool includeBrackets=true) { selectToBrackets(includeBrackets); }
 	inline void GrowSelections() { growSelections(); }
 	inline void ShrinkSelections() { shrinkSelections(); }
-	inline void AddNextOccurrence() { addNextOccurrence(); }
-	inline void SelectAllOccurrences() { selectAllOccurrences(); }
+	inline void AddNextOccurrence(bool wholeWord=false) { addNextOccurrence(wholeWord); }
+	inline void SelectAllOccurrences(bool wholeWord=false) { selectAllOccurrences(wholeWord); }
 	inline bool AnyCursorHasSelection() const { return cursors.anyHasSelection(); }
 	inline bool AllCursorsHaveSelection() const { return cursors.allHaveSelection(); }
 	inline bool CursorHasSelection(size_t cursor) const { return cursors.cursorHasSelection(cursor); }
@@ -1643,8 +1643,8 @@ protected:
 	void selectFirstOccurrenceOf(const std::string_view& text, bool caseSensitive, bool wholeWord);
 	void selectNextOccurrenceOf(const std::string_view& text, bool caseSensitive, bool wholeWord);
 	void selectAllOccurrencesOf(const std::string_view& text, bool caseSensitive, bool wholeWord);
-	void addNextOccurrence();
-	void selectAllOccurrences();
+	void addNextOccurrence(bool wholeWord);
+	void selectAllOccurrences(bool wholeWord);
 
 	void replaceTextInCurrentCursor(const std::string_view& text);
 	void replaceTextInAllCursors(const std::string_view& text);
