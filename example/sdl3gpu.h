@@ -19,6 +19,7 @@
 #include <SDL3/SDL.h>
 
 #include "imgui.h"
+#include "imgui_freetype.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlgpu3.h"
 
@@ -95,11 +96,13 @@ int example() {
 	ImGui_ImplSDLGPU3_Init(&initInfo);
 
 	// setup our font
+	io.Fonts->Clear();
+
 	ImFontConfig config;
 	std::copy_n("DejaVu", 7, config.Name);
+	config.FontLoaderFlags = ImGuiFreeTypeLoaderFlags_LightHinting;
 	config.FontDataOwnedByAtlas = false;
-	io.Fonts->Clear();
-	io.Fonts->AddFontFromMemoryCompressedTTF(static_cast<const void*>(&dejavu), dejavuSize, 17.0f, &config);
+	io.Fonts->AddFontFromMemoryCompressedTTF(static_cast<const void*>(&dejavu), dejavuSize, 15.0f, &config);
 
 	// main loop
 	Editor editor;

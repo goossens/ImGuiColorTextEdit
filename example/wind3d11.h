@@ -23,6 +23,7 @@
 #include <tchar.h>
 
 #include "imgui.h"
+#include "imgui_freetype.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 
@@ -96,11 +97,13 @@ int example() {
 	ImGui_ImplDX11_Init(d3dDevice, d3dDeviceContext);
 
 	// setup our font
+	io.Fonts->Clear();
+
 	ImFontConfig config;
 	std::copy_n("DejaVu", 7, config.Name);
+	config.FontLoaderFlags = ImGuiFreeTypeLoaderFlags_LightHinting;
 	config.FontDataOwnedByAtlas = false;
-	io.Fonts->Clear();
-	io.Fonts->AddFontFromMemoryCompressedTTF(static_cast<const void*>(&dejavu), dejavuSize, 17.0f, &config);
+	io.Fonts->AddFontFromMemoryCompressedTTF(static_cast<const void*>(&dejavu), dejavuSize, 15.0f, &config);
 
 	// main loop
 	Editor editor;
