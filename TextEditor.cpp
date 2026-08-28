@@ -8696,9 +8696,12 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 			// do we have any suggestions
 			if (suggestions) {
 				auto items = state.suggestions.size();
+				auto scroll = false;
 
 				// apply arrow keys to selected suggestion
 				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+					scroll = true;
+
 					if (currentSelection == 0) {
 						currentSelection = items - 1;
 
@@ -8707,6 +8710,8 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 					}
 
 				} else if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+					scroll = true;
+
 					if (currentSelection == items - 1) {
 						currentSelection = 0;
 
@@ -8732,8 +8737,8 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 					// scroll list to selected item (if required)
 					auto selected = i == currentSelection;
 
-					if (selected) {
-						ImGui::SetScrollHereY(1.0f);
+					if (scroll && selected) {
+						ImGui::SetScrollHereY(0.5f);
 					}
 
 					if (renderSuggestion(state.suggestions[i].c_str(), state.searchTerm, ImGui::GetContentRegionAvail().x, selected)) {
