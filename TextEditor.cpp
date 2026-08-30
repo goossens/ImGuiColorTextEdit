@@ -750,17 +750,40 @@ void TextEditor::renderLineNumberMarkers() {
 
 void TextEditor::renderLineNumbers() {
 	if (config.showLineNumbers) {
-		auto drawList = ImGui::GetWindowDrawList();
-		auto curserRow = docPos2VisPos(cursors.getCurrent().getInteractiveEnd()).row;
-		auto position = ImVec2(ImGui::GetWindowPos().x + lineNumberRightOffset, cursorScreenPos.y);
+		if (customLineNumberCallback) {
+			auto position = ImVec2(ImGui::GetWindowPos().x + lineNumberLeftOffset, cursorScreenPos.y);
+			auto curserLine = cursors.getCurrent().getInteractiveEnd().line;
 
-		for (size_t i = firstVisibleRow; i <= lastVisibleRow; i++) {
-			if (typeSetter[i].section == 0) {
-				auto lineNo = typeSetter[i].line + 1;
-				auto width = static_cast<size_t>(std::log10(lineNo) + 1.0f) * glyphSize.x;
-				auto foreground = (i == curserRow) ? Color::currentLineNumber : Color::lineNumber;
-				auto number = std::to_string(lineNo);
-				drawList->AddText(position + ImVec2(-width, i * glyphSize.y), palette.get(foreground), number.c_str());
+			CustomLineNumber data;
+			data.drawList = ImGui::GetWindowDrawList();
+			auto width = lineNumberRightOffset - lineNumberLeftOffset;
+			data.size = data.pos + ImVec2(width, glyphSize.y);
+			data.digits = static_cast<size_t>(width / glyphSize.x);
+			data.cursorLineNumber = cursors.getCurrent().getInteractiveEnd().line;
+
+			for (size_t i = firstVisibleRow; i <= lastVisibleRow; i++) {
+				if (typeSetter[i].section == 0) {
+					data.pos = position + ImVec2(0.0f, i * glyphSize.y);
+					data.lineNumber = typeSetter[i].line;
+					auto foreground = (data.lineNumber == curserLine) ? Color::currentLineNumber : Color::lineNumber;
+					data.color = palette.get(foreground);
+					customLineNumberCallback(data);
+				}
+			}
+
+		} else {
+			auto drawList = ImGui::GetWindowDrawList();
+			auto curserLine = cursors.getCurrent().getInteractiveEnd().line;
+			auto position = ImVec2(ImGui::GetWindowPos().x + lineNumberRightOffset, cursorScreenPos.y);
+
+			for (size_t i = firstVisibleRow; i <= lastVisibleRow; i++) {
+				if (typeSetter[i].section == 0) {
+					auto lineNo = typeSetter[i].line + 1;
+					auto width = static_cast<size_t>(std::log10(lineNo) + 1.0f) * glyphSize.x;
+					auto foreground = (typeSetter[i].line == curserLine) ? Color::currentLineNumber : Color::lineNumber;
+					auto number = std::to_string(lineNo);
+					drawList->AddText(position + ImVec2(-width, i * glyphSize.y), palette.get(foreground), number.c_str());
+				}
 			}
 		}
 	}

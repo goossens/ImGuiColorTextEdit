@@ -41,3 +41,5 @@ As an example, rendering a custom block caret that has 50% opacity, the applicat
 		}
 	});
 ```
+
+You can see this in action in the example application.

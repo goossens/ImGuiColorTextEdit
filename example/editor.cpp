@@ -503,6 +503,7 @@ void Editor::renderMenuBar() {
 			if (ImGui::MenuItem("Show Line Markers", nullptr, &showLineMarkers)) { toggleLineMarkers(); }
 			if (ImGui::MenuItem("Show Line Decorator", nullptr, &showLineDecorator)) { toggleLineDecorator(); }
 			if (ImGui::MenuItem("Show Custom Caret", nullptr, &showCustomCaret)) { toggleCustomCaret(); }
+			if (ImGui::MenuItem("Show Custom Line Numbers", nullptr, &showCustomLineNumbers)) { toggleCustomLineNumbers(); }
 			if (ImGui::MenuItem("Show Context Menus", nullptr, &showContextMenus)) { toggleContextMenus(); }
 			if (ImGui::MenuItem("Enable Unicode Line Break Algorithm", nullptr, &enableUnicodeLineBreakAlgorithm)) { toggleLineBreak(); }
 			ImGui::Separator();
@@ -1367,6 +1368,38 @@ void Editor::toggleCustomCaret() {
 	} else {
 		editor.ClearCustomCaretRenderer();
 		notifications.Add(Notifications::Type::info, "custom caret deactivated");
+	}
+}
+
+
+//
+//	Editor::toggleCustomLineNumbers
+//
+
+void Editor::toggleCustomLineNumbers() {
+	if (showCustomLineNumbers) {
+		editor.SetCustomLineNumberRenderer([](const TextEditor::CustomLineNumber& data) {
+			std::string buffer;
+			auto lineNo = data.lineNumber + 1;
+
+			if ((data.lineNumber == data.cursorLineNumber) || ((lineNo % 10) == 0)) {
+				buffer = std::to_string(data.lineNumber + 1);
+
+			} else if ((lineNo % 5) == 0) {
+				buffer = "-";
+
+			} else {
+				buffer = " .";
+			}
+
+			data.drawList->AddText(data.pos, data.color, buffer.c_str());
+		});
+
+		notifications.Add(Notifications::Type::info, "custom line number activated");
+
+	} else {
+		editor.ClearCustomLineNumberRenderer();
+		notifications.Add(Notifications::Type::info, "custom line number deactivated");
 	}
 }
 

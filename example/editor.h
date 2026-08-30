@@ -118,6 +118,7 @@ private:
 	void toggleLineMarkers();
 	void toggleLineDecorator();
 	void toggleCustomCaret();
+	void toggleCustomLineNumbers();
 	void toggleContextMenus();
 	void toggleLineBreak();
 	void clearSquiggles();
@@ -129,6 +130,7 @@ private:
 	bool showLineMarkers = false;
 	bool showLineDecorator = false;
 	bool showCustomCaret = false;
+	bool showCustomLineNumbers = false;
 	bool showContextMenus = false;
 	bool enableUnicodeLineBreakAlgorithm = false;
 	bool showDebugInformation = false;
