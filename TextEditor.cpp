@@ -47,6 +47,21 @@ void TextEditor::setText(const std::string_view& text) {
 
 
 //
+//	TextEditor::setText
+//
+
+void TextEditor::setText(const std::vector<std::string_view>& lines) {
+	// load text into document and reset overlays
+	document.setText(config, lines);
+	transactions.reset();
+	cursors.clearAll();
+	clearMarkers();
+	clearSquiggles();
+	resetScrolling();
+}
+
+
+//
 //	TextEditor::render
 //
 
@@ -3619,13 +3634,13 @@ void TextEditor::Document::setText(const Config& config, const std::string_view&
 //	TextEditor::Document::setText
 //
 
-void TextEditor::Document::setText(const Config& config, const std::vector<std::string_view>& text) {
+void TextEditor::Document::setText(const Config& config, const std::vector<std::string_view>& lines) {
 	// reset document
 	clearDocument();
 
-	if (text.size()) {
+	if (lines.size()) {
 		// process input UTF-8 and generate lines of glyphs
-		for (const auto& line : text) {
+		for (const auto& line : lines) {
 			appendLine();
 			auto i = line.begin();
 			auto end = line.end();

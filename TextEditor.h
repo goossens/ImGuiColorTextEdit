@@ -142,6 +142,7 @@ public:
 	// access text (using UTF-8 encoded strings)
 	// (see note below on cursor and scroll manipulation after setting new text)
 	inline void SetText(const std::string_view& text) { setText(text); }
+	inline void SetText(const std::vector<std::string_view>& lines) { setText(lines); }
 	inline std::string GetText() const { return document.getText(); }
 
 	inline std::string GetCursorText(size_t cursor) const { return cursor < cursors.size() ? document.getSectionText(cursors[cursor].getSelectionStart(), cursors[cursor].getSelectionEnd()) : ""; }
@@ -1005,7 +1006,7 @@ protected:
 
 		// manipulate document text (strings should be UTF-8 encoded)
 		void setText(const Config& config, const std::string_view& text);
-		void setText(const Config& config, const std::vector<std::string_view>& text);
+		void setText(const Config& config, const std::vector<std::string_view>& lines);
 		DocPos insertText(const Config& config, DocPos start, const std::string_view& text);
 		void deleteText(const Config& config, DocPos start, DocPos end);
 
@@ -1568,6 +1569,7 @@ protected:
 
 	// access the editor's text
 	void setText(const std::string_view& text);
+	void setText(const std::vector<std::string_view>& lines);
 
 	// render (parts of) the text editor
 	bool render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags);
