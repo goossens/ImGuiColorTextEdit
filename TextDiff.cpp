@@ -38,8 +38,8 @@ void TextDiff::SetText(const std::string_view& left, const std::string_view& rig
 	splitLines(rightLines, right);
 
 	// create two documents
-	diff.leftDocument.setText(diff.config, leftLines);
-	diff.rightDocument.setText(diff.config, rightLines);
+	diff.leftDocument.setUtf8Text(diff.config, leftLines);
+	diff.rightDocument.setUtf8Text(diff.config, rightLines);
 
 	// calculate the difference between the two documents
 	dtl::Diff<std::string_view> difference(leftLines, rightLines);

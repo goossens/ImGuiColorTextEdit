@@ -48,29 +48,29 @@
 #define SHORTCUT "Ctrl-"
 #endif
 
-static const char* demo =
-"// Demo C++ Code\n"
-"\n"
-"#include <iostream>\n"
-"#include <random>\n"
-"#include <vector>\n"
-"\n"
-"int main(int, char**) {\n"
-"	std::random_device rd;\n"
-"	std::mt19937 gen(rd());\n"
-"	std::uniform_int_distribution<> distrib(0, 1000);\n"
-"	std::vector<int> numbers;\n"
-"\n"
-"	for (auto i = 0; i < 100; i++) {\n"
-"		numbers.emplace_back(distrib(gen));\n"
-"	}\n"
-"\n"
-"	for (auto n : numbers) {\n"
-"		std::cout << n << std::endl;\n"
-"	}\n"
-"\n"
-"	return 0;\n"
-"}\n";
+static const char* demo = R"(// Demo C++ Code
+
+#include <iostream>
+#include <random>
+#include <vector>
+
+int main(int, char**) {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> distrib(0, 1000);
+	std::vector<int> numbers;
+
+	for (auto i = 0; i < 100; i++) {
+		numbers.emplace_back(distrib(gen));
+	}
+
+	for (auto n : numbers) {
+		std::cout << n << std::endl;
+	}
+
+	return 0;
+}
+)";
 
 
 //
@@ -511,6 +511,17 @@ void Editor::renderMenuBar() {
 			if (ImGui::MenuItem("Clear Squiggles", nullptr, nullptr, editor.HasSquiggles())) { clearSquiggles(); }
 			if (ImGui::MenuItem("Clear Squiggles by Type", nullptr, nullptr, editor.HasSquiggles())) { showClearSquiggles(); }
 			ImGui::Separator();
+			if (ImGui::MenuItem("Load from std::wstring_view", nullptr, nullptr, !isSavable())) { loadWString(); }
+			if (ImGui::MenuItem("Load from std::u8string_view", nullptr, nullptr, !isSavable())) { loadU8String(); }
+			if (ImGui::MenuItem("Load from std::16string_view", nullptr, nullptr, !isSavable())) { loadU16String(); }
+			if (ImGui::MenuItem("Load from std::32string_view", nullptr, nullptr, !isSavable())) { loadU32String(); }
+			if (ImGui::MenuItem("Load from std::vector<std::string_view>", nullptr, nullptr, !isSavable())) { loadVectorOfStrings(); }
+			if (ImGui::MenuItem("Load from std::vector<std::wstring_view>", nullptr, nullptr, !isSavable())) { loadVectorOfWStrings(); }
+			if (ImGui::MenuItem("Load from std::vector<std::u8string_view>", nullptr, nullptr, !isSavable())) { loadVectorOfU8Strings(); }
+			if (ImGui::MenuItem("Load from std::vector<std::u16string_view>", nullptr, nullptr, !isSavable())) { loadVectorOfU16Strings(); }
+			if (ImGui::MenuItem("Load from std::vector<std::u32string_view>", nullptr, nullptr, !isSavable())) { loadVectorOfU32Strings(); }
+
+			ImGui::Separator();
 			bool navigationMode = ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard;
 			if (ImGui::MenuItem("Keyboard/Gamepad Navigation Mode", " " SHORTCUT "Alt-N", &navigationMode)) { toggleNavigationMode(); }
 			ImGui::MenuItem("Show Dear ImGui Metrics/Debug Window", " " SHORTCUT "Alt-I", &showDebugWindow);
@@ -849,7 +860,7 @@ void Editor::renderConfirmClose() {
 		popup = false;
 	}
 
-	if (ImGui::BeginPopupModal("Confirm Close")) {
+	if (ImGui::BeginPopupModal("Confirm Close", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
 		ImGui::Text("This file has changed!\nDo you really want to delete it?\n\n");
 		ImGui::Separator();
 
@@ -950,7 +961,7 @@ void Editor::renderAddSquiggle() {
 		popup = false;
 	}
 
-	if (ImGui::BeginPopupModal("Add Squiggle")) {
+	if (ImGui::BeginPopupModal("Add Squiggle", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
 		auto type = static_cast<int>(squiggleType);
 		if (ImGui::SliderInt("Type", &type, 1, 5)) { squiggleType = static_cast<size_t>(type); }
 		ImGui::ColorEdit4("Color", (float*) &squiggleColor);
@@ -998,7 +1009,7 @@ void Editor::renderClearSquiggle() {
 		popup = false;
 	}
 
-	if (ImGui::BeginPopupModal("Clear Squiggles")) {
+	if (ImGui::BeginPopupModal("Clear Squiggles", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
 		auto type = static_cast<int>(squiggleType);
 		if (ImGui::SliderInt("Type", &type, 1, 5)) { squiggleType = static_cast<size_t>(type); }
 		ImGui::Separator();
@@ -1466,4 +1477,340 @@ void Editor::clearSquiggles() {
 	} else {
 		editor.ClearSquiggles();
 	}
+}
+
+
+//
+//	Editor::loadWString
+//
+
+void Editor::loadWString() {
+	static const std::wstring text = LR"(// Demo C++ Code
+
+// loaded from std::wstring
+
+// €€€€€€€
+// äÄöÖüÜß
+
+#include <iostream>
+#include <random>
+#include <vector>
+
+int main(int, char**) {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> distrib(0, 1000);
+	std::vector<int> numbers;
+
+	for (auto i = 0; i < 100; i++) {
+		numbers.emplace_back(distrib(gen));
+	}
+
+	for (auto n : numbers) {
+		std::cout << n << std::endl;
+	}
+
+	return 0;
+}
+)";
+
+	editor.SetText(text);
+}
+
+
+//
+//	Editor::loadU8String
+//
+
+void Editor::loadU8String() {
+	static const std::u8string text = u8R"(// Demo C++ Code
+
+// loaded from std::u8string
+
+// €€€€€€€
+// äÄöÖüÜß
+
+#include <iostream>
+#include <random>
+#include <vector>
+
+int main(int, char**) {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> distrib(0, 1000);
+	std::vector<int> numbers;
+
+	for (auto i = 0; i < 100; i++) {
+		numbers.emplace_back(distrib(gen));
+	}
+
+	for (auto n : numbers) {
+		std::cout << n << std::endl;
+	}
+
+	return 0;
+}
+)";
+
+	editor.SetText(text);
+}
+
+
+//
+//	Editor::loadU16String
+//
+
+void Editor::loadU16String() {
+	static const std::u16string text = uR"(// Demo C++ Code
+
+// loaded from std::u16string
+
+// €€€€€€€
+// äÄöÖüÜß
+
+#include <iostream>
+#include <random>
+#include <vector>
+
+int main(int, char**) {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> distrib(0, 1000);
+	std::vector<int> numbers;
+
+	for (auto i = 0; i < 100; i++) {
+		numbers.emplace_back(distrib(gen));
+	}
+
+	for (auto n : numbers) {
+		std::cout << n << std::endl;
+	}
+
+	return 0;
+}
+)";
+
+	editor.SetText(text);
+}
+
+void Editor::loadU32String() {
+	static const std::u32string text = UR"(// Demo C++ Code
+
+// loaded from std::u32string
+
+// €€€€€€€
+// äÄöÖüÜß
+
+#include <iostream>
+#include <random>
+#include <vector>
+
+int main(int, char**) {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> distrib(0, 1000);
+	std::vector<int> numbers;
+
+	for (auto i = 0; i < 100; i++) {
+		numbers.emplace_back(distrib(gen));
+	}
+
+	for (auto n : numbers) {
+		std::cout << n << std::endl;
+	}
+
+	return 0;
+}
+)";
+
+	editor.SetText(text);
+}
+
+
+//
+//	Editor::loadVectorOfStrings
+//
+
+void Editor::loadVectorOfStrings() {
+	static const std::vector<std::string_view> text = {
+		"// Demo C++ Code",
+		"#include <iostream>",
+		"#include <random>",
+		"#include <vector>",
+		"",
+		"int main(int, char**) {",
+		"	std::random_device rd;",
+		"	std::mt19937 gen(rd());",
+		"	std::uniform_int_distribution<> distrib(0, 1000);",
+		"	std::vector<int> numbers;",
+		"",
+		"	for (auto i = 0; i < 100; i++) {",
+		"		numbers.emplace_back(distrib(gen));",
+		"	}",
+		"",
+		"	for (auto n : numbers) {",
+		"		std::cout << n << std::endl;",
+		"	}",
+		"",
+		"	return 0;",
+		"}"
+	};
+
+	editor.SetText(text);
+}
+
+
+//
+//	Editor::loadVectorOfWStrings
+//
+
+void Editor::loadVectorOfWStrings() {
+	static const std::vector<std::wstring_view> text = {
+		L"// Demo C++ Code",
+		L"",
+		L"// loaded from std::vector<std::wstring_view>",
+		L"",
+		L"// €€€€€€€",
+		L"// äÄöÖüÜß",
+		L"",
+		L"#include <iostream>",
+		L"#include <random>",
+		L"#include <vector>",
+		L"",
+		L"int main(int, char**) {",
+		L"	std::random_device rd;",
+		L"	std::mt19937 gen(rd());",
+		L"	std::uniform_int_distribution<> distrib(0, 1000);",
+		L"	std::vector<int> numbers;",
+		L"",
+		L"	for (auto i = 0; i < 100; i++) {",
+		L"		numbers.emplace_back(distrib(gen));",
+		L"	}",
+		L"",
+		L"	for (auto n : numbers) {",
+		L"		std::cout << n << std::endl;",
+		L"	}",
+		L"",
+		L"	return 0;",
+		L"}"
+	};
+
+	editor.SetText(text);
+}
+
+
+//
+//	Editor::loadVectorOfU8Strings
+//
+
+void Editor::loadVectorOfU8Strings() {
+	static const std::vector<std::u8string_view> text = {
+		u8R"(// Demo C++ Code)",
+		u8R"()",
+		u8R"(// loaded from std::vector<std::u8string_view>)",
+		u8R"()",
+		u8R"(// €€€€€€€)",
+		u8R"(// äÄöÖüÜß)",
+		u8R"()",
+		u8R"(#include <iostream>)",
+		u8R"(#include <random>)",
+		u8R"(#include <vector>)",
+		u8R"()",
+		u8R"(int main(int, char**) {)",
+		u8R"(	std::random_device rd;)",
+		u8R"(	std::mt19937 gen(rd());)",
+		u8R"(	std::uniform_int_distribution<> distrib(0, 1000);)",
+		u8R"(	std::vector<int> numbers;)",
+		u8R"()",
+		u8R"(	for (auto i = 0; i < 100; i++) {)",
+		u8R"(		numbers.emplace_back(distrib(gen));)",
+		u8R"(	})",
+		u8R"()",
+		u8R"(	for (auto n : numbers) {)",
+		u8R"(		std::cout << n << std::endl;)",
+		u8R"(	})",
+		u8R"()",
+		u8R"(	return 0;)",
+		u8R"(})"
+	};
+
+	editor.SetText(text);
+}
+
+
+//
+//	Editor::loadVectorOfU16Strings
+//
+
+void Editor::loadVectorOfU16Strings() {
+	static const std::vector<std::u16string_view> text = {
+		uR"(// Demo C++ Code)",
+		uR"()",
+		uR"(// loaded from std::vector<std::u16string_view>)",
+		uR"()",
+		uR"(// €€€€€€€)",
+		uR"(// äÄöÖüÜß)",
+		uR"()",
+		uR"(#include <iostream>)",
+		uR"(#include <random>)",
+		uR"(#include <vector>)",
+		uR"()",
+		uR"(int main(int, char**) {)",
+		uR"(	std::random_device rd;)",
+		uR"(	std::mt19937 gen(rd());)",
+		uR"(	std::uniform_int_distribution<> distrib(0, 1000);)",
+		uR"(	std::vector<int> numbers;)",
+		uR"()",
+		uR"(	for (auto i = 0; i < 100; i++) {)",
+		uR"(		numbers.emplace_back(distrib(gen));)",
+		uR"(	})",
+		uR"()",
+		uR"(	for (auto n : numbers) {)",
+		uR"(		std::cout << n << std::endl;)",
+		uR"(	})",
+		uR"()",
+		uR"(	return 0;)",
+		uR"(})"
+	};
+
+	editor.SetText(text);
+}
+
+
+//
+//	Editor::loadVectorOfU132Strings
+//
+
+void Editor::loadVectorOfU32Strings() {
+	static const std::vector<std::u32string_view> text = {
+		UR"(// Demo C++ Code)",
+		UR"()",
+		UR"(// loaded from std::vector<std::u16string_view>)",
+		UR"()",
+		UR"(// €€€€€€€)",
+		UR"(// äÄöÖüÜß)",
+		UR"()",
+		UR"(#include <iostream>)",
+		UR"(#include <random>)",
+		UR"(#include <vector>)",
+		UR"()",
+		UR"(int main(int, char**) {)",
+		UR"(	std::random_device rd;)",
+		UR"(	std::mt19937 gen(rd());)",
+		UR"(	std::uniform_int_distribution<> distrib(0, 1000);)",
+		UR"(	std::vector<int> numbers;)",
+		UR"()",
+		UR"(	for (auto i = 0; i < 100; i++) {)",
+		UR"(		numbers.emplace_back(distrib(gen));)",
+		UR"(	})",
+		UR"()",
+		UR"(	for (auto n : numbers) {)",
+		UR"(		std::cout << n << std::endl;)",
+		UR"(	})",
+		UR"()",
+		UR"(	return 0;)",
+		UR"(})"
+	};
+
+	editor.SetText(text);
 }

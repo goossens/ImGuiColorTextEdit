@@ -31,28 +31,8 @@ TextEditor::TextEditor() {
 }
 
 
-//
-//	TextEditor::setText
-//
-
-void TextEditor::setText(const std::string_view& text) {
-	// load text into document and reset overlays
-	document.setText(config, text);
-	transactions.reset();
-	cursors.clearAll();
-	clearMarkers();
-	clearSquiggles();
-	resetScrolling();
-}
-
-
-//
-//	TextEditor::setText
-//
-
-void TextEditor::setText(const std::vector<std::string_view>& lines) {
-	// load text into document and reset overlays
-	document.setText(config, lines);
+void TextEditor::reset() {
+	document.clear();
 	transactions.reset();
 	cursors.clearAll();
 	clearMarkers();
@@ -3616,86 +3596,6 @@ void TextEditor::Cursors::adjustForDelete(iterator start, DocPos deleteStart, Do
 
 
 //
-//	TextEditor::Document::setText
-//
-
-void TextEditor::Document::setText(const Config& config, const std::string_view& text) {
-	// reset document
-	clearDocument();
-	appendLine();
-
-	// process UTF-8 and generate lines of glyphs
-	auto end = text.end();
-	auto i = CodePoint::skipBOM(text.begin(), end);
-
-	while (i < end) {
-		ImWchar character;
-		i = CodePoint::read(i, end, &character);
-
-		if (character == '\n') {
-			appendLine();
-
-		} else if (config.insertSpacesOnTabs && character == '\t') {
-			auto spaces = ((back().size() / config.tabSize) + 1) * config.tabSize - back().size();
-
-			for (size_t s = 0; s < spaces; s++) {
-				back().emplace_back(Glyph(' ', Color::text));
-			}
-
-		} else if (character != '\r') {
-			back().emplace_back(Glyph(character, Color::text));
-		}
-	}
-
-	// calculate line indents
-	updateIndents(config, 0, size() - 1);
-	updated = true;
-}
-
-
-//
-//	TextEditor::Document::setText
-//
-
-void TextEditor::Document::setText(const Config& config, const std::vector<std::string_view>& lines) {
-	// reset document
-	clearDocument();
-
-	if (lines.size()) {
-		// process input UTF-8 and generate lines of glyphs
-		for (const auto& line : lines) {
-			appendLine();
-			auto i = line.begin();
-			auto end = line.end();
-
-			while (i < end) {
-				ImWchar character;
-				i = CodePoint::read(i, end, &character);
-
-				if (config.insertSpacesOnTabs && character == '\t') {
-					auto spaces = ((back().size() / config.tabSize) + 1) * config.tabSize - back().size();
-
-					for (size_t s = 0; s < spaces; s++) {
-						back().emplace_back(Glyph(' ', Color::text));
-					}
-
-				} else if (character != '\r') {
-					back().emplace_back(Glyph(character, Color::text));
-				}
-			}
-		}
-
-	} else {
-		appendLine();
-	}
-
-	// calculate line indents
-	updateIndents(config, 0, size() - 1);
-	updated = true;
-}
-
-
-//
 //	TextEditor::Document::insertText
 //
 
@@ -3795,38 +3695,6 @@ void TextEditor::Document::deleteText(const Config& config, DocPos start, DocPos
 	// calculate line indents
 	updateIndents(config, start.line, start.line);
 	updated = true;
-}
-
-
-//
-//	TextEditor::Document::getText
-//
-
-std::string TextEditor::Document::getText() const {
-	// process all glyphs and generate UTF-8 output
-	std::string text;
-	char utf8[4];
-
-	for (auto line = begin(); line < end(); line++) {
-		for (auto glyph = line->begin(); glyph < line->end(); glyph++) {
-			text.append(std::string_view(utf8, CodePoint::write(utf8, glyph->codepoint)));
-		}
-
-		if (line < end() - 1) {
-			text += "\n";
-		}
-	}
-
-	return text;
-}
-
-
-//
-//	TextEditor::Document::getLineText
-//
-
-std::string TextEditor::Document::getLineText(size_t line) const {
-	return getSectionText(DocPos(line, 0), DocPos(line, at(line).size()));
 }
 
 

@@ -123,6 +123,16 @@ private:
 	void toggleLineBreak();
 	void clearSquiggles();
 
+	void loadWString();
+	void loadU8String();
+	void loadU16String();
+	void loadU32String();
+	void loadVectorOfStrings();
+	void loadVectorOfWStrings();
+	void loadVectorOfU8Strings();
+	void loadVectorOfU16Strings();
+	void loadVectorOfU32Strings();
+
 	bool demoTrieAutoComplete = false;
 	bool demoLspBridge = false;
 	bool showWordAtMouse = false;
