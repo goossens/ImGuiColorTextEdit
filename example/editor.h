@@ -124,14 +124,29 @@ private:
 	void clearSquiggles();
 
 	void loadWString();
+
+#if __cplusplus >= 202002L
 	void loadU8String();
+#endif
+
 	void loadU16String();
+
+#ifdef IMGUI_USE_WCHAR32
 	void loadU32String();
+#endif
+
 	void loadVectorOfStrings();
 	void loadVectorOfWStrings();
+
+	#if __cplusplus >= 202002L
 	void loadVectorOfU8Strings();
+#endif
+
 	void loadVectorOfU16Strings();
+
+#ifdef IMGUI_USE_WCHAR32
 	void loadVectorOfU32Strings();
+#endif
 
 	bool demoTrieAutoComplete = false;
 	bool demoLspBridge = false;

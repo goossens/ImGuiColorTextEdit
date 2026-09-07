@@ -18,3 +18,5 @@ Save/*
 
 # Build files
 /build
+example/.vs
+example/out

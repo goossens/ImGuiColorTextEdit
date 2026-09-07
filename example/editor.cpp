@@ -512,14 +512,29 @@ void Editor::renderMenuBar() {
 			if (ImGui::MenuItem("Clear Squiggles by Type", nullptr, nullptr, editor.HasSquiggles())) { showClearSquiggles(); }
 			ImGui::Separator();
 			if (ImGui::MenuItem("Load from std::wstring_view", nullptr, nullptr, !isSavable())) { loadWString(); }
+
+#if __cplusplus >= 202002L
 			if (ImGui::MenuItem("Load from std::u8string_view", nullptr, nullptr, !isSavable())) { loadU8String(); }
+#endif
+
 			if (ImGui::MenuItem("Load from std::16string_view", nullptr, nullptr, !isSavable())) { loadU16String(); }
+
+#ifdef IMGUI_USE_WCHAR32
 			if (ImGui::MenuItem("Load from std::32string_view", nullptr, nullptr, !isSavable())) { loadU32String(); }
+#endif
+
 			if (ImGui::MenuItem("Load from std::vector<std::string_view>", nullptr, nullptr, !isSavable())) { loadVectorOfStrings(); }
 			if (ImGui::MenuItem("Load from std::vector<std::wstring_view>", nullptr, nullptr, !isSavable())) { loadVectorOfWStrings(); }
+
+#if __cplusplus >= 202002L
 			if (ImGui::MenuItem("Load from std::vector<std::u8string_view>", nullptr, nullptr, !isSavable())) { loadVectorOfU8Strings(); }
+#endif
+
 			if (ImGui::MenuItem("Load from std::vector<std::u16string_view>", nullptr, nullptr, !isSavable())) { loadVectorOfU16Strings(); }
+
+#ifdef IMGUI_USE_WCHAR32
 			if (ImGui::MenuItem("Load from std::vector<std::u32string_view>", nullptr, nullptr, !isSavable())) { loadVectorOfU32Strings(); }
+#endif
 
 			ImGui::Separator();
 			bool navigationMode = ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard;
@@ -1522,6 +1537,8 @@ int main(int, char**) {
 //	Editor::loadU8String
 //
 
+#if __cplusplus >= 202002L
+
 void Editor::loadU8String() {
 	static const std::u8string text = u8R"(// Demo C++ Code
 
@@ -1554,6 +1571,8 @@ int main(int, char**) {
 
 	editor.SetText(text);
 }
+
+#endif
 
 
 //
@@ -1593,6 +1612,13 @@ int main(int, char**) {
 	editor.SetText(text);
 }
 
+
+//
+//	Editor::loadU32String
+//
+
+#ifdef IMGUI_USE_WCHAR32
+
 void Editor::loadU32String() {
 	static const std::u32string text = UR"(// Demo C++ Code
 
@@ -1625,6 +1651,8 @@ int main(int, char**) {
 
 	editor.SetText(text);
 }
+
+#endif
 
 
 //
@@ -1703,6 +1731,8 @@ void Editor::loadVectorOfWStrings() {
 //	Editor::loadVectorOfU8Strings
 //
 
+#if __cplusplus >= 202002L
+
 void Editor::loadVectorOfU8Strings() {
 	static const std::vector<std::u8string_view> text = {
 		u8R"(// Demo C++ Code)",
@@ -1736,6 +1766,8 @@ void Editor::loadVectorOfU8Strings() {
 
 	editor.SetText(text);
 }
+
+#endif
 
 
 //
@@ -1778,8 +1810,10 @@ void Editor::loadVectorOfU16Strings() {
 
 
 //
-//	Editor::loadVectorOfU132Strings
+//	Editor::loadVectorOfU32Strings
 //
+
+#ifdef IMGUI_USE_WCHAR32
 
 void Editor::loadVectorOfU32Strings() {
 	static const std::vector<std::u32string_view> text = {
@@ -1814,3 +1848,5 @@ void Editor::loadVectorOfU32Strings() {
 
 	editor.SetText(text);
 }
+
+#endif

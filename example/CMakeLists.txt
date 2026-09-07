@@ -36,7 +36,7 @@ endif()
 
 target_compile_options(example PRIVATE
 	$<$<COMPILE_LANG_AND_ID:CXX,AppleClang,Clang,GNU>:-Werror -Wall -Wpedantic -Wextra>
-	$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/W4 /WX>)
+	$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/W4 /WX /Zc:__cplusplus /utf-8>)
 
 if(CMAKE_GENERATOR STREQUAL "Xcode")
 	set_target_properties(example PROPERTIES XCODE_GENERATE_SCHEME ON)

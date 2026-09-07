@@ -1132,23 +1132,25 @@ protected:
 				for (const auto& line : lines) {
 					appendLine();
 
-					std::string_view sv(reinterpret_cast<const char*>(&*line.begin()), line.size());
-					auto i = sv.begin();
-					auto end = sv.end();
+					if (line.size()) {
+						std::string_view sv(reinterpret_cast<const char*>(&*line.begin()), line.size());
+						auto i = sv.begin();
+						auto end = sv.end();
 
-					while (i < end) {
-						ImWchar character;
-						i = CodePoint::read(i, end, &character);
+						while (i < end) {
+							ImWchar character;
+							i = CodePoint::read(i, end, &character);
 
-						if (config.insertSpacesOnTabs && character == '\t') {
-							auto spaces = ((back().size() / config.tabSize) + 1) * config.tabSize - back().size();
+							if (config.insertSpacesOnTabs && character == '\t') {
+								auto spaces = ((back().size() / config.tabSize) + 1) * config.tabSize - back().size();
 
-							for (size_t s = 0; s < spaces; s++) {
-								back().emplace_back(Glyph(' ', Color::text));
+								for (size_t s = 0; s < spaces; s++) {
+									back().emplace_back(Glyph(' ', Color::text));
+								}
+
+							} else if (character != '\r') {
+								back().emplace_back(Glyph(character, Color::text));
 							}
-
-						} else if (character != '\r') {
-							back().emplace_back(Glyph(character, Color::text));
 						}
 					}
 				}
@@ -1245,7 +1247,7 @@ protected:
 						CodePoint::write(utf8, glyph->codepoint)));
 				}
 
-				if (line < end() - 1) {
+				if (line != std::prev(end()) || line->size()) {
 					text += static_cast<T>('\n');
 				}
 			}
@@ -1263,7 +1265,7 @@ protected:
 					text += static_cast<T>(glyph->codepoint);
 				}
 
-				if (line < end() - 1) {
+				if (line != std::prev(end()) || line->size()) {
 					text += static_cast<T>('\n');
 				}
 			}
