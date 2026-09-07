@@ -8,7 +8,8 @@
 //
 //	Include files
 //
-
+#ifndef TrieAutoComplete
+#define TrieAutoComplete
 #include <memory>
 #include <string>
 #include <string_view>
@@ -100,3 +101,4 @@ private:
 		void addCandidates(const Node* node, size_t cost);
 	} trie;
 };
+#endif
