@@ -513,7 +513,7 @@ void Editor::renderMenuBar() {
 			ImGui::Separator();
 			if (ImGui::MenuItem("Load from std::wstring_view", nullptr, nullptr, !isSavable())) { loadWString(); }
 
-#if __cplusplus >= 202002L
+#if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || (__cplusplus >= 202002L)
 			if (ImGui::MenuItem("Load from std::u8string_view", nullptr, nullptr, !isSavable())) { loadU8String(); }
 #endif
 
@@ -526,7 +526,7 @@ void Editor::renderMenuBar() {
 			if (ImGui::MenuItem("Load from std::vector<std::string_view>", nullptr, nullptr, !isSavable())) { loadVectorOfStrings(); }
 			if (ImGui::MenuItem("Load from std::vector<std::wstring_view>", nullptr, nullptr, !isSavable())) { loadVectorOfWStrings(); }
 
-#if __cplusplus >= 202002L
+#if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || (__cplusplus >= 202002L)
 			if (ImGui::MenuItem("Load from std::vector<std::u8string_view>", nullptr, nullptr, !isSavable())) { loadVectorOfU8Strings(); }
 #endif
 
@@ -1537,7 +1537,7 @@ int main(int, char**) {
 //	Editor::loadU8String
 //
 
-#if __cplusplus >= 202002L
+#if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || (__cplusplus >= 202002L)
 
 void Editor::loadU8String() {
 	static const std::u8string text = u8R"(// Demo C++ Code
@@ -1731,7 +1731,7 @@ void Editor::loadVectorOfWStrings() {
 //	Editor::loadVectorOfU8Strings
 //
 
-#if __cplusplus >= 202002L
+#if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || (__cplusplus >= 202002L)
 
 void Editor::loadVectorOfU8Strings() {
 	static const std::vector<std::u8string_view> text = {

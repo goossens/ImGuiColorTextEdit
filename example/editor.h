@@ -125,7 +125,7 @@ private:
 
 	void loadWString();
 
-#if __cplusplus >= 202002L
+#if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || (__cplusplus >= 202002L)
 	void loadU8String();
 #endif
 
@@ -138,7 +138,7 @@ private:
 	void loadVectorOfStrings();
 	void loadVectorOfWStrings();
 
-	#if __cplusplus >= 202002L
+#if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || (__cplusplus >= 202002L)
 	void loadVectorOfU8Strings();
 #endif
 

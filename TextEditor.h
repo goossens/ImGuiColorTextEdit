@@ -149,7 +149,7 @@ public:
 	inline void SetText(const std::string_view& text) { reset(); document.setUtf8Text(config, text); }
 	inline void SetText(const std::vector<std::string_view>& lines) { reset(); document.setUtf8Text(config, lines); }
 
-#if __cplusplus >= 202002L
+#if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || (__cplusplus >= 202002L)
 	inline void SetText(const std::u8string_view& text) { reset(); document.setUtf8Text(config, text); }
 	inline void SetText(const std::vector<std::u8string_view>& lines) { reset(); document.setUtf8Text(config, lines); }
 #endif
@@ -169,7 +169,7 @@ public:
 	// get text from editor as UTF-8 encoded strings
 	inline std::string GetText() const { return document.getUtf8Text<char>(); }
 
-#if __cplusplus >= 202002L
+#if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || (__cplusplus >= 202002L)
 	inline std::u8string GetTextAsU8String() const { return document.getUtf8Text<char8_t>(); }
 #endif
 
