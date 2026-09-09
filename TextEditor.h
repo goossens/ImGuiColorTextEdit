@@ -1094,7 +1094,7 @@ protected:
 			appendLine();
 
 			// process UTF-8 and generate lines of glyphs
-			std::string_view sv(reinterpret_cast<const char*>(&*text.begin()), text.size());
+			std::string_view sv(reinterpret_cast<const char*>(text.data()), text.size());
 			auto i = sv.begin();
 			auto end = sv.end();
 
