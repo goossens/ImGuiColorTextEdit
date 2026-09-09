@@ -1094,7 +1094,7 @@ protected:
 			appendLine();
 
 			// process UTF-8 and generate lines of glyphs
-			std::string_view sv(reinterpret_cast<const char*>(&*text.begin()), text.size());
+			std::string_view sv(reinterpret_cast<const char*>(text.data()), text.size());
 			auto i = sv.begin();
 			auto end = sv.end();
 
@@ -1132,25 +1132,23 @@ protected:
 				for (const auto& line : lines) {
 					appendLine();
 
-					if (line.size()) {
-						std::string_view sv(reinterpret_cast<const char*>(&*line.begin()), line.size());
-						auto i = sv.begin();
-						auto end = sv.end();
+					std::string_view sv(reinterpret_cast<const char*>(line.data()), line.size());
+					auto i = sv.begin();
+					auto end = sv.end();
 
-						while (i < end) {
-							ImWchar character;
-							i = CodePoint::read(i, end, &character);
+					while (i < end) {
+						ImWchar character;
+						i = CodePoint::read(i, end, &character);
 
-							if (config.insertSpacesOnTabs && character == '\t') {
-								auto spaces = ((back().size() / config.tabSize) + 1) * config.tabSize - back().size();
+						if (config.insertSpacesOnTabs && character == '\t') {
+							auto spaces = ((back().size() / config.tabSize) + 1) * config.tabSize - back().size();
 
-								for (size_t s = 0; s < spaces; s++) {
-									back().emplace_back(Glyph(' ', Color::text));
-								}
-
-							} else if (character != '\r') {
-								back().emplace_back(Glyph(character, Color::text));
+							for (size_t s = 0; s < spaces; s++) {
+								back().emplace_back(Glyph(' ', Color::text));
 							}
+
+						} else if (character != '\r') {
+							back().emplace_back(Glyph(character, Color::text));
 						}
 					}
 				}
