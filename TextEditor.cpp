@@ -23,6 +23,32 @@
 
 
 //
+//	glyph columns reserved on the monospace grid
+//
+//	East Asian wide/fullwidth codepoints (CJK, Hangul, Kana, fullwidth
+//	forms, emoji) render about two cells wide in the fonts that carry
+//	them; reserving two grid cells keeps them from overprinting their
+//	neighbours. Ranges follow Unicode East Asian Width wide/fullwidth.
+//
+
+static size_t glyphColumns(uint32_t codepoint) {
+	if ((codepoint >= 0x1100 && codepoint <= 0x115F)	// Hangul Jamo
+		|| (codepoint >= 0x2E80 && codepoint <= 0xA4CF)	// CJK radicals .. Yi
+		|| (codepoint >= 0xAC00 && codepoint <= 0xD7A3)	// Hangul syllables
+		|| (codepoint >= 0xF900 && codepoint <= 0xFAFF)	// CJK compatibility ideographs
+		|| (codepoint >= 0xFE30 && codepoint <= 0xFE4F)	// CJK compatibility forms
+		|| (codepoint >= 0xFF00 && codepoint <= 0xFF60)	// fullwidth forms
+		|| (codepoint >= 0xFFE0 && codepoint <= 0xFFE6)	// fullwidth signs
+		|| (codepoint >= 0x1F300 && codepoint <= 0x1FAFF)	// emoji
+		|| (codepoint >= 0x20000 && codepoint <= 0x3FFFD)) {	// CJK extension planes
+		return 2;
+	} else {
+		return 1;
+	}
+}
+
+
+//
 //	TextEditor::TextEditor
 //
 
@@ -533,7 +559,7 @@ void TextEditor::renderSquiggles() {
 
 				// handle regular glyphs
 				} else {
-					column++;
+					column += glyphColumns(codepoint);
 				}
 			}
 
@@ -621,7 +647,7 @@ void TextEditor::renderText() {
 					font->RenderChar(drawList, fontSize, glyphPos, palette.get(glyph.color), codepoint);
 				}
 
-				column++;
+				column += glyphColumns(codepoint);
 			}
 		}
 
@@ -7996,7 +8022,7 @@ void TextEditor::TypeSetter::wrapLine(Line& line) {
 			}
 
 			// update column count
-			columns = (codepoint == '\t') ? ((columns / tabSize) + 1) * tabSize : columns + 1;
+			columns = (codepoint == '\t') ? ((columns / tabSize) + 1) * tabSize : columns + glyphColumns(codepoint);
 
 			if (columns < wordWrapColumns) {
 				// we're not at the end of the row yet so we have to track any break options
@@ -8071,7 +8097,7 @@ void TextEditor::TypeSetter::updateLine(Line& line) {
 		line.columns = 0;
 
 		for (const auto& glyph : line) {
-			line.columns = (glyph.codepoint == '\t') ? ((line.columns / tabSize) + 1) * tabSize : line.columns + 1;
+			line.columns = (glyph.codepoint == '\t') ? ((line.columns / tabSize) + 1) * tabSize : line.columns + glyphColumns(glyph.codepoint);
 		}
 
 		// reset multiline sections
@@ -8186,7 +8212,7 @@ TextEditor::VisPos TextEditor::TypeSetter::docPos2VisPos(const Document& documen
 				visPos.column = section.indent;
 
 				for (auto glyph = start; glyph < end; glyph++) {
-					visPos.column = (glyph->codepoint == '\t') ? ((visPos.column / tabSize) + 1) * tabSize : visPos.column + 1;
+					visPos.column = (glyph->codepoint == '\t') ? ((visPos.column / tabSize) + 1) * tabSize : visPos.column + glyphColumns(glyph->codepoint);
 				}
 
 				done = true;
@@ -8201,7 +8227,7 @@ TextEditor::VisPos TextEditor::TypeSetter::docPos2VisPos(const Document& documen
 		auto end = line.begin() + pos.index;
 
 		for (auto glyph = line.begin(); glyph < end; glyph++) {
-			visPos.column = (glyph->codepoint == '\t') ? ((visPos.column / tabSize) + 1) * tabSize : visPos.column + 1;
+			visPos.column = (glyph->codepoint == '\t') ? ((visPos.column / tabSize) + 1) * tabSize : visPos.column + glyphColumns(glyph->codepoint);
 		}
 	}
 
@@ -8251,7 +8277,7 @@ TextEditor::DocPos TextEditor::TypeSetter::visPos2DocPos(const Document& documen
 
 	for (auto glyph = start; rightColumn < pos.column && glyph < end; glyph++) {
 		leftColumn = rightColumn;
-		rightColumn = (glyph->codepoint == '\t') ? ((rightColumn / tabSize) + 1) * tabSize : rightColumn + 1;
+		rightColumn = (glyph->codepoint == '\t') ? ((rightColumn / tabSize) + 1) * tabSize : rightColumn + glyphColumns(glyph->codepoint);
 		index++;
 	}
 
@@ -8334,7 +8360,7 @@ void TextEditor::TypeSetter::screenPos2DocPos(const Document& document, ImVec2 s
 
 			for (auto glyph = start; static_cast<float>(rightColumn) < screenPos.x && glyph < end; glyph++) {
 				leftColumn = rightColumn;
-				rightColumn = (glyph->codepoint == '\t') ? ((rightColumn / tabSize) + 1) * tabSize : rightColumn + 1;
+				rightColumn = (glyph->codepoint == '\t') ? ((rightColumn / tabSize) + 1) * tabSize : rightColumn + glyphColumns(glyph->codepoint);
 				index++;
 			}
 
