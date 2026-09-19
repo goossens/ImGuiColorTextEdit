@@ -247,6 +247,33 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 
 
 //
+//	TextEditor::renderCurrentLineHighlight
+//
+
+void TextEditor::renderCurrentLineHighlight() {
+	if (config.showCurrentLineHighlight && !cursors.anyHasSelection()) {
+		auto drawList = ImGui::GetWindowDrawList();
+		std::set<size_t> alreadyDrawn{};
+
+		for (const auto& cursor : cursors) {
+			const auto lineNumber = cursor.getInteractiveEnd().line;
+
+			if (!alreadyDrawn.contains(lineNumber)) {
+				alreadyDrawn.insert(lineNumber);
+
+				const auto& line = document[lineNumber];
+				const auto topLeft = ImVec2(textLeftOffset, cursorScreenPos.y + line.row * glyphSize.y);
+				const auto bottomRight = topLeft + ImVec2(textRightOffset, line.rows * glyphSize.y);
+
+				drawList->AddRectFilled(topLeft, bottomRight, palette.get(Color::currentLineHighlight));
+				drawList->AddRect(topLeft, bottomRight, palette.get(Color::currentLineHighlightBorder));
+			}
+		}
+	}
+}
+
+
+//
 //	TextEditor::renderActiveBracketBackground
 //
 
@@ -1007,33 +1034,6 @@ void TextEditor::renderScrollbarMiniMap() {
 			}
 
 			drawList->PopClipRect();
-		}
-	}
-}
-
-
-//
-//	TextEditor::renderCurrentLineHighlight
-//
-
-void TextEditor::renderCurrentLineHighlight() {
-	if (config.showCurrentLineHighlight && !isAnySelectionActive()) {
-		auto drawList = ImGui::GetWindowDrawList();
-
-		std::set<size_t> already_drawn{};
-
-		for (const auto& cursor : cursors) {
-			const auto lineNumber = cursor.getInteractiveEnd().line;
-
-			if (already_drawn.contains(lineNumber)) {
-				continue;
-			}
-			already_drawn.insert(lineNumber);
-
-			const auto& line = document[lineNumber];
-			const auto topLeft = ImVec2(ImGui::GetWindowPos().x, cursorScreenPos.y + line.row * GetLineHeight());
-			const auto bottomRight = topLeft + ImVec2(ImGui::GetWindowWidth(), line.rows * GetLineHeight());
-			drawList->AddRectFilled(topLeft, bottomRight, palette.get(Color::currentLineHighlight));
 		}
 	}
 }
@@ -1831,19 +1831,6 @@ void TextEditor::shrinkSelections() {
 			}
 		}
 	}
-}
-
-//
-//	TextEditor::isAnySelectionActive
-//
-
-bool TextEditor::isAnySelectionActive() {
-	for (auto& cursor : cursors) {
-		if (cursor.hasSelection()) {
-			return true;
-		}
-	}
-	return false;
 }
 
 
@@ -10676,7 +10663,8 @@ const TextEditor::Palette& TextEditor::GetDarkPalette() {
 		IM_COL32(198,   8,  32, 255),	// matchingBracketError
 		IM_COL32(128, 128, 144, 255),	// line number
 		IM_COL32(224, 224, 240, 255),	// current line number
-		IM_COL32(255, 255, 255,  20),	// current line highlight
+		IM_COL32(255, 255, 255,   8),	// current line highlight
+		IM_COL32(255, 255, 255,  16)	// current line highlight border
 	}};
 
 	return palette;
@@ -10706,7 +10694,8 @@ const TextEditor::Palette& TextEditor::GetLightPalette() {
 		IM_COL32(198,   8,  32, 255),	// matchingBracketError
 		IM_COL32(  0,  80,  80, 255),	// line number
 		IM_COL32(  0,   0,   0, 255),	// current line number
-		IM_COL32(  0,   0,   0,  20),	// current line highlight
+		IM_COL32(  0,   0,   0,   8),	// current line highlight
+		IM_COL32(  0,   0,   0,  16)	// current line highlight border
 	}};
 
 	return palette;

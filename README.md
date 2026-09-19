@@ -93,6 +93,7 @@ features are however included.
 - If auto complete is turned on, selections can be surrounded by paired glyphs.
 - Supports bracket matching and coloring similar to Visual Studio Code (can be turned on and off).
 - Supports multiple cursors and multiple selections.
+- Optionally highlight the line(s) currently under the cursor(s).
 - Provides auto indent with simplified implementation (can be turned on and off).
 - Has API to filter selections (with full undo support).
 - Uppercase/lowercase filter is example of selection filtering.
@@ -107,7 +108,6 @@ features are however included.
 - No longer uses regular expressions for colorizing text (see below).
 - Provides an example Language Server Protocol (LSP) bridge (see [example](docs/lsp.md)).
 - Provides an optional companion widget to show differences between versions of text (see below).
-- Optionally highlights the line(s) currently under the cursor(s).
 
 ## Integration
 

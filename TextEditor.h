@@ -121,6 +121,8 @@ public:
 	inline bool IsShowScrollbarMiniMapEnabled() const { return config.showScrollbarMiniMap; }
 	inline void SetShowPanScrollIndicatorEnabled(bool value) { config.showPanScrollIndicator = value; }
 	inline bool IsShowPanScrollIndicatorEnabled() const { return config.showPanScrollIndicator; }
+	inline void SetShowCurrentLineHighlightEnabled(bool value) { config.showCurrentLineHighlight = value; }
+	inline bool IsShowCurrentLineHighlightEnabled() const { return config.showCurrentLineHighlight; }
 	inline void SetShowMatchingBrackets(bool value) { config.showMatchingBrackets = value; if (!value) { config.lineFolding = false; } }
 	inline bool IsShowingMatchingBrackets() const { return config.showMatchingBrackets; }
 	inline void SetCompletePairedGlyphs(bool value) { config.completePairedGlyphs = value; }
@@ -138,8 +140,6 @@ public:
 	inline size_t GetDecorationLeftMargin() const { return config.decorationMargin; }
 	inline void SetTextLeftMargin(size_t value) { config.textMargin = value; }
 	inline size_t GetTextLeftMargin() const { return config.textMargin; }
-	inline bool IsShowCurrentLineHighlightEnabled() const { return config.showCurrentLineHighlight; }
-	inline void SetShowCurrentLineHighlightEnabled(bool value) { config.showCurrentLineHighlight = value; }
 
 	// load new text into editor (see note below on cursor and scroll manipulation after setting new text)
 	//
@@ -547,7 +547,8 @@ public:
 		lineNumber,
 		currentLineNumber,
 		currentLineHighlight,
-		count,
+		currentLineHighlightBorder,
+		count
 	};
 
 	struct Palette : public std::array<ImU32, static_cast<size_t>(Color::count)> {
@@ -986,13 +987,13 @@ protected:
 		bool showMiniMap = false;
 		size_t miniMapColumns = 0;
 		bool showScrollbarMiniMap = true;
+		bool showCurrentLineHighlight = true;
 		bool showMatchingBrackets = true;
 		bool completePairedGlyphs = true;
 		bool lineFolding = false;
 		bool overwrite = false;
 		bool panMode = true;
 		bool showPanScrollIndicator = true;
-		bool showCurrentLineHighlight = true;
 		size_t leftMargin = 1; // margins are expressed in number of glyphs
 		size_t decorationMargin = 1;
 		size_t textMargin = 2;
@@ -1839,6 +1840,7 @@ protected:
 
 	// render (parts of) the text editor
 	bool render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags);
+	void renderCurrentLineHighlight();
 	void renderActiveBracketBackground();
 	void renderSelections();
 	void renderTextMarkers();
@@ -1855,7 +1857,6 @@ protected:
 	void renderPanScrollIndicator();
 	void renderFindReplace();
 	void renderPopups();
-	void renderCurrentLineHighlight();
 
 	// update editor state after changes caused by API calls or user interactions
 	bool updateState();
@@ -1883,7 +1884,6 @@ protected:
 	void selectToBrackets(bool includeBrackets);
 	void growSelections();
 	void shrinkSelections();
-	bool isAnySelectionActive();
 
 	// clipboard actions
 	void cut();
