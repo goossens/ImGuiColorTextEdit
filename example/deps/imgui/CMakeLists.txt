@@ -51,4 +51,3 @@ if (D3D11)
 else()
 	target_link_libraries(imgui PRIVATE SDL3_Headers PUBLIC freetype)
 endif()
-

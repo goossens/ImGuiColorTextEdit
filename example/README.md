@@ -67,3 +67,11 @@ The example application used the following third party open source packages
 * [dtl](https://github.com/cubicdaiya/dtl) - a difference template library by [Tatsuhiko Kubo (cubicdaiya)](https://github.com/cubicdaiya) released under the [BSD License](https://opensource.org/license/bsd-3-clause).
 * [LSP Framework](https://github.com/leon-bckl/lsp-framework) - a framework to implement
 [Language Server Protocol (LSP)](https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/) servers and clients by [ Leon Buckel](https://github.com/leon-bckl) released under the [MIT license](https://opensource.org/licenses/MIT).
+
+The example application also uses the following fonts:
+
+* [DejaVu Font](https://en.wikipedia.org/wiki/DejaVu_fonts) is extracted from
+[here](https://github.com/dejavu-fonts/dejavu-fonts) and it was released under a
+[generous license](https://raw.githubusercontent.com/goossens/ObjectTalk/refs/heads/master/gfx/fonts/OtDejaVu.lic).
+
+* [NotoSansSC](https://github.com/jsntn/webfonts/blob/master/NotoSansSC-Regular.ttf) is a released under the [Open Font License version 1.1](https://openfontlicense.org/open-font-license-official-text/).
