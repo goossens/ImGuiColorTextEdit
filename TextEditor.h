@@ -138,6 +138,8 @@ public:
 	inline size_t GetDecorationLeftMargin() const { return config.decorationMargin; }
 	inline void SetTextLeftMargin(size_t value) { config.textMargin = value; }
 	inline size_t GetTextLeftMargin() const { return config.textMargin; }
+	inline bool IsShowCurrentLineHighlightEnabled() const { return config.showCurrentLineHighlight; }
+	inline void SetShowCurrentLineHighlightEnabled(bool value) { config.showCurrentLineHighlight = value; }
 
 	// load new text into editor (see note below on cursor and scroll manipulation after setting new text)
 	//
@@ -544,7 +546,8 @@ public:
 		matchingBracketError,
 		lineNumber,
 		currentLineNumber,
-		count
+		currentLineHighlight,
+		count,
 	};
 
 	struct Palette : public std::array<ImU32, static_cast<size_t>(Color::count)> {
@@ -989,6 +992,7 @@ protected:
 		bool overwrite = false;
 		bool panMode = true;
 		bool showPanScrollIndicator = true;
+		bool showCurrentLineHighlight = true;
 		size_t leftMargin = 1; // margins are expressed in number of glyphs
 		size_t decorationMargin = 1;
 		size_t textMargin = 2;
@@ -1851,6 +1855,7 @@ protected:
 	void renderPanScrollIndicator();
 	void renderFindReplace();
 	void renderPopups();
+	void renderCurrentLineHighlight();
 
 	// update editor state after changes caused by API calls or user interactions
 	bool updateState();
@@ -1878,6 +1883,7 @@ protected:
 	void selectToBrackets(bool includeBrackets);
 	void growSelections();
 	void shrinkSelections();
+	bool isAnySelectionActive();
 
 	// clipboard actions
 	void cut();

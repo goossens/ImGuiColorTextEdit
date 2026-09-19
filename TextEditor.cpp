@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <cmath>
+#include <set>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -175,6 +176,7 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 			true);
 
 		// render parts in the text area
+		renderCurrentLineHighlight();
 		renderActiveBracketBackground();
 		renderSelections();
 		renderTextMarkers();
@@ -1011,6 +1013,33 @@ void TextEditor::renderScrollbarMiniMap() {
 
 
 //
+//	TextEditor::renderCurrentLineHighlight
+//
+
+void TextEditor::renderCurrentLineHighlight() {
+	if (config.showCurrentLineHighlight && !isAnySelectionActive()) {
+		auto drawList = ImGui::GetWindowDrawList();
+
+		std::set<size_t> already_drawn{};
+
+		for (const auto& cursor : cursors) {
+			const auto lineNumber = cursor.getInteractiveEnd().line;
+
+			if (already_drawn.contains(lineNumber)) {
+				continue;
+			}
+			already_drawn.insert(lineNumber);
+
+			const auto& line = document[lineNumber];
+			const auto topLeft = ImVec2(ImGui::GetWindowPos().x, cursorScreenPos.y + line.row * GetLineHeight());
+			const auto bottomRight = topLeft + ImVec2(ImGui::GetWindowWidth(), line.rows * GetLineHeight());
+			drawList->AddRectFilled(topLeft, bottomRight, palette.get(Color::currentLineHighlight));
+		}
+	}
+}
+
+
+//
 //	TextEditor::renderPanScrollIndicator
 //
 
@@ -1802,6 +1831,19 @@ void TextEditor::shrinkSelections() {
 			}
 		}
 	}
+}
+
+//
+//	TextEditor::isAnySelectionActive
+//
+
+bool TextEditor::isAnySelectionActive() {
+	for (auto& cursor : cursors) {
+		if (cursor.hasSelection()) {
+			return true;
+		}
+	}
+	return false;
 }
 
 
@@ -10634,6 +10676,7 @@ const TextEditor::Palette& TextEditor::GetDarkPalette() {
 		IM_COL32(198,   8,  32, 255),	// matchingBracketError
 		IM_COL32(128, 128, 144, 255),	// line number
 		IM_COL32(224, 224, 240, 255),	// current line number
+		IM_COL32(255, 255, 255,  20),	// current line highlight
 	}};
 
 	return palette;
@@ -10663,6 +10706,7 @@ const TextEditor::Palette& TextEditor::GetLightPalette() {
 		IM_COL32(198,   8,  32, 255),	// matchingBracketError
 		IM_COL32(  0,  80,  80, 255),	// line number
 		IM_COL32(  0,   0,   0, 255),	// current line number
+		IM_COL32(  0,   0,   0,  20),	// current line highlight
 	}};
 
 	return palette;

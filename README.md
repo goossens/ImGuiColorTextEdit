@@ -107,6 +107,7 @@ features are however included.
 - No longer uses regular expressions for colorizing text (see below).
 - Provides an example Language Server Protocol (LSP) bridge (see [example](docs/lsp.md)).
 - Provides an optional companion widget to show differences between versions of text (see below).
+- Optionally highlights the line(s) currently under the cursor(s).
 
 ## Integration
 
