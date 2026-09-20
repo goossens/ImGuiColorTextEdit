@@ -1606,8 +1606,8 @@ void TextEditor::handleMouseInteractions() {
 				auto extendCursor = ImGui::IsKeyDown(ImGuiMod_Shift);
 
 				auto addCursor = ImGui::GetIO().ConfigMacOSXBehaviors
-					? ImGui::IsKeyDown(ImGuiMod_Alt) :
-					ImGui::IsKeyDown(ImGuiMod_Ctrl);
+					? ImGui::IsKeyDown(ImGuiMod_Alt)
+					: ImGui::IsKeyDown(ImGuiMod_Ctrl);
 
 				if (overLineNumbers) {
 					// handle line number clicks
@@ -3536,6 +3536,7 @@ void TextEditor::Cursors::update(const Document& document) {
 				auto previous = cursor + 1;
 
 				if (previous->getSelectionEnd() >= cursor->getSelectionEnd()) {
+					// handle case where one cursor completely contains another cursor
 					if (cursor->isMain()) {
 						previous->setMain(true);
 					}
@@ -3544,7 +3545,7 @@ void TextEditor::Cursors::update(const Document& document) {
 						previous->setCurrent(true);
 					}
 
-					erase((++cursor).base());
+					cursor = std::reverse_iterator(erase(previous.base()));
 
 				} else if (previous->getSelectionEnd() > cursor->getSelectionStart()) {
 					if (cursor->getInteractiveEnd() < cursor->getInteractiveStart()) {
@@ -3562,7 +3563,7 @@ void TextEditor::Cursors::update(const Document& document) {
 						previous->setCurrent(true);
 					}
 
-					erase((++cursor).base());
+					cursor = std::reverse_iterator(erase(previous.base()));
 
 				} else {
 					cursor++;
