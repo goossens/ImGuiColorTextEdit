@@ -1101,9 +1101,9 @@ protected:
 			appendLine();
 
 			// process UTF-8 and generate lines of glyphs
-			std::string_view sv(reinterpret_cast<const char*>(text.data()), text.size());
+			const auto sv = std::string_view(reinterpret_cast<const char*>(text.data()), text.size());
 			auto i = sv.begin();
-			auto end = sv.end();
+			const auto end = sv.end();
 
 			while (i < end) {
 				ImWchar character;
@@ -1113,7 +1113,7 @@ protected:
 					appendLine();
 
 				} else if (config.insertSpacesOnTabs && character == '\t') {
-					auto spaces = getSpacesToTab(config, back(), back().size());
+					const auto spaces = getSpacesToTab(config, back(), back().size());
 
 					for (size_t s = 0; s < spaces; s++) {
 						back().emplace_back(Glyph(' ', Color::text));
@@ -1139,16 +1139,16 @@ protected:
 				for (const auto& line : lines) {
 					appendLine();
 
-					std::string_view sv(reinterpret_cast<const char*>(line.data()), line.size());
+					const auto sv = std::string_view(reinterpret_cast<const char*>(line.data()), line.size());
 					auto i = sv.begin();
-					auto end = sv.end();
+					const auto end = sv.end();
 
 					while (i < end) {
 						ImWchar character;
 						i = CodePoint::read(i, end, &character);
 
 						if (config.insertSpacesOnTabs && character == '\t') {
-							auto spaces = getSpacesToTab(config, back(), back().size());
+							const auto spaces = getSpacesToTab(config, back(), back().size());
 
 							for (size_t s = 0; s < spaces; s++) {
 								back().emplace_back(Glyph(' ', Color::text));
@@ -1177,13 +1177,13 @@ protected:
 
 			// process all glyphs
 			for (auto i = text.begin(); i < text.end(); i++) {
-				auto character = static_cast<ImWchar>(*i);
+				const auto character = static_cast<ImWchar>(*i);
 
 				if (character == '\n') {
 					appendLine();
 
 				} else if (config.insertSpacesOnTabs && character == '\t') {
-					auto spaces = getSpacesToTab(config, back(), back().size());
+					const auto spaces = getSpacesToTab(config, back(), back().size());
 
 					for (size_t s = 0; s < spaces; s++) {
 						back().emplace_back(Glyph(' ', Color::text));
@@ -1211,10 +1211,10 @@ protected:
 
 					// process all glyphs
 					for (auto i = line.begin(); i < line.end(); i++) {
-						auto character = static_cast<ImWchar>(*i);
+						const auto character = static_cast<ImWchar>(*i);
 
 						if (config.insertSpacesOnTabs && character == '\t') {
-							auto spaces = getSpacesToTab(config, back(), back().size());
+							const auto spaces = getSpacesToTab(config, back(), back().size());
 
 							for (size_t s = 0; s < spaces; s++) {
 								back().emplace_back(Glyph(' ', Color::text));
@@ -2005,6 +2005,7 @@ protected:
 	float cursorWidth;
 	ImVec2 cursorScreenPos;
 	ImVec2 visibleSize;
+	ImDrawList* drawList;
 
 	ImFont* font;
 	float fontSize;

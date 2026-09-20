@@ -124,6 +124,7 @@ private:
 		std::vector<Row> rows;
 
 		// rendering context
+		ImDrawList* drawList;
 		ImVec2 cursorScreenPos;
 
 		ImFont* font;
@@ -191,6 +192,7 @@ private:
 		std::vector<Row> rows;
 
 		// rendering context
+		ImDrawList* drawList;
 		ImVec2 cursorScreenPos;
 
 		ImFont* font;

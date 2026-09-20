@@ -104,7 +104,7 @@ void TrieAutoComplete::buildTrie() {
 
 void TrieAutoComplete::Trie::insert(const std::string_view& word) {
 	auto node = root.get();
-	auto end = word.end();
+	const auto end = word.end();
 	auto i = TextEditor::CodePoint::skipBOM(word.begin(), end);
 
 	while (i < end) {
@@ -135,7 +135,7 @@ void TrieAutoComplete::Trie::findSuggestions(std::vector<std::string>& suggestio
 	if (searchTerm.size() != 0) {
 		// convert search term into vector of code blocks
 		searchCodepoints.clear();
-		auto end = searchTerm.end();
+		const auto end = searchTerm.end();
 		auto i = TextEditor::CodePoint::skipBOM(searchTerm.begin(), end);
 
 		while (i < end) {
@@ -154,11 +154,11 @@ void TrieAutoComplete::Trie::findSuggestions(std::vector<std::string>& suggestio
 			std::sort(candidates.begin(), candidates.end());
 
 			// remove duplicates which are caused by mutiple paths based on skips
-			auto last = std::unique(candidates.begin(), candidates.end());
+			const auto last = std::unique(candidates.begin(), candidates.end());
 			candidates.erase(last, candidates.end());
 
 			// populate suggestions (applying limit)
-			auto size = std::min(static_cast<size_t>(limit), candidates.size());
+			const auto size = std::min(static_cast<size_t>(limit), candidates.size());
 
 			for (size_t j = 0; j < size; j++) {
 				suggestions.emplace_back(candidates[j].node->word);
@@ -174,7 +174,7 @@ void TrieAutoComplete::Trie::findSuggestions(std::vector<std::string>& suggestio
 
 void TrieAutoComplete::Trie::evaluateNode(const Node* node, size_t index, size_t cost, size_t skip) {
 	// see if that is one of our children (check both lower and uppercase matches)
-	ImWchar codepointLower = TextEditor::CodePoint::toLower(searchCodepoints[index]);
+	const ImWchar codepointLower = TextEditor::CodePoint::toLower(searchCodepoints[index]);
 	const Node* childLower = nullptr;
 
 	if (node->children.find(codepointLower) != node->children.end()) {
@@ -191,7 +191,7 @@ void TrieAutoComplete::Trie::evaluateNode(const Node* node, size_t index, size_t
 		}
 	}
 
-	ImWchar codepointUpper = TextEditor::CodePoint::toUpper(searchCodepoints[index]);
+	const ImWchar codepointUpper = TextEditor::CodePoint::toUpper(searchCodepoints[index]);
 	const Node* childUpper = nullptr;
 
 	if (node->children.find(codepointUpper) != node->children.end()) {
@@ -210,8 +210,8 @@ void TrieAutoComplete::Trie::evaluateNode(const Node* node, size_t index, size_t
 
 	// also try children to support detection of missing letters (if we haven't skipped too many entries yet)
 	if (skip) {
-		for (auto const& [key, value] : node->children) {
-			auto next = value.get();
+		for (const auto& [key, value] : node->children) {
+			const auto next = value.get();
 
 			if (next != childLower && next != childUpper) {
 				evaluateNode(next, index, cost + 1, skip - 1);
@@ -230,7 +230,7 @@ void TrieAutoComplete::Trie::addCandidates(const Node* node, size_t cost) {
 		candidates.emplace_back(node, cost);
 	}
 
-	for (auto const& [key, value] : node->children) {
+	for (const auto& [key, value] : node->children) {
 		addCandidates(value.get(), cost + 1);
 	}
 }

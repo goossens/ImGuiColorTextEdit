@@ -248,7 +248,7 @@ void Editor::render() {
 	}
 
 	// create the outer window
-	ImGuiWindowFlags windowFlags =
+	const ImGuiWindowFlags windowFlags =
 		ImGuiWindowFlags_NoDecoration |
 		ImGuiWindowFlags_MenuBar |
 		ImGuiWindowFlags_NoBringToFrontOnFocus;
@@ -262,10 +262,10 @@ void Editor::render() {
 	renderMenuBar();
 
 	// determine text editor size
-	auto area = ImGui::GetContentRegionAvail();
-	auto& style = ImGui::GetStyle();
-	auto statusBarHeight = ImGui::GetFrameHeight() + 2.0f * style.WindowPadding.y;
-	auto editorSize = ImVec2(0.0f, area.y - style.ItemSpacing.y - statusBarHeight);
+	const auto area = ImGui::GetContentRegionAvail();
+	const auto& style = ImGui::GetStyle();
+	const auto statusBarHeight = ImGui::GetFrameHeight() + 2.0f * style.WindowPadding.y;
+	const auto editorSize = ImVec2(0.0f, area.y - style.ItemSpacing.y - statusBarHeight);
 
 	// render the text editor widget
 	ImGui::PushFont(nullptr, fontSize);
@@ -310,9 +310,9 @@ void Editor::render() {
 	}
 
 	// render notifications
-	auto mainWindowSize = ImGui::GetMainViewport()->Size;
-	auto mainWindowPos = ImGui::GetMainViewport()->Pos;
-	float offset = statusBarHeight + style.ItemSpacing.y * 2.0f;
+	const auto mainWindowSize = ImGui::GetMainViewport()->Size;
+	const auto mainWindowPos = ImGui::GetMainViewport()->Pos;
+	const float offset = statusBarHeight + style.ItemSpacing.y * 2.0f;
 
 	notifications.Render(ImVec2(
 		mainWindowPos.x + mainWindowSize.x - ImGui::GetStyle().ItemSpacing.x,
@@ -599,7 +599,7 @@ void Editor::renderStatusBar() {
 	std::string docPosStatus;
 
 	if (showDocPosAtMouse) {
-		auto mousePos = ImGui::GetMousePos();
+		const auto mousePos = ImGui::GetMousePos();
 
 		if (editor.IsMousePosOverTextArea(mousePos)) {
 			if (editor.IsMousePosOverGlyph(mousePos) || ImGui::IsKeyDown(ImGuiMod_Shift)) {
@@ -655,10 +655,10 @@ void Editor::renderStatusBar() {
 	// render "text dirty" indicator
 	ImGui::SameLine(0.0f, ImGui::CalcTextSize("#").x * 1.0f);
 	auto drawlist = ImGui::GetWindowDrawList();
-	auto pos = ImGui::GetCursorScreenPos();
-	auto offset = ImGui::GetFrameHeight() * 0.5f;
-	auto radius = offset * 0.6f;
-	auto color = isDirty() ? IM_COL32(164, 0, 0, 255) : IM_COL32(164, 164, 164, 255);
+	const auto pos = ImGui::GetCursorScreenPos();
+	const auto offset = ImGui::GetFrameHeight() * 0.5f;
+	const auto radius = offset * 0.6f;
+	const auto color = isDirty() ? IM_COL32(164, 0, 0, 255) : IM_COL32(164, 164, 164, 255);
 	drawlist->AddCircleFilled(ImVec2(pos.x + offset, pos.y + offset), radius, color);
 
 	ImGui::EndChild();
@@ -785,7 +785,7 @@ void Editor::renderDiff() {
 
 		ImGui::Separator();
 		static constexpr float buttonWidth = 80.0f;
-		auto buttonOffset = ImGui::GetContentRegionAvail().x - buttonWidth;
+		const auto buttonOffset = ImGui::GetContentRegionAvail().x - buttonWidth;
 		bool sideBySide = diff.GetSideBySideMode();
 		bool wordWrap = diff.IsWordWrapEnabled();
 
@@ -818,11 +818,11 @@ void Editor::renderDiff() {
 
 void Editor::renderFileOpen() {
 	// handle file open dialog
-	ImVec2 maxSize = ImGui::GetMainViewport()->Size;
-	ImVec2 minSize = maxSize * 0.5f;
+	const ImVec2 maxSize = ImGui::GetMainViewport()->Size;
+	const ImVec2 minSize = maxSize * 0.5f;
 	auto dialog = ImGuiFileDialog::Instance();
 
-	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+	const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 	ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 
 	if (dialog->Display("file-open", ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {
@@ -844,11 +844,11 @@ void Editor::renderFileOpen() {
 
 void Editor::renderSaveAs() {
 	// handle saveas dialog
-	ImVec2 maxSize = ImGui::GetMainViewport()->Size;
+	const ImVec2 maxSize = ImGui::GetMainViewport()->Size;
 	ImVec2 minSize = maxSize * 0.5f;
 	auto dialog = ImGuiFileDialog::Instance();
 
-	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+	const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 	ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 
 	if (dialog->Display("file-saveas", ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {
@@ -991,7 +991,7 @@ void Editor::renderAddSquiggle() {
 		ImGui::Indent(ImGui::GetContentRegionAvail().x - buttonWidth * 2.0f - 5.0f);
 
 		if (ImGui::Button("OK", ImVec2(buttonWidth, 0.0f))) {
-			ImU32 color = squiggleColor;
+			const ImU32 color = squiggleColor;
 
 			for (size_t i = 0; i < editor.GetNumberOfCursors(); i++) {
 				auto selection = editor.GetCursorSelection(i);
@@ -1066,8 +1066,8 @@ void Editor::renderDebugInformation() {
 			information = getBackendDebugInformation();
 		}
 
-		auto& io = ImGui::GetIO();
-		auto& style = ImGui::GetStyle();
+		const auto& io = ImGui::GetIO();
+		const auto& style = ImGui::GetStyle();
 
 		information += "Dear ImGui:\n";
 		information += std::format("io.DisplaySize: {}, {}\n", io.DisplaySize.x, io.DisplaySize.y);
@@ -1080,7 +1080,7 @@ void Editor::renderDebugInformation() {
 
 		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-		ImGuiWindowFlags flags =
+		const ImGuiWindowFlags flags =
 			ImGuiWindowFlags_NoDecoration |
 			ImGuiWindowFlags_NoNav |
 			ImGuiWindowFlags_NoBringToFrontOnFocus |
@@ -1164,7 +1164,7 @@ void Editor::setLanguageByName(const std::string& name) {
 
 void Editor::setLanguageByExtention(const std::string& name) {
 	std::filesystem::path path(name);
-	auto extension = path.extension();
+	const auto extension = path.extension();
 
 	if (extension == ".cpp" || extension == ".h" || extension == ".hpp") {
 		setLanguage(TextEditor::Language::Cpp());
@@ -1311,9 +1311,9 @@ void Editor::toggleShowWordAtMouse() {
 void Editor::toggleLineMarkers() {
 	// see if we are turning it on or off
 	if (showLineMarkers) {
-		size_t errorlineNumber = 7;
-		size_t breakPointLineNumber = 9;
-		size_t justBecauseLineNumber = 12;
+		const size_t errorlineNumber = 7;
+		const size_t breakPointLineNumber = 9;
+		const size_t justBecauseLineNumber = 12;
 		editor.AddMarker(errorlineNumber, 0, IM_COL32(128, 0, 32, 128), "", "Error detected on this line");
 		editor.AddMarker(breakPointLineNumber, IM_COL32(0, 255, 32, 100), 0, "", "");
 		editor.AddMarker(breakPointLineNumber, IM_COL32(0, 255, 32, 100), 0, "", "");

@@ -188,7 +188,7 @@ bool LspBridge::IsOpen(const std::string& path) {
 //
 
 void LspBridge::Update(const std::string& path) {
-	auto i = documents.find(path);
+	const auto i = documents.find(path);
 
 	if (i != documents.end()) {
 		i->second.update();
@@ -294,7 +294,7 @@ LspBridge::Document::Document(LspBridge& bridge, const std::string& path, TextEd
 				[&](const lsp::requests::TextDocument_Completion::Result& result) {
 					// if (result.holdsAlternative<lsp::CompletionList>()) {
 					if (!result.isNull()) {
-						std::scoped_lock lock(mutex);
+						const std::scoped_lock lock(mutex);
 						suggestions.clear();
 						auto list = result.get<lsp::CompletionList>();
 
@@ -351,7 +351,7 @@ LspBridge::Document::~Document() {
 void LspBridge::Document::update() {
 	// see if we are hovering over text
 	if (editor.IsMousePosOverGlyph(ImGui::GetMousePos())) {
-		auto docPos = editor.GetDocPosAtMousePos(ImGui::GetMousePos());
+		const auto docPos = editor.GetDocPosAtMousePos(ImGui::GetMousePos());
 
 		if (docPos != mouseDocPos) {
 			mouseDocPos = docPos;
@@ -397,10 +397,10 @@ void LspBridge::Document::update() {
 					},
 					[this](const lsp::requests::TextDocument_Hover::Result& result) {
 						if (!result.isNull()) {
-							std::scoped_lock lock(mutex);
+							const std::scoped_lock lock(mutex);
 
 							if (std::holds_alternative<lsp::MarkupContent>(result->contents)) {
-								auto message = std::get<lsp::MarkupContent>(result->contents);
+								const auto message = std::get<lsp::MarkupContent>(result->contents);
 								hoverMessage = message.value;
 
 							} else {
@@ -420,14 +420,14 @@ void LspBridge::Document::update() {
 
 	// submit suggestions asynchronously (if required)
 	if ((options & autocomplete) && suggestions.size()) {
-		std::scoped_lock lock(mutex);
+		const std::scoped_lock lock(mutex);
 		editor.SetAutoCompleteSuggestions(suggestions);
 		suggestions.clear();
 	}
 
 	// setup hover help (if required)
 	if (options & showHoverHelp) {
-		std::scoped_lock lock(mutex);
+		const std::scoped_lock lock(mutex);
 
 		if (hoverMessage.size() && editor.IsMousePosOverGlyph(ImGui::GetMousePos())) {
 			editor.SetTextHoverCallback([&](TextEditor::PopupData) {
@@ -441,11 +441,11 @@ void LspBridge::Document::update() {
 
 	// setup signatures (if required)
 	if (options & showSignature) {
-		std::scoped_lock lock(mutex);
+		const std::scoped_lock lock(mutex);
 
 		if (signatures.size() && editor.IsMousePosOverGlyph(ImGui::GetMousePos())) {
 			editor.SetTextHoverCallback([&](TextEditor::PopupData) {
-				for (auto& signature : signatures) {
+				for (const auto& signature : signatures) {
 					ImGui::TextDisabled("%s", signature.c_str());
 				}
 			});
