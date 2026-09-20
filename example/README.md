@@ -72,6 +72,6 @@ The example application also uses the following fonts:
 
 * [DejaVu Font](https://en.wikipedia.org/wiki/DejaVu_fonts) is extracted from
 [here](https://github.com/dejavu-fonts/dejavu-fonts) and it was released under a
-[generous license](https://raw.githubusercontent.com/goossens/ObjectTalk/refs/heads/master/gfx/fonts/OtDejaVu.lic).
+[generous license](https://github.com/dejavu-fonts/dejavu-fonts/blob/master/LICENSE).
 
 * [NotoSansSC](https://github.com/jsntn/webfonts/blob/master/NotoSansSC-Regular.ttf) is a released under the [Open Font License version 1.1](https://openfontlicense.org/open-font-license-official-text/).
