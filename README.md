@@ -349,7 +349,7 @@ are available. If you find any problems or want to make a suggestion for improve
 This version of ImGuiColorTextEdit was written from scratch by [Johan A. Goossens](https://github.com/goossens)
 and if you end up using (parts of) this repository a shoutout or Github star would be appreciated.
 
-Thank you to [Omar Cornut](https://github.com/ocornut/imgui) for creating Dear ImGui
+A big thank you to [Omar Cornut](https://github.com/ocornut/imgui) for creating Dear ImGui
 in the first place. Without you, this editor would not exist.
 
 I owe a great deal of gratitude to [Balázs Jákó](https://github.com/BalazsJako/ImGuiColorTextEdit)
