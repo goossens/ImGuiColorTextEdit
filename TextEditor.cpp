@@ -258,10 +258,9 @@ void TextEditor::renderCurrentLineHighlight() {
 
 		for (const auto& cursor : cursors) {
 			const auto lineNumber = cursor.getInteractiveEnd().line;
+			auto [iterator, inserted] = alreadyDrawn.insert(lineNumber);
 
-			if (!alreadyDrawn.contains(lineNumber)) {
-				alreadyDrawn.insert(lineNumber);
-
+			if (inserted) {
 				const auto& line = document[lineNumber];
 				const auto topLeft = ImVec2(textLeftOffset, cursorScreenPos.y + line.row * glyphSize.y);
 				const auto bottomRight = topLeft + ImVec2(textRightOffset, line.rows * glyphSize.y);
