@@ -28,11 +28,13 @@ add_executable(example
 	notosans.cpp
 	main.cpp)
 
+set(LIBS imguifileselector imguitoastr lsp)
+
 if(D3D11)
 	target_compile_definitions(example PRIVATE D3D11)
-	target_link_libraries(example imguifd lsp)
+	target_link_libraries(example ${LIBS})
 else()
-	target_link_libraries(example SDL3::SDL3 SDL3_Headers imguifd lsp)
+	target_link_libraries(example SDL3::SDL3 SDL3_Headers ${LIBS})
 endif()
 
 target_compile_options(example PRIVATE

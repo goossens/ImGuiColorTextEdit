@@ -12,5 +12,6 @@ endif()
 
 add_subdirectory(freetype)
 add_subdirectory(imgui)
-add_subdirectory(imguifiledialog)
+add_subdirectory(imguifileselector)
+add_subdirectory(imguitoastr)
 add_subdirectory(lsp)

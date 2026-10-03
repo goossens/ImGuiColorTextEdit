@@ -16,10 +16,11 @@
 #include <functional>
 #include <string>
 
+#include "imgui.h"
+
 #include "../TextEditor.h"
 #include "../TextDiff.h"
 #include "../extras/LspBridge.h"
-#include "../extras/Notifications.h"
 #include "../extras/TrieAutoComplete.h"
 
 
@@ -115,6 +116,7 @@ private:
 	void toggleTrieAutoComplete();
 	void toggleLspBridge();
 	void toggleShowWordAtMouse();
+	void toggleShowDocPosAtMouse();
 	void toggleLineMarkers();
 	void toggleLineDecorator();
 	void toggleCustomCaret();
@@ -172,9 +174,6 @@ private:
 	size_t squiggleType = 1;
 	ImColor squiggleColor{1.0f, 0.2f, 0.0f, 0.8f};
 	char squiggleToolTip[128] = {};
-
-	// notification system
-	Notifications notifications;
 
 	// editor state
 	enum class State {

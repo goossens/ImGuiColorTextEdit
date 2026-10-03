@@ -33,7 +33,10 @@
 #endif
 
 #include "imgui.h"
-#include "ImGuiFileDialog.h"
+#include "imgui_internal.h"
+
+#include "FileSelector.h"
+#include "Toastr.h"
 
 #include "editor.h"
 
@@ -314,9 +317,13 @@ void Editor::render() {
 	const auto mainWindowPos = ImGui::GetMainViewport()->Pos;
 	const float offset = statusBarHeight + style.ItemSpacing.y * 2.0f;
 
-	notifications.Render(ImVec2(
-		mainWindowPos.x + mainWindowSize.x - ImGui::GetStyle().ItemSpacing.x,
-		mainWindowPos.y + mainWindowSize.y - ImGui::GetStyle().ItemSpacing.y - offset));
+	Toastr::Instance().SetTextWidth(30);
+
+	Toastr::Instance().Render(
+		ImVec2(
+			mainWindowPos.x + mainWindowSize.x - ImGui::GetStyle().ItemSpacing.x,
+			mainWindowPos.y + mainWindowSize.y - ImGui::GetStyle().ItemSpacing.y - offset),
+		Toastr::AnchorType::bottomRight);
 
 	// show Dear ImGui metrics (if required)
 	if (showDebugWindow) {
@@ -501,7 +508,7 @@ void Editor::renderMenuBar() {
 			if (ImGui::MenuItem("Trie-based AutoComplete", nullptr, &demoTrieAutoComplete)) { toggleTrieAutoComplete(); }
 			if (ImGui::MenuItem("Language Server Protocol Bridge", nullptr, &demoLspBridge)) { toggleLspBridge(); }
 			if (ImGui::MenuItem("Show Word at Mouse", nullptr, &showWordAtMouse)) { toggleShowWordAtMouse(); }
-			ImGui::MenuItem("Show DocPos at Mouse", nullptr, &showDocPosAtMouse);
+			if (ImGui::MenuItem("Show DocPos at Mouse", nullptr, &showDocPosAtMouse)) { toggleShowDocPosAtMouse(); }
 			if (ImGui::MenuItem("Show Line Markers", nullptr, &showLineMarkers)) { toggleLineMarkers(); }
 			if (ImGui::MenuItem("Show Line Decorator", nullptr, &showLineDecorator)) { toggleLineDecorator(); }
 			if (ImGui::MenuItem("Show Custom Caret", nullptr, &showCustomCaret)) { toggleCustomCaret(); }
@@ -683,15 +690,7 @@ void Editor::showDiff() {
 
 void Editor::showFileOpen() {
 	// open a file selector dialog
-	IGFD::FileDialogConfig config;
-	config.countSelectionMax = 1;
-
-	config.flags =
-		ImGuiFileDialogFlags_Modal |
-		ImGuiFileDialogFlags_DontShowHiddenFiles |
-		ImGuiFileDialogFlags_ReadOnlyFileNameField;
-
-	ImGuiFileDialog::Instance()->OpenDialog("file-open", "Select File to Open...", ".*", config);
+	FileSelector::Instance().OpenFile();
 	state = State::openFile;
 }
 
@@ -701,15 +700,7 @@ void Editor::showFileOpen() {
 //
 
 void Editor::showSaveFileAs() {
-	IGFD::FileDialogConfig config;
-	config.countSelectionMax = 1;
-
-	config.flags =
-		ImGuiFileDialogFlags_Modal |
-		ImGuiFileDialogFlags_DontShowHiddenFiles |
-		ImGuiFileDialogFlags_ConfirmOverwrite;
-
-	ImGuiFileDialog::Instance()->OpenDialog("file-saveas", "Save File as...", "*", config);
+	FileSelector::Instance().SaveAs();
 	state = State::saveFileAs;
 }
 
@@ -818,22 +809,15 @@ void Editor::renderDiff() {
 
 void Editor::renderFileOpen() {
 	// handle file open dialog
-	const ImVec2 maxSize = ImGui::GetMainViewport()->Size;
-	const ImVec2 minSize = maxSize * 0.5f;
-	auto dialog = ImGuiFileDialog::Instance();
+	auto& dialog = FileSelector::Instance();
 
-	const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-	ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-
-	if (dialog->Display("file-open", ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {
-		// open selected file (if required)
-		if (dialog->IsOk()) {
-			openFile(dialog->GetFilePathName());
-			state = State::edit;
+	if (dialog.Render()) {
+		// open selected file if required
+		if (dialog.SelectedOpenFile()) {
+			openFile(dialog.GetSelectedPath());
 		}
 
-		// close dialog
-		dialog->Close();
+		state = State::edit;
 	}
 }
 
@@ -844,26 +828,15 @@ void Editor::renderFileOpen() {
 
 void Editor::renderSaveAs() {
 	// handle saveas dialog
-	const ImVec2 maxSize = ImGui::GetMainViewport()->Size;
-	ImVec2 minSize = maxSize * 0.5f;
-	auto dialog = ImGuiFileDialog::Instance();
+	auto& dialog = FileSelector::Instance();
 
-	const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-	ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-
-	if (dialog->Display("file-saveas", ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {
+	if (dialog.Render()) {
 		// open selected file if required
-		if (dialog->IsOk()) {
-			filename = dialog->GetFilePathName();
+		if (dialog.SelectedSaveAs()) {
+			filename = dialog.GetSelectedPath();
 			saveFile();
 			state = State::edit;
-
-		} else {
-			state = State::edit;
 		}
-
-		// close dialog
-		dialog->Close();
 	}
 }
 
@@ -1217,14 +1190,14 @@ void Editor::toggleNavigationMode() {
 		io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
 		io.ConfigNavCursorVisibleAuto = true;
 		io.ConfigNavCursorVisibleAlways = false;
-		notifications.Add(Notifications::Type::info, "Keyboard/gamepad navigation mode deactivated");
+		Toastr::Instance().Info("Keyboard/gamepad navigation mode deactivated");
 
 	} else {
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 		io.ConfigNavCursorVisibleAuto = false;
 		io.ConfigNavCursorVisibleAlways = true;
-		notifications.Add(Notifications::Type::info, "Keyboard/gamepad navigation mode activated");
+		Toastr::Instance().Info("Keyboard/gamepad navigation mode activated");
 	}
 }
 
@@ -1244,12 +1217,12 @@ void Editor::toggleTrieAutoComplete() {
 
 		// connect autocomplete helper to editor
 		trieAutoComplete.Connect(&editor);
-		notifications.Add(Notifications::Type::info, "Autocomplete activated");
+		Toastr::Instance().Info("Autocomplete activated");
 
 	} else {
 		// disconnect autocomplete helper from editor
 		trieAutoComplete.Disconnect();
-		notifications.Add(Notifications::Type::info, "Autocomplete deactivated");
+		Toastr::Instance().Info("Autocomplete deactivated");
 	}
 }
 
@@ -1269,7 +1242,7 @@ void Editor::toggleLspBridge() {
 
 		// start the language server
 		if (lsp.Start(std::filesystem::current_path().string(), "clangd", {"--log=error"})) {
-			notifications.Add(Notifications::Type::info, "Started language server");
+			Toastr::Instance().Info("Started language server");
 
 			if (editor.GetLanguageName() == "C++") {
 				lsp.OpenDocument(filename, editor, lspOptions);
@@ -1277,14 +1250,14 @@ void Editor::toggleLspBridge() {
 
 		} else {
 			// report possible errors
-			notifications.Add(Notifications::Type::error, lsp.GetError(), 6000);
+			Toastr::Instance().Error(lsp.GetError(), 6000);
 			demoLspBridge = false;
 		}
 
 	} else {
 		// stop the language server
 		lsp.Stop();
-		notifications.Add(Notifications::Type::info, "Stopped language server");
+		Toastr::Instance().Info("Stopped language server");
 	}
 }
 
@@ -1296,10 +1269,25 @@ void Editor::toggleLspBridge() {
 void Editor::toggleShowWordAtMouse() {
 	// see if we are turning it on or off
 	if (showWordAtMouse) {
-		notifications.Add(Notifications::Type::info, "Show word at mouse activated");
+		Toastr::Instance().Info("Show word at mouse activated");
 
 	} else {
-		notifications.Add(Notifications::Type::info, "Show word at mouse deactivated");
+		Toastr::Instance().Info("Show word at mouse deactivated");
+	}
+}
+
+
+//
+//	Editor::toggleShowDocPosAtMouse
+//
+
+void Editor::toggleShowDocPosAtMouse() {
+	// see if we are turning it on or off
+	if (showDocPosAtMouse) {
+		Toastr::Instance().Info("Show DocPos at mouse activated");
+
+	} else {
+		Toastr::Instance().Info("Show DocPos at mouse deactivated");
 	}
 }
 
@@ -1318,11 +1306,11 @@ void Editor::toggleLineMarkers() {
 		editor.AddMarker(breakPointLineNumber, IM_COL32(0, 255, 32, 100), 0, "", "");
 		editor.AddMarker(breakPointLineNumber, IM_COL32(0, 255, 32, 100), 0, "", "");
 		editor.AddMarker(justBecauseLineNumber, IM_COL32(255, 224, 32, 100), IM_COL32(255, 224, 32, 100), "Just Because", "Just Because");
-		notifications.Add(Notifications::Type::info, "Line markers activated");
+		Toastr::Instance().Info("Line markers activated");
 
 	} else {
 		editor.ClearMarkers();
-		notifications.Add(Notifications::Type::info, "Line markers deactivated");
+		Toastr::Instance().Info("Line markers deactivated");
 	}
 }
 
@@ -1371,11 +1359,11 @@ void Editor::toggleLineDecorator() {
 			}
 		});
 
-		notifications.Add(Notifications::Type::info, "line decorator activated");
+		Toastr::Instance().Info("line decorator activated");
 
 	} else {
 		editor.ClearLineDecorator();
-		notifications.Add(Notifications::Type::info, "line decorator deactivated");
+		Toastr::Instance().Info("line decorator deactivated");
 	}
 }
 
@@ -1393,11 +1381,11 @@ void Editor::toggleCustomCaret() {
 			}
 		});
 
-		notifications.Add(Notifications::Type::info, "custom caret activated");
+		Toastr::Instance().Info("custom caret activated");
 
 	} else {
 		editor.ClearCustomCaretRenderer();
-		notifications.Add(Notifications::Type::info, "custom caret deactivated");
+		Toastr::Instance().Info("custom caret deactivated");
 	}
 }
 
@@ -1425,11 +1413,11 @@ void Editor::toggleCustomLineNumbers() {
 			data.drawList->AddText(data.pos, data.color, buffer.c_str());
 		});
 
-		notifications.Add(Notifications::Type::info, "custom line number activated");
+		Toastr::Instance().Info("custom line number activated");
 
 	} else {
 		editor.ClearCustomLineNumberRenderer();
-		notifications.Add(Notifications::Type::info, "custom line number deactivated");
+		Toastr::Instance().Info("custom line number deactivated");
 	}
 }
 
@@ -1450,12 +1438,12 @@ void Editor::toggleContextMenus() {
 			ImGui::Text("Line %zu, index %zu", data.pos.line + 1, data.pos.index + 1);
 		});
 
-		notifications.Add(Notifications::Type::info, "Context menus activated");
+		Toastr::Instance().Info("Context menus activated");
 
 	} else {
 		editor.ClearLineNumberContextMenuCallback();
 		editor.ClearTextContextMenuCallback();
-		notifications.Add(Notifications::Type::info, "Context menus deactivated");
+		Toastr::Instance().Info("Context menus deactivated");
 	}
 }
 
@@ -1467,10 +1455,10 @@ void Editor::toggleContextMenus() {
 void Editor::toggleLineBreak() {
 	// see if we are turning it on or off
 	if (enableUnicodeLineBreakAlgorithm) {
-		notifications.Add(Notifications::Type::info, "Switched line break algorithm to unicode annex 14 mode");
+		Toastr::Instance().Info("Switched line break algorithm to unicode annex 14 mode");
 
 	} else{
-		notifications.Add(Notifications::Type::info, "Switched line break algorithm to simple mode");
+		Toastr::Instance().Info("Switched line break algorithm to simple mode");
 	}
 
 	lineBreakConfig.useUnicodeAnnex14 = enableUnicodeLineBreakAlgorithm;

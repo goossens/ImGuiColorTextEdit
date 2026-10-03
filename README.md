@@ -308,12 +308,22 @@ Below are two screenshots of its use in both modes. Have a look at the code in t
 ## Extras
 
 This repository contains some optional companion classes for a simple autocomplete
-feature, a bridge to language servers and on-screen notifications. Details on simple
-autocomplete can be found [here](docs/autocomplete.md) and details on the language
-server bridge are [here](docs/lsp.md). Details of the "toast" notification system
-are [here](extras/Notifications.h). The source code for these components are in the
+feature and a bridge to language servers. Details on simple autocomplete can be found
+[here](docs/autocomplete.md) and details on the language server bridge are
+[here](docs/lsp.md). The source code for these components are in the
 [extras folder](extras/) and the [example application](example/) shows how
 to use them.
+
+The [example application](example/) also uses two additional widgets by the same author.
+
+- [ImGuiToastr](https://github.com/goossens/ImGuiToastr) provides Toast-like Notification
+System for Dear ImGui based on the popular
+[Toastr extension](https://github.com/CodeSeven/toastr) for JavaScript from years ago.
+Notifications are rendered as a stack from a specified anchor and direction and they
+disappear automatically after a specified amount of time.
+- [ImGuiFileSelector](https://github.com/goossens/ImGuiFileSelector) provides a
+simple File Selector for Dear ImGui with a MacOS pedigree/layout and a
+Dear ImGui look and feel.
 
 ## External Examples
 
