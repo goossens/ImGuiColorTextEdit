@@ -206,13 +206,19 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 
 		// handle navigation cursor (if required)
 		if (ImGui::GetIO().ConfigFlags & (ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad)) {
+			// this is a series of hacks to get around Dear ImGui issues
+			// the text editor is a custom widget build on a ChildWindow
+			// this works great as a ChildWindow provides all required functionality (like scrolling)
+			// ChildWindow does however not work well as a base class when navigation cursors are used
+			// ChildWindow has flags to avoid navigation cursors (e.g. ImGuiWindowFlags_NoNavInputs)
+			// ChildWindow does not have a flag to force navigation inputs (hence the need for these hacks)
 			auto window = ImGui::GetCurrentWindow();
 
 			if (ImGui::IsWindowFocused()) {
-				// ImGui::BeginChildEx: we can enter a child if (A) it has navigable items or (B) it can be scrolled
+				// ImGui::BeginChildEx: "we can enter a child if (A) it has navigable items or (B) it can be scrolled"
 				// as a result this editor will not get a navigation border if it doesn't have a vertical scrollbar
 				// so we need to draw it ourselves in that case
-				if (!window->ScrollbarY) {
+				if (ImGui::GetCurrentContext()->NavCursorVisible && !window->ScrollbarY) {
 					ImRect bb{ImGui::GetWindowPos(), ImGui::GetWindowPos() + ImGui::GetWindowSize()};
 					bb.Expand(ImVec2(2.0f, 2.0f));
 
@@ -226,7 +232,7 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 
 			} else {
 				// this voodoo is required to get a navigation cursor when the editor is not focussed
-				// ImGui::InputTextEx: this is to ensure that EndChild() will display a navigation highlight so we can "enter" into it
+				// ImGui::InputTextEx: "this is to ensure that EndChild() will display a navigation highlight so we can "enter" into it"
 				window->DC.NavLayersActiveMaskNext |= (1 << window->DC.NavLayerCurrent);
 			}
 		}
@@ -258,7 +264,7 @@ void TextEditor::renderCurrentLineHighlight() {
 
 		for (const auto& cursor : cursors) {
 			const auto lineNumber = cursor.getInteractiveEnd().line;
-			auto [iterator, inserted] = alreadyDrawn.insert(lineNumber);
+			const auto [iterator, inserted] = alreadyDrawn.insert(lineNumber);
 
 			if (inserted) {
 				const auto& line = document[lineNumber];
