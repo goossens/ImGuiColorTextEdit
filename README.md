@@ -314,7 +314,7 @@ feature and a bridge to language servers. Details on simple autocomplete can be 
 [extras folder](extras/) and the [example application](example/) shows how
 to use them.
 
-The [example application](example/) also uses two additional widgets by the same author.
+The [example application](example/) also uses two additional widgets by the same author:
 
 - [ImGuiToastr](https://github.com/goossens/ImGuiToastr) provides Toast-like Notification
 System for Dear ImGui based on the popular
