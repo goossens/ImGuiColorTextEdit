@@ -174,6 +174,7 @@ private:
 	size_t squiggleType = 1;
 	ImColor squiggleColor{1.0f, 0.2f, 0.0f, 0.8f};
 	char squiggleToolTip[128] = {};
+	bool squiggleBackground = false;
 
 	// editor state
 	enum class State {

@@ -457,26 +457,32 @@ void TextEditor::renderMatchingBracketLines() {
 //	renderSquiggle
 //
 
-static inline void renderSquiggle(ImDrawList* drawList, float left, float right, float top, float bottom, float thickness, ImU32 color, const char* tooltip) {
-	const auto height = bottom - top;
-	const auto size = height * 0.2f;
-	const auto offset = top + height * 0.8f;
-
-	ImVec2 point(left, offset);
-	bool down = true;
-
+static inline void renderSquiggle(ImDrawList* drawList, float left, float right, float top, float bottom, float thickness, ImU32 color, const char* tooltip, TextEditor::SquiggleStyle style) {
 	const ImVec2 topLeft{left, top};
 	const ImVec2 bottomRight{right, bottom};
-	drawList->PushClipRect(topLeft, bottomRight, true);
 
-	while (point.x < right) {
-		const ImVec2 next{point.x + size, down ? offset + size : offset};
-		drawList->AddLine(point, next, color, thickness);
-		point = next;
-		down = !down;
+	if (style == TextEditor::SquiggleStyle::background) {
+		drawList->AddRectFilled(topLeft, bottomRight, color);
+
+	} else {
+		const auto height = bottom - top;
+		const auto size = height * 0.2f;
+		const auto offset = top + height * 0.8f;
+
+		ImVec2 point(left, offset);
+		bool down = true;
+
+		drawList->PushClipRect(topLeft, bottomRight, true);
+
+		while (point.x < right) {
+			const ImVec2 next{point.x + size, down ? offset + size : offset};
+			drawList->AddLine(point, next, color, thickness);
+			point = next;
+			down = !down;
+		}
+
+		drawList->PopClipRect();
 	}
-
-	drawList->PopClipRect();
 
 	if (*tooltip && ImGui::IsMouseHoveringRect(topLeft, bottomRight)) {
 		if (ImGui::BeginTooltip()) {
@@ -534,7 +540,7 @@ void TextEditor::renderSquiggles() {
 						if (squiggleIndex != nextIndex) {
 							// render squiggle and start new one
 							const auto& squiggle = squiggles[squiggleIndex];
-							renderSquiggle(drawList, squiggleLeft, glyphPos.x, glyphPos.y, glyphPos.y + glyphSize.y, thickness, squiggle.color, squiggle.tooltip.c_str());
+							renderSquiggle(drawList, squiggleLeft, glyphPos.x, glyphPos.y, glyphPos.y + glyphSize.y, thickness, squiggle.color, squiggle.tooltip.c_str(), squiggle.style);
 							squiggleIndex = nextIndex;
 							squiggleLeft = glyphPos.x;
 						}
@@ -549,7 +555,7 @@ void TextEditor::renderSquiggles() {
 				} else if (inSquiggle) {
 					// render squiggle
 					const auto& squiggle = squiggles[squiggleIndex];
-					renderSquiggle(drawList, squiggleLeft, glyphPos.x, glyphPos.y, glyphPos.y + glyphSize.y, thickness, squiggle.color, squiggle.tooltip.c_str());
+					renderSquiggle(drawList, squiggleLeft, glyphPos.x, glyphPos.y, glyphPos.y + glyphSize.y, thickness, squiggle.color, squiggle.tooltip.c_str(), squiggle.style);
 					inSquiggle = false;
 				}
 
@@ -560,7 +566,7 @@ void TextEditor::renderSquiggles() {
 				// render last squiggle on line
 				const auto& squiggle = squiggles[squiggleIndex];
 				const auto glyphPos = cursorScreenPos + ImVec2(textLeftOffset + typeSetter[i].columns * glyphSize.x, i * glyphSize.y);
-				renderSquiggle(drawList, squiggleLeft, glyphPos.x, glyphPos.y, glyphPos.y + glyphSize.y, thickness, squiggle.color, squiggle.tooltip.c_str());
+				renderSquiggle(drawList, squiggleLeft, glyphPos.x, glyphPos.y, glyphPos.y + glyphSize.y, thickness, squiggle.color, squiggle.tooltip.c_str(), squiggle.style);
 			}
 
 			rowScreenPos.y += glyphSize.y;
@@ -1301,7 +1307,7 @@ void TextEditor::handleKeyboardInputs() {
 		else if (!config.readOnly && config.language && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_L)) { toggleComments(); }
 
 		// find/replace support
-		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_F)) {
+		else if (config.findReplaceEnabled && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_F)) {
 			if (autocomplete.isActive()) {
 				autocomplete.cancel();
 				findCancelledAutocomplete = true;
@@ -1310,8 +1316,8 @@ void TextEditor::handleKeyboardInputs() {
 			openFindReplace();
 		}
 
-		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F)) { findAll(); }
-		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_G, ImGuiInputFlags_Repeat)) { findNext(); }
+		else if (config.findReplaceEnabled && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F)) { findAll(); }
+		else if (config.findReplaceEnabled && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_G, ImGuiInputFlags_Repeat)) { findNext(); }
 
 		// autocomplete support
 		else if (!config.readOnly && ImGui::Shortcut(autocomplete.getTriggerShortcut())) {
@@ -2234,9 +2240,9 @@ void TextEditor::compressMarkers() {
 //	TextEditor::addSquiggle
 //
 
-void TextEditor::addSquiggle(DocPos start, DocPos end, size_t type, ImU32 color, const std::string_view& tooltip) {
+void TextEditor::addSquiggle(DocPos start, DocPos end, size_t type, ImU32 color, const std::string_view& tooltip, SquiggleStyle style) {
 	if (start < end) {
-		squiggles.emplace_back(type, color, tooltip);
+		squiggles.emplace_back(type, color, tooltip, style);
 		const auto index = squiggles.size();
 
 		document.iterateGlyphs(start, end, [index](Glyph& glyph) {
@@ -5520,6 +5526,10 @@ void TextEditor::replaceSectionText(const DocPos& start, const DocPos& end, cons
 //
 
 void TextEditor::openFindReplace() {
+	if (!config.findReplaceEnabled) {
+		return;
+	}
+
 	// get main cursor location
 	const auto cursor = cursors.getMain();
 
