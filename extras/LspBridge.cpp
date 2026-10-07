@@ -150,7 +150,7 @@ void LspBridge::messageLoop() {
 //	LspBridge::o
 //
 
-void LspBridge::OpenDocument(const std::string& path, TextEditor& editor, int options) {
+void LspBridge::OpenDocument(const std::filesystem::path& path, TextEditor& editor, int options) {
 	if (IsRunning()) {
 		if (documents.find(path) != documents.end()) {
 			documents.erase(path);
@@ -165,7 +165,7 @@ void LspBridge::OpenDocument(const std::string& path, TextEditor& editor, int op
 //	LspBridge::CloseDocument
 //
 
-void LspBridge::CloseDocument(const std::string& path) {
+void LspBridge::CloseDocument(const std::filesystem::path& path) {
 	if (IsRunning()) {
 		if (documents.find(path) != documents.end()) {
 			documents.erase(path);
@@ -178,7 +178,7 @@ void LspBridge::CloseDocument(const std::string& path) {
 //	LspBridge::IsOpen
 //
 
-bool LspBridge::IsOpen(const std::string& path) {
+bool LspBridge::IsOpen(const std::filesystem::path& path) {
 	return documents.find(path) != documents.end();
 }
 
@@ -187,7 +187,7 @@ bool LspBridge::IsOpen(const std::string& path) {
 //	LspBridge::update
 //
 
-void LspBridge::Update(const std::string& path) {
+void LspBridge::Update(const std::filesystem::path& path) {
 	const auto i = documents.find(path);
 
 	if (i != documents.end()) {
@@ -200,7 +200,7 @@ void LspBridge::Update(const std::string& path) {
 //	LspBridge::Document::Document
 //
 
-LspBridge::Document::Document(LspBridge& bridge, const std::string& path, TextEditor& editor, int options)
+LspBridge::Document::Document(LspBridge& bridge, const std::filesystem::path& path, TextEditor& editor, int options)
 	: bridge(bridge), path(path), editor(editor), options(options) {
 
 	// sanitize options (can't hover and signature at the same time)
@@ -211,7 +211,7 @@ LspBridge::Document::Document(LspBridge& bridge, const std::string& path, TextEd
 	// open document in language server
 	bridge.messageHandler->sendNotification<lsp::notifications::TextDocument_DidOpen>({
 		.textDocument = {
-			.uri = lsp::DocumentUri::fromPath(path),
+			.uri = lsp::DocumentUri::fromPath(path.string()),
 			.languageId = editor.GetLanguageName(),
 			.version = version++,
 			.text = editor.GetText()
@@ -226,7 +226,7 @@ LspBridge::Document::Document(LspBridge& bridge, const std::string& path, TextEd
 	}));
 
 	lsp::DidChangeTextDocumentParams params;
-	params.textDocument.uri = lsp::DocumentUri::fromPath(path);
+	params.textDocument.uri = lsp::DocumentUri::fromPath(path.string());
 	params.textDocument.version = version++;
 	params.contentChanges = std::move(contentChanges);
 	bridge.messageHandler->sendNotification<lsp::notifications::TextDocument_DidChange>(std::move(params));
@@ -269,7 +269,7 @@ LspBridge::Document::Document(LspBridge& bridge, const std::string& path, TextEd
 		}
 
 		lsp::DidChangeTextDocumentParams params;
-		params.textDocument.uri = lsp::DocumentUri::fromPath(path);
+		params.textDocument.uri = lsp::DocumentUri::fromPath(path.string());
 		params.textDocument.version = version++;
 		params.contentChanges = std::move(contentChanges);
 		bridge.messageHandler->sendNotification<lsp::notifications::TextDocument_DidChange>(std::move(params));
@@ -283,7 +283,7 @@ LspBridge::Document::Document(LspBridge& bridge, const std::string& path, TextEd
 				{
 					{
 						.textDocument = {
-							.uri = lsp::DocumentUri::fromPath(path)
+							.uri = lsp::DocumentUri::fromPath(path.string())
 						},
 						.position = lsp::Position {
 							.line = static_cast<lsp::uint>(state.searchTermEnd.line),
@@ -325,7 +325,7 @@ LspBridge::Document::~Document() {
 	// close document in language server
 	bridge.messageHandler->sendNotification<lsp::notifications::TextDocument_DidClose>({
 		.textDocument = {
-			.uri = lsp::DocumentUri::fromPath(path)
+			.uri = lsp::DocumentUri::fromPath(path.string())
 		}
 	});
 
@@ -361,7 +361,7 @@ void LspBridge::Document::update() {
 					{
 						{
 							.textDocument = {
-								.uri = lsp::DocumentUri::fromPath(path)
+								.uri = lsp::DocumentUri::fromPath(path.string())
 							},
 							.position = lsp::Position {
 								.line = static_cast<lsp::uint>(docPos.line),
@@ -387,7 +387,7 @@ void LspBridge::Document::update() {
 					{
 						{
 							.textDocument = {
-								.uri = lsp::DocumentUri::fromPath(path)
+								.uri = lsp::DocumentUri::fromPath(path.string())
 							},
 							.position = lsp::Position {
 								.line = static_cast<lsp::uint>(docPos.line),

@@ -461,27 +461,31 @@ static inline void renderSquiggle(ImDrawList* drawList, float left, float right,
 	const ImVec2 topLeft{left, top};
 	const ImVec2 bottomRight{right, bottom};
 
-	if (style == TextEditor::SquiggleStyle::background) {
-		drawList->AddRectFilled(topLeft, bottomRight, color);
+	switch (style) {
+		case TextEditor::SquiggleStyle::wave: {
+			const auto height = bottom - top;
+			const auto size = height * 0.2f;
+			const auto offset = top + height * 0.8f;
 
-	} else {
-		const auto height = bottom - top;
-		const auto size = height * 0.2f;
-		const auto offset = top + height * 0.8f;
+			ImVec2 point(left, offset);
+			bool down = true;
 
-		ImVec2 point(left, offset);
-		bool down = true;
+			drawList->PushClipRect(topLeft, bottomRight, true);
 
-		drawList->PushClipRect(topLeft, bottomRight, true);
+			while (point.x < right) {
+				const ImVec2 next{point.x + size, down ? offset + size : offset};
+				drawList->AddLine(point, next, color, thickness);
+				point = next;
+				down = !down;
+			}
 
-		while (point.x < right) {
-			const ImVec2 next{point.x + size, down ? offset + size : offset};
-			drawList->AddLine(point, next, color, thickness);
-			point = next;
-			down = !down;
+			drawList->PopClipRect();
+			break;
 		}
 
-		drawList->PopClipRect();
+		case TextEditor::SquiggleStyle::background:
+			drawList->AddRectFilled(topLeft, bottomRight, color);
+			break;
 	}
 
 	if (*tooltip && ImGui::IsMouseHoveringRect(topLeft, bottomRight)) {
@@ -5526,10 +5530,6 @@ void TextEditor::replaceSectionText(const DocPos& start, const DocPos& end, cons
 //
 
 void TextEditor::openFindReplace() {
-	if (!config.findReplaceEnabled) {
-		return;
-	}
-
 	// get main cursor location
 	const auto cursor = cursors.getMain();
 
@@ -5559,9 +5559,11 @@ void TextEditor::openFindReplace() {
 //
 
 void TextEditor::closeFindReplace() {
-	findReplaceVisible = false;
-	focusOnEditor = true;
-	focusOnFind = false;
+	if (findReplaceVisible) {
+		findReplaceVisible = false;
+		focusOnEditor = true;
+		focusOnFind = false;
+	}
 }
 
 

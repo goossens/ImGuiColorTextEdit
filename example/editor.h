@@ -13,6 +13,7 @@
 //
 
 #include <algorithm>
+#include <filesystem>
 #include <functional>
 #include <string>
 
@@ -36,7 +37,7 @@ public:
 	// file related functions
 	void newFile();
 	void openFile();
-	void openFile(const std::string& path);
+	void openFile(const std::filesystem::path& path);
 	void saveFile();
 
 	// manage program exit
@@ -81,7 +82,7 @@ private:
 	std::string originalText;
 	TextEditor editor;
 	TextDiff diff;
-	std::string filename;
+	std::filesystem::path filename;
 	size_t version;
 	bool done = false;
 	bool popup = true;
@@ -109,7 +110,7 @@ private:
 
 	void setLanguage(const TextEditor::Language* language);
 	void setLanguageByName(const std::string& name);
-	void setLanguageByExtention(const std::string& filename);
+	void setLanguageByExtention(const std::filesystem::path& path);
 
 	// examples
 	void toggleNavigationMode();
@@ -174,7 +175,7 @@ private:
 	size_t squiggleType = 1;
 	ImColor squiggleColor{1.0f, 0.2f, 0.0f, 0.8f};
 	char squiggleToolTip[128] = {};
-	bool squiggleBackground = false;
+	TextEditor::SquiggleStyle squiggleStyle = TextEditor::SquiggleStyle::wave;
 
 	// editor state
 	enum class State {

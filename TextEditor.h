@@ -101,7 +101,7 @@ public:
 	inline bool IsWordWrapEnabled() const { return config.wordWrap; }
 	inline void SetReadOnlyEnabled(bool value) { config.readOnly = value; }
 	inline bool IsReadOnlyEnabled() const { return config.readOnly; }
-	inline void SetFindReplaceEnabled(bool value) { config.findReplaceEnabled = value; if (!value) { findReplaceVisible = false; } }
+	inline void SetFindReplaceEnabled(bool value) { config.findReplaceEnabled = value; if (!value) { closeFindReplace(); } }
 	inline bool IsFindReplaceEnabled() const { return config.findReplaceEnabled; }
 	inline void SetCaretsVisible(bool value) { config.caretsVisible = value; }
 	inline bool IsCaretsVisible() const { return config.caretsVisible; }
@@ -318,8 +318,8 @@ public:
 
 	// the built-in find/replace window can be disabled (see SetFindReplaceEnabled) when the application provides its own search
 	// the editor then ignores Ctrl+F, Ctrl+Shift+F and Ctrl+G, so they reach the application's windows
-	inline void OpenFindReplaceWindow() { openFindReplace(); }
-	inline void CloseFindReplaceWindow() { closeFindReplace(); }
+	inline void OpenFindReplaceWindow() { if (config.findReplaceEnabled) { openFindReplace(); } }
+	inline void CloseFindReplaceWindow() { if (config.findReplaceEnabled) { closeFindReplace(); } }
 	inline bool HasFindString() const { return findText.size(); }
 	inline void FindNext() { findNext(); }
 	inline void FindAll() { findAll(); }
@@ -341,8 +341,7 @@ public:
 	// access squiggly underlines
 	// squiggles are attached to glyphs and are not effected  by inserts or deletes before that glyph
 	// if a glyph with a squiggle is deleted, undo doesn't restore it
-	// a glyph has at most one squiggle: a new squiggle replaces the ones under it
-	// a squiggle is drawn as a wavy underline, or as a background behind the text (e.g. to highlight search results)
+	// a squiggle is drawn as a wavy underline or as a background behind the text (e.g. to highlight search results)
 	// tooltips must be UTF-8 encoded
 	enum class SquiggleStyle {
 		wave,
@@ -1887,8 +1886,8 @@ protected:
 
 	// coordinate transformation/normalization
 	inline VisPos docPos2VisPos(DocPos pos) const { return typeSetter.docPos2VisPos(document, pos); }
-	inline ImVec2 visPos2ScreenPos(VisPos pos) const { return ImVec2(cursorScreenPos.x + textLeftOffset + pos.column * glyphSize.x, cursorScreenPos.y + pos.row * glyphSize.y); }
 	inline DocPos visPos2DocPos(VisPos pos) const { return typeSetter.visPos2DocPos(document, pos); }
+	inline ImVec2 visPos2ScreenPos(VisPos pos) const { return ImVec2(cursorScreenPos.x + textLeftOffset + pos.column * glyphSize.x, cursorScreenPos.y + pos.row * glyphSize.y); }
 
 	inline size_t normalizeLine(size_t line) const { return document.normalizeLine(line); }
 	inline DocPos normalizePos(DocPos pos) const { return document.normalizePos(pos); }

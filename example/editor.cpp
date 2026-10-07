@@ -193,7 +193,7 @@ void Editor::openFile() {
 	}
 }
 
-void Editor::openFile(const std::string& path) {
+void Editor::openFile(const std::filesystem::path& path) {
 	try {
 		if (lsp.IsRunning()) {
 			lsp.CloseDocument(filename);
@@ -959,7 +959,27 @@ void Editor::renderAddSquiggle() {
 		if (ImGui::SliderInt("Type", &type, 1, 5)) { squiggleType = static_cast<size_t>(type); }
 		ImGui::ColorEdit4("Color", (float*) &squiggleColor);
 		ImGui::InputText("Tool Tip", squiggleToolTip, sizeof(squiggleToolTip));
-		ImGui::Checkbox("Background", &squiggleBackground);
+
+		static constexpr const char* stylesNames[] = { "Wave", "Background" };
+		static constexpr size_t styleCount = sizeof(stylesNames) / sizeof(stylesNames[0]);
+
+		if (ImGui::BeginCombo("Style", stylesNames[static_cast<size_t>(squiggleStyle)])) {
+			for (size_t i = 0; i < styleCount; i++) {
+				const auto currentStyle = static_cast<TextEditor::SquiggleStyle>(i);
+				const auto isSelected = (squiggleStyle == currentStyle);
+
+				if (ImGui::Selectable(stylesNames[i], isSelected)) {
+					squiggleStyle = currentStyle;
+				}
+
+				if (isSelected) {
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+
+			ImGui::EndCombo();
+		}
+
 		ImGui::Separator();
 
 		static constexpr float buttonWidth = 80.0f;
@@ -967,13 +987,12 @@ void Editor::renderAddSquiggle() {
 
 		if (ImGui::Button("OK", ImVec2(buttonWidth, 0.0f))) {
 			const ImU32 color = squiggleColor;
-			const auto style = squiggleBackground ? TextEditor::SquiggleStyle::background : TextEditor::SquiggleStyle::wave;
 
 			for (size_t i = 0; i < editor.GetNumberOfCursors(); i++) {
 				auto selection = editor.GetCursorSelection(i);
 
 				if (selection.start != selection.end) {
-					editor.AddSquiggle(selection.start, selection.end, squiggleType, color, squiggleToolTip, style);
+					editor.AddSquiggle(selection.start, selection.end, squiggleType, color, squiggleToolTip, squiggleStyle);
 				}
 			}
 
@@ -1138,8 +1157,7 @@ void Editor::setLanguageByName(const std::string& name) {
 //	Editor::setLanguageByExtention
 //
 
-void Editor::setLanguageByExtention(const std::string& name) {
-	std::filesystem::path path(name);
+void Editor::setLanguageByExtention(const std::filesystem::path& path) {
 	const auto extension = path.extension();
 
 	if (extension == ".cpp" || extension == ".h" || extension == ".hpp") {

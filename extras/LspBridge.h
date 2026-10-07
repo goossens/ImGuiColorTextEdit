@@ -13,6 +13,7 @@
 //
 
 #include <atomic>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -47,12 +48,12 @@ public:
 	static constexpr int showHoverHelp = 1 << 2;
 
 	// open/close documents (server can handle multiple at the time)
-	void OpenDocument(const std::string& path, TextEditor& editor, int options=autocomplete);
-	void CloseDocument(const std::string& path);
-	bool IsOpen(const std::string& path);
+	void OpenDocument(const std::filesystem::path& path, TextEditor& editor, int options=autocomplete);
+	void CloseDocument(const std::filesystem::path& path);
+	bool IsOpen(const std::filesystem::path& path);
 
 	// call this before TextEditor is rendered
-	void Update(const std::string& path);
+	void Update(const std::filesystem::path& path);
 
 	// get status
 	inline bool IsRunning() const { return running.load(); }
@@ -75,7 +76,7 @@ private:
 	class Document {
 	public:
 		// constructor/destructor
-		Document(LspBridge& bridge, const std::string& path, TextEditor& editor, int options);
+		Document(LspBridge& bridge, const std::filesystem::path& path, TextEditor& editor, int options);
 		~Document();
 
 		// update document state
@@ -84,7 +85,7 @@ private:
 	private:
 		// properties
 		LspBridge& bridge;
-		const std::string path;
+		const std::filesystem::path path;
 		TextEditor& editor;
 		int options;
 		int version = 1;
@@ -98,7 +99,7 @@ private:
 	};
 
 	// all documents currently open
-	std::unordered_map<std::string, Document> documents;
+	std::unordered_map<std::filesystem::path, Document> documents;
 
 	// support functions
 	void messageLoop();
