@@ -416,7 +416,7 @@ void Editor::renderMenuBar() {
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("Find")) {
+		if (ImGui::BeginMenu("Find", editor.IsFindReplaceEnabled())) {
 			if (ImGui::MenuItem("Find", " " SHORTCUT "F")) { editor.OpenFindReplaceWindow(); }
 			if (ImGui::MenuItem("Find Next", " " SHORTCUT "G", nullptr, editor.HasFindString())) { editor.FindNext(); }
 			if (ImGui::MenuItem("Find All", "^" SHORTCUT "G", nullptr, editor.HasFindString())) { editor.FindAll(); }
@@ -473,6 +473,7 @@ void Editor::renderMenuBar() {
 			flag = editor.IsShowScrollbarMiniMapEnabled(); if (ImGui::MenuItem("Show Scrollbar Mini Map", nullptr, &flag)) { editor.SetShowScrollbarMiniMapEnabled(flag); };
 			flag = editor.IsShowPanScrollIndicatorEnabled(); if (ImGui::MenuItem("Show Pan/Scroll Indicator", nullptr, &flag)) { editor.SetShowPanScrollIndicatorEnabled(flag); };
 			flag = editor.IsMiddleMousePanMode(); if (ImGui::MenuItem("Middle Mouse Pan Mode", nullptr, &flag)) { if (flag) editor.SetMiddleMousePanMode(); else editor.SetMiddleMouseScrollMode(); };
+			flag = editor.IsFindReplaceEnabled(); if (ImGui::MenuItem("Find/Replace Enabled", nullptr, &flag)) { editor.SetFindReplaceEnabled(flag); };
 
 			ImGui::Separator();
 
@@ -985,6 +986,7 @@ void Editor::renderAddSquiggle() {
 		if (ImGui::SliderInt("Type", &type, 1, 5)) { squiggleType = static_cast<size_t>(type); }
 		ImGui::ColorEdit4("Color", (float*) &squiggleColor);
 		ImGui::InputText("Tool Tip", squiggleToolTip, sizeof(squiggleToolTip));
+		ImGui::Checkbox("Background", &squiggleBackground);
 		ImGui::Separator();
 
 		static constexpr float buttonWidth = 80.0f;
@@ -992,12 +994,13 @@ void Editor::renderAddSquiggle() {
 
 		if (ImGui::Button("OK", ImVec2(buttonWidth, 0.0f))) {
 			const ImU32 color = squiggleColor;
+			const auto style = squiggleBackground ? TextEditor::SquiggleStyle::background : TextEditor::SquiggleStyle::wave;
 
 			for (size_t i = 0; i < editor.GetNumberOfCursors(); i++) {
 				auto selection = editor.GetCursorSelection(i);
 
 				if (selection.start != selection.end) {
-					editor.AddSquiggle(selection.start, selection.end, squiggleType, color, squiggleToolTip);
+					editor.AddSquiggle(selection.start, selection.end, squiggleType, color, squiggleToolTip, style);
 				}
 			}
 

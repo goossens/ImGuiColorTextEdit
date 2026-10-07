@@ -101,6 +101,8 @@ public:
 	inline bool IsWordWrapEnabled() const { return config.wordWrap; }
 	inline void SetReadOnlyEnabled(bool value) { config.readOnly = value; }
 	inline bool IsReadOnlyEnabled() const { return config.readOnly; }
+	inline void SetFindReplaceEnabled(bool value) { config.findReplaceEnabled = value; if (!value) { findReplaceVisible = false; } }
+	inline bool IsFindReplaceEnabled() const { return config.findReplaceEnabled; }
 	inline void SetCaretsVisible(bool value) { config.caretsVisible = value; }
 	inline bool IsCaretsVisible() const { return config.caretsVisible; }
 	inline void SetAutoIndentEnabled(bool value) { config.autoIndent = value; }
@@ -293,6 +295,10 @@ public:
 	inline VisPos DocPos2VisPos(DocPos pos) const { return docPos2VisPos(normalizePos(pos)); }
 	inline DocPos VisPos2DocPos(VisPos pos) const { return visPos2DocPos(normalizePos(pos)); }
 
+	// get the screen position of the top left corner of a glyph
+	// only valid after a call to Render that drew the editor (its window was visible: see ImGui::IsItemVisible)
+	inline ImVec2 DocPos2ScreenPos(DocPos pos) const { return visPos2ScreenPos(docPos2VisPos(normalizePos(pos))); }
+
 	// see if a specified document location is visible (not folded and currently on screen)
 	inline bool IsDocPosVisible(DocPos pos) const { return isDocPosVisible(normalizePos(pos)); }
 
@@ -310,6 +316,8 @@ public:
 	inline void ReplaceTextInCurrentCursor(const std::string_view& text) { if (!config.readOnly) replaceTextInCurrentCursor(text); }
 	inline void ReplaceTextInAllCursors(const std::string_view& text) { if (!config.readOnly) replaceTextInAllCursors(text); }
 
+	// the built-in find/replace window can be disabled (see SetFindReplaceEnabled) when the application provides its own search
+	// the editor then ignores Ctrl+F, Ctrl+Shift+F and Ctrl+G, so they reach the application's windows
 	inline void OpenFindReplaceWindow() { openFindReplace(); }
 	inline void CloseFindReplaceWindow() { closeFindReplace(); }
 	inline bool HasFindString() const { return findText.size(); }
@@ -333,8 +341,15 @@ public:
 	// access squiggly underlines
 	// squiggles are attached to glyphs and are not effected  by inserts or deletes before that glyph
 	// if a glyph with a squiggle is deleted, undo doesn't restore it
+	// a glyph has at most one squiggle: a new squiggle replaces the ones under it
+	// a squiggle is drawn as a wavy underline, or as a background behind the text (e.g. to highlight search results)
 	// tooltips must be UTF-8 encoded
-	inline void AddSquiggle(DocPos start, DocPos end, size_t type, ImU32 color, const std::string_view& tooltip = std::string_view()) { addSquiggle(normalizePos(start), normalizePos(end), type, color, tooltip); }
+	enum class SquiggleStyle {
+		wave,
+		background
+	};
+
+	inline void AddSquiggle(DocPos start, DocPos end, size_t type, ImU32 color, const std::string_view& tooltip = std::string_view(), SquiggleStyle style = SquiggleStyle::wave) { addSquiggle(normalizePos(start), normalizePos(end), type, color, tooltip, style); }
 	inline void ClearSquiggles(DocPos start, DocPos end) { clearSquiggles(normalizePos(start), normalizePos(end)); }
 	inline void ClearSquiggles(size_t type) { clearSquiggles(type); }
 	inline void ClearSquiggles() { clearSquiggles(); }
@@ -994,6 +1009,7 @@ protected:
 		bool overwrite = false;
 		bool panMode = true;
 		bool showPanScrollIndicator = true;
+		bool findReplaceEnabled = true;
 		size_t leftMargin = 1; // margins are expressed in number of glyphs
 		size_t decorationMargin = 1;
 		size_t textMargin = 2;
@@ -1778,10 +1794,11 @@ protected:
 
 	// list of squiggles
 	struct Squiggle {
-		Squiggle(size_t type, ImU32 color, const std::string_view& tooltip) : type(type), color(color), tooltip(tooltip) {}
+		Squiggle(size_t type, ImU32 color, const std::string_view& tooltip, SquiggleStyle style) : type(type), color(color), tooltip(tooltip), style(style) {}
 		size_t type;
 		ImU32 color;
 		std::string tooltip;
+		SquiggleStyle style;
 	};
 
 	using Squiggles = std::vector<Squiggle>;
@@ -1870,6 +1887,7 @@ protected:
 
 	// coordinate transformation/normalization
 	inline VisPos docPos2VisPos(DocPos pos) const { return typeSetter.docPos2VisPos(document, pos); }
+	inline ImVec2 visPos2ScreenPos(VisPos pos) const { return ImVec2(cursorScreenPos.x + textLeftOffset + pos.column * glyphSize.x, cursorScreenPos.y + pos.row * glyphSize.y); }
 	inline DocPos visPos2DocPos(VisPos pos) const { return typeSetter.visPos2DocPos(document, pos); }
 
 	inline size_t normalizeLine(size_t line) const { return document.normalizeLine(line); }
@@ -1934,7 +1952,7 @@ protected:
 	void compressMarkers();
 
 	// squiggle support
-	void addSquiggle(DocPos start, DocPos end, size_t type, ImU32 color, const std::string_view& tooltip);
+	void addSquiggle(DocPos start, DocPos end, size_t type, ImU32 color, const std::string_view& tooltip, SquiggleStyle style);
 	void clearSquiggles(size_t type);
 	void clearSquiggles(DocPos start, DocPos end);
 	void clearSquiggles();

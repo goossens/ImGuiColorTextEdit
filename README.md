@@ -73,14 +73,14 @@ features are however included.
 - Has extendable syntax highlighting for multiple languages and API for custom languages.
 - Has customizable color palettes (a dark and light version that work with Dear ImGui defaults are included).
 - Has option to automatically insert spaces on tabs.
-- Has find/replace user interface and API with full undo/redo.
+- Has find/replace user interface and API with full undo/redo (the user interface can be disabled when the application provides its own search).
 - Find has options for whole word and/or case-sensitive searches.
 - Has support for configurable word wrap (see [description](docs/wordwrap.md), default is off).
 - Supports optional line folding like Visual Studio Code (default is off).
 - Folding works on brackets (for all languages) and on indentation for languages like Python.
 - Provides optional autocomplete framework (see [more information here](docs/autocomplete.md), default is off).
 - Has marker API to specify lines and/or line numbers to highlight and optional show tooltips (see [example](docs/markers.md)).
-- Has squiggle API to underline parts of the text like Visual Studio Code to highlight and optional show tooltips.
+- Has squiggle API to underline or highlight parts of the text like Visual Studio Code and optional show tooltips (see [example](docs/squiggles.md)).
 - Has optional full minimap similar to Visual Studio Code.
 - Has optional scrollbar minimap to just render current cursor, selections and marker locations.
 - Provides middle-mouse pan and scroll functions like CAD programs and browsers.
@@ -228,6 +228,7 @@ See GImGui documentation in imgui.cpp for more details.
 	- When the search and replace window is visible, hitting the ESC button closes it.
 	- Shift-Ctrl-F finds all instances and makes them separate cursors.
 	- Ctrl-G finds the next instance of the search term.
+	- When the find and replace window is disabled (see SetFindReplaceEnabled), these shortcuts are left to the application.
 
 - AutoComplete:
 	- Once configured, Ctrl-space (or a custom key combination) triggers a manual autocomplete (even on MacOS as Cmd-space globally triggers Spotlight searching on that platform).
