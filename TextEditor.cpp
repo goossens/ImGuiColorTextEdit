@@ -1156,8 +1156,8 @@ bool TextEditor::updateState() {
 
 	if (typeSetter.update(config, document, lineFold)) {
 		// see if we can scroll to preserve the first visible line
-		// but we don't overrule an API scroll request
-		if (scrollToLineNumber == invalidLine) {
+		// but we don't overrule outstanding requests
+		if (scrollToLineNumber == invalidLine && ensureVisiblePos.line == invalidLine) {
 			scrollToLine(previousFirstLine, Scroll::alignTop, firstVisibleLineFraction);
 		}
 	}
@@ -1216,10 +1216,7 @@ void TextEditor::handleKeyboardInputs() {
 	if (ImGui::IsWindowFocused()) {
 		auto& io = ImGui::GetIO();
 		io.WantCaptureKeyboard = true;
-		// a read-only editor takes no text: no virtual keyboard on a touch screen
-		if (!config.readOnly) {
-			io.WantTextInput = true;
-		}
+		io.WantTextInput = true;
 		const auto macOS = io.ConfigMacOSXBehaviors;
 
 		// ignore specific keys when autocomplete is active, they will be handled later
@@ -2139,7 +2136,7 @@ void TextEditor::makeCursorVisible() {
 	scrollToLineNumber = invalidLine;
 
 	if (config.lineFolding) {
-		lineFold.unfoldAroundLine(document, cursors.getCurrent().getInteractiveEnd().line);
+		lineFold.unfoldAroundLine(document, ensureVisiblePos.line);
 	}
 
 	resetCursorAnimationTimer();
