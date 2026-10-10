@@ -1216,7 +1216,10 @@ void TextEditor::handleKeyboardInputs() {
 	if (ImGui::IsWindowFocused()) {
 		auto& io = ImGui::GetIO();
 		io.WantCaptureKeyboard = true;
-		io.WantTextInput = true;
+		// a read-only editor takes no text: no virtual keyboard on a touch screen
+		if (!config.readOnly) {
+			io.WantTextInput = true;
+		}
 		const auto macOS = io.ConfigMacOSXBehaviors;
 
 		// ignore specific keys when autocomplete is active, they will be handled later
