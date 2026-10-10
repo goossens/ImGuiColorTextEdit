@@ -468,6 +468,7 @@ void Editor::renderMenuBar() {
 			flag = editor.IsOverwriteEnabled(); if (ImGui::MenuItem("Overwrite", nullptr, &flag)) { editor.SetOverwriteEnabled(flag); };
 			flag = editor.IsWordWrapEnabled(); if (ImGui::MenuItem("Word Wrap", nullptr, &flag)) { editor.SetWordWrapEnabled(flag); };
 			flag = editor.IsLineFoldingEnabled(); if (ImGui::MenuItem("Line Folding", nullptr, &flag)) { editor.SetLineFoldingEnabled(flag); };
+			flag = editor.IsAutoIndentEnabled(); if (ImGui::MenuItem("Auto Indent", nullptr, &flag)) { editor.SetAutoIndentEnabled(flag); };
 			flag = editor.IsInsertSpacesOnTabs(); if (ImGui::MenuItem("Insert Spaces on Tabs", nullptr, &flag)) { editor.SetInsertSpacesOnTabs(flag); };
 			flag = editor.IsShowWhitespacesEnabled(); if (ImGui::MenuItem("Show Whitespaces", nullptr, &flag)) { editor.SetShowWhitespacesEnabled(flag); };
 			flag = editor.IsShowSpacesEnabled(); if (ImGui::MenuItem("Show Spaces", nullptr, &flag)) { editor.SetShowSpacesEnabled(flag); };
