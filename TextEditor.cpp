@@ -3831,8 +3831,10 @@ TextEditor::Color TextEditor::Document::getColor(DocPos location)  const {
 
 TextEditor::DocPos TextEditor::Document::getLeft(DocPos from, bool wordMode) const {
 	if (wordMode) {
-		// first move left by one glyph
-		from = getLeft(from);
+		// move to the end of the previous line if we're at the start of a line
+		if (from.index == 0) {
+			from = getLeft(from);
+		}
 
 		// now skip all whitespaces
 		from = findPreviousNonWhiteSpace(from, false);
@@ -3858,8 +3860,10 @@ TextEditor::DocPos TextEditor::Document::getLeft(DocPos from, bool wordMode) con
 
 TextEditor::DocPos TextEditor::Document::getRight(DocPos from, bool wordMode) const {
 	if (wordMode) {
-		// first move right by one glyph
-		from = getRight(from);
+		// move to the start of the next line if we're at the end of a line
+		if (from.index == at(from.line).size()) {
+			from = getRight(from);
+		}
 
 		// now skip all whitespaces
 		from = findNextNonWhiteSpace(from, false);
@@ -4276,9 +4280,10 @@ TextEditor::DocPos TextEditor::Document::findPreviousNonWhiteSpace(DocPos from, 
 		auto index = from.index;
 
 		while (!done && index > 0) {
-			index--;
+			if (CodePoint::isWhiteSpace(line[index - 1].codepoint)) {
+				index--;
 
-			if (!CodePoint::isWhiteSpace(line[index].codepoint)) {
+			} else {
 				from.index = index;
 				done = true;
 			}
