@@ -110,7 +110,6 @@ private:
 
 	void setLanguage(const TextEditor::Language* language);
 	void setLanguageByName(const std::string& name);
-	void setLanguageByExtention(const std::filesystem::path& path);
 
 	// examples
 	void toggleNavigationMode();

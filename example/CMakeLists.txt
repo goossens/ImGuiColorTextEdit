@@ -37,6 +37,9 @@ else()
 	target_link_libraries(example SDL3::SDL3 SDL3_Headers ${LIBS})
 endif()
 
+target_compile_definitions(example PRIVATE TEXTEDITOR_CONFIG="config.h")
+target_include_directories(example PRIVATE ${CMAKE_SOURCE_DIR})
+
 target_compile_options(example PRIVATE
 	$<$<COMPILE_LANG_AND_ID:CXX,AppleClang,Clang,GNU>:-Werror -Wall -Wpedantic -Wextra>
 	$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/W4 /WX /utf-8>)

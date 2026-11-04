@@ -3281,6 +3281,121 @@ void TextEditor::SetLanguage(const Language* language) {
 
 
 //
+//	TextEditor::RegisterBuiltinLanguage
+//
+
+void TextEditor::RegisterBuiltinLanguage(const std::string name, std::function<const Language*()> creator, const std::vector<std::string> extensions) {
+	buildinLanguages.emplace_back(name);
+	buildinLanguagesIndex.emplace(name);
+	std::sort(buildinLanguages.begin(), buildinLanguages.end());
+	buildinLanguageCreators[name] = creator;
+
+	for (auto& extension : extensions) {
+		buildinLanguageExtensions[extension] = creator;
+	}
+}
+
+
+//
+//	TextEditor::addBuiltinLanguages
+//
+
+void TextEditor::addBuiltinLanguages() {
+	static bool initialized = false;
+
+	if (!initialized) {
+#if defined(TEXTEDITOR_INCLUDE_ANGELSCRIPT)
+		RegisterBuiltinLanguage("AngelScript", []() { return Language::AngelScript(); }, {".as"});
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_C)
+		RegisterBuiltinLanguage("C", []() { return Language::C(); }, {".c"});
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_CPP)
+		RegisterBuiltinLanguage("C++", []() { return Language::Cpp(); }, {".cpp", ".h", "hpp"});
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_CS)
+		RegisterBuiltinLanguage("C#", []() { return Language::Cs(); }, {".cs"});
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_GLSL)
+		RegisterBuiltinLanguage("GLSL", []() { return Language::Glsl(); }, {".glsl"});
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_HLSL)
+		RegisterBuiltinLanguage("HLSL", []() { return Language::Hlsl(); }, {".hlsl"});
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_JSON)
+		RegisterBuiltinLanguage("JSON", []() { return Language::Json(); }, {".json"});
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_LUA)
+		RegisterBuiltinLanguage("Lua", []() { return Language::Lua(); }, {".lua"});
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_MARKDOWN)
+		RegisterBuiltinLanguage("Markdown", []() { return Language::Markdown(); }, {".md"});
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_PYTHON)
+		RegisterBuiltinLanguage("Python", []() { return Language::Python(); }, {".py"});
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_SQL)
+		RegisterBuiltinLanguage("SQL", []() { return Language::Sql(); }, {".sql"});
+#endif
+
+		initialized = true;
+	}
+}
+
+
+//
+//	TextEditor::GetBuiltinLanguage
+//
+
+const TextEditor::Language* TextEditor::GetBuiltinLanguage(const std::string& name) {
+	addBuiltinLanguages();
+
+	if (buildinLanguagesIndex.find(name) == buildinLanguagesIndex.end()) {
+		return nullptr;
+
+	} else {
+		return buildinLanguageCreators[name]();
+	}
+}
+
+
+//
+//	TextEditor::GetBuiltinLanguageByExtension
+//
+
+const TextEditor::Language* TextEditor::GetBuiltinLanguageByExtension(const std::string& extension) {
+	addBuiltinLanguages();
+
+	if (buildinLanguageExtensions.find(extension) == buildinLanguageExtensions.end()) {
+		return nullptr;
+
+	} else {
+		return buildinLanguageExtensions[extension]();
+	}
+}
+
+
+//
+//	TextEditor::GetBuiltinLanguages
+//
+
+const std::vector<std::string> TextEditor::GetBuiltinLanguages() {
+	addBuiltinLanguages();
+	return buildinLanguages;
+}
+
+
+//
 //	TextEditor::Cursor::grow
 //
 
@@ -10746,6 +10861,7 @@ const TextEditor::Palette& TextEditor::GetLightPalette() {
 TextEditor::Palette TextEditor::defaultPalette = TextEditor::GetDarkPalette();
 
 
+#if defined(TEXTEDITOR_INCLUDE_C)
 //
 //	getCStyleIdentifier
 //
@@ -11720,8 +11836,10 @@ const TextEditor::Language* TextEditor::Language::C() {
 
 	return &language;
 }
+#endif
 
 
+#if defined(TEXTEDITOR_INCLUDE_CPP)
 //
 //	TextEditor::Language::Cpp
 //
@@ -11768,8 +11886,10 @@ const TextEditor::Language* TextEditor::Language::Cpp() {
 
 	return &language;
 }
+#endif
 
 
+#if defined(TEXTEDITOR_INCLUDE_CS)
 //
 //	getCsStyleNumber
 //
@@ -12340,8 +12460,10 @@ const TextEditor::Language* TextEditor::Language::Cs() {
 
 	return &language;
 }
+#endif
 
 
+#if defined(TEXTEDITOR_INCLUDE_ANGELSCRIPT)
 //
 //	TextEditor::Language::AngelScript
 //
@@ -12379,8 +12501,10 @@ const TextEditor::Language* TextEditor::Language::AngelScript() {
 
 	return &language;
 }
+#endif
 
 
+#if defined(TEXTEDITOR_INCLUDE_LUA)
 //
 //	getLuaStyleNumber
 //
@@ -12968,8 +13092,10 @@ const TextEditor::Language* TextEditor::Language::Lua() {
 
 	return &language;
 }
+#endif
 
 
+#if defined(TEXTEDITOR_INCLUDE_PYTHON)
 //
 //	getPythonStyleNumber
 //
@@ -13275,8 +13401,10 @@ const TextEditor::Language* TextEditor::Language::Python() {
 
 	return &language;
 }
+#endif
 
 
+#if defined(TEXTEDITOR_INCLUDE_GLSL)
 //
 //	TextEditor::Language::Glsl
 //
@@ -13329,8 +13457,10 @@ const TextEditor::Language* TextEditor::Language::Glsl() {
 
 	return &language;
 }
+#endif
 
 
+#if defined(TEXTEDITOR_INCLUDE_HLSL)
 //
 //	TextEditor::Language::Hlsl
 //
@@ -13386,8 +13516,10 @@ const TextEditor::Language* TextEditor::Language::Hlsl() {
 
 	return &language;
 }
-//	tokenizeJson
-//
+#endif
+
+
+#if defined(TEXTEDITOR_INCLUDE_JSON)
 
 static TextEditor::Iterator tokenizeJson(TextEditor::Iterator start, TextEditor::Iterator end, TextEditor::Color& color) {
 	TextEditor::Iterator i = start;
@@ -13741,8 +13873,10 @@ const TextEditor::Language* TextEditor::Language::Json() {
 
 	return &language;
 }
+#endif
 
 
+#if defined(TEXTEDITOR_INCLUDE_MARKDOWN)
 //
 //	tokenizeMarkdown
 //
@@ -14175,8 +14309,10 @@ const TextEditor::Language* TextEditor::Language::Markdown() {
 
 	return &language;
 }
+#endif
 
 
+#if defined(TEXTEDITOR_INCLUDE_SQL)
 //
 //	TextEditor::Language::Sql
 //
@@ -14245,3 +14381,4 @@ const TextEditor::Language* TextEditor::Language::Sql() {
 
 	return &language;
 }
+#endif

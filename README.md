@@ -70,7 +70,8 @@ features are however included.
 - Is C++17 based (not unreasonable in 2026 I think) although Dear ImGui still uses C++11.
 - Has no runtime dependencies other than Dear ImGui and the C++17 Standard Template Library (STL).
 - Has full undo/redo capabilities and supports native clipboard with UTF-8 encoded strings.
-- Has extendable syntax highlighting for multiple languages and API for custom languages.
+- Has extendable syntax highlighting for multiple builtin languages and API for custom languages.
+- Has support for limiting [builtin languages](docs/languages.md) at compile time.
 - Has customizable color palettes (a dark and light version that work with Dear ImGui defaults are included).
 - Has option to automatically insert spaces on tabs.
 - Has find/replace user interface and API with full undo/redo (the user interface can be disabled when the application provides its own search).
@@ -207,9 +208,9 @@ See GImGui documentation in imgui.cpp for more details.
 	- Ctrl-Enter adds line below.
 	- Ctrl-Shift-Enter adds line above.
 
-	- Delete Text:
-	- Backspace key deletes character to the left of cursor or deletes selection(s).
-	- Delete key deletes character to the right of cursor or deletes selection(s).
+- Delete Text:
+	- (shift-)Backspace key deletes character to the left of cursor or deletes selection(s).
+	- (shift-)Delete key deletes character to the right of cursor or deletes selection(s).
 	- Ctrl-Shift-K deletes all selected lines.
 
 - Text Manipulation:

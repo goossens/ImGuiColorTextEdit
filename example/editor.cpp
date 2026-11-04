@@ -118,7 +118,8 @@ Editor::Editor() {
 	version = editor.GetUndoIndex();
 	filename = "untitled.cpp";
 
-	setLanguageByExtention(filename);
+	setLanguageByName("C++");
+
 	editor.SetShowMiniMapEnabled(true);
 	editor.SetFocus();
 
@@ -161,7 +162,7 @@ void Editor::newFile() {
 			editor.SetText("");
 			version = editor.GetUndoIndex();
 			filename = "untitled";
-			setLanguageByExtention(filename);
+			setLanguage(nullptr);
 		});
 
 	} else {
@@ -173,7 +174,7 @@ void Editor::newFile() {
 		editor.SetText("");
 		version = editor.GetUndoIndex();
 		filename = "untitled";
-		setLanguageByExtention(filename);
+		setLanguage(nullptr);
 	}
 }
 
@@ -214,7 +215,7 @@ void Editor::openFile(const std::filesystem::path& path) {
 		version = editor.GetUndoIndex();
 		filename = path;
 
-		setLanguageByExtention(filename);
+		setLanguage(TextEditor::GetBuiltinLanguageByExtension(filename.extension().string()));
 
 	} catch (std::exception& e) {
 		showError(e.what());
@@ -578,27 +579,31 @@ void Editor::renderMenuBar() {
 //
 
 void Editor::renderStatusBar() {
-	// language support
-	static const char* languages[] = {"None", "C", "C++", "Cs", "AngelScript", "Lua", "Python", "GLSL", "HLSL",  "JSON", "Markdown", "SQL"};
-	std::string language = editor.GetLanguageName();
-
 	// create a statusbar window
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, editor.GetPalette().get(TextEditor::Color::background));
 	ImGui::BeginChild("Status Bar", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders);
 	ImGui::SetNextItemWidth(120.0f);
 
+	auto currentLanguage = editor.GetLanguageName();
+
+	auto languageSelector = [this, currentLanguage](const std::string language) {
+		bool selected = (language == currentLanguage);
+
+		if (ImGui::Selectable(language.c_str(), selected)) {
+			setLanguageByName(language);
+		}
+
+		if (selected) {
+			ImGui::SetItemDefaultFocus();
+		}
+	};
+
 	// allow user to select language for colorizing
-	if (ImGui::BeginCombo("##LanguageSelector", language.c_str())) {
-		for (int n = 0; n < IM_ARRAYSIZE(languages); n++) {
-			bool selected = (language == languages[n]);
+	if (ImGui::BeginCombo("##LanguageSelector", currentLanguage.c_str())) {
+		languageSelector("None");
 
-			if (ImGui::Selectable(languages[n], selected)) {
-				setLanguageByName(languages[n]);
-			}
-
-			if (selected) {
-				ImGui::SetItemDefaultFocus();
-			}
+		for (auto language : editor.GetBuiltinLanguages()) {
+			languageSelector(language);
 		}
 
 		ImGui::EndCombo();
@@ -1117,88 +1122,7 @@ void Editor::setLanguage(const TextEditor::Language* language) {
 //
 
 void Editor::setLanguageByName(const std::string& name) {
-	if (name == "C") {
-		setLanguage(TextEditor::Language::C());
-
-	} else if (name == "C++") {
-		setLanguage(TextEditor::Language::Cpp());
-
-	} else if (name == "C#") {
-		setLanguage(TextEditor::Language::Cs());
-
-	} else if (name == "AngelScript") {
-		setLanguage(TextEditor::Language::AngelScript());
-
-	} else if (name == "Lua") {
-		setLanguage(TextEditor::Language::Lua());
-
-	} else if (name == "Python") {
-		setLanguage(TextEditor::Language::Python());
-
-	} else if (name == "GLSL") {
-		setLanguage(TextEditor::Language::Glsl());
-
-	} else if (name == "HLSL") {
-		setLanguage(TextEditor::Language::Hlsl());
-
-	} else if (name == "JSON") {
-		setLanguage(TextEditor::Language::Json());
-
-	} else if (name == "Markdown") {
-		setLanguage(TextEditor::Language::Markdown());
-
-	} else if (name == "SQL") {
-		setLanguage(TextEditor::Language::Sql());
-
-	} else {
-		setLanguage(nullptr);
-	}
-}
-
-
-//
-//	Editor::setLanguageByExtention
-//
-
-void Editor::setLanguageByExtention(const std::filesystem::path& path) {
-	const auto extension = path.extension();
-
-	if (extension == ".cpp" || extension == ".h" || extension == ".hpp") {
-		setLanguage(TextEditor::Language::Cpp());
-
-	} else if (extension == ".c") {
-		setLanguage(TextEditor::Language::C());
-
-	} else if (extension == ".cs") {
-		setLanguage(TextEditor::Language::Cs());
-
-	} else if (extension == ".as") {
-		setLanguage(TextEditor::Language::AngelScript());
-
-	} else if (extension == ".lua") {
-		setLanguage(TextEditor::Language::Lua());
-
-	} else if (extension == ".py") {
-		setLanguage(TextEditor::Language::Python());
-
-	} else if (extension == ".glsl") {
-		setLanguage(TextEditor::Language::Glsl());
-
-	} else if (extension == ".hlsl") {
-		setLanguage(TextEditor::Language::Hlsl());
-
-	} else if (extension == ".json") {
-		setLanguage(TextEditor::Language::Json());
-
-	} else if (extension == ".md") {
-		setLanguage(TextEditor::Language::Markdown());
-
-	} else if (extension == ".sql") {
-		setLanguage(TextEditor::Language::Sql());
-
-	} else {
-		setLanguage(nullptr);
-	}
+	setLanguage(TextEditor::GetBuiltinLanguage(name));
 }
 
 

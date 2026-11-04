@@ -21,10 +21,17 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include "imgui.h"
+
+// configuration file with compile-time options
+// #define TEXTEDITOR_CONFIG "myfilename.h" from your build system
+#ifdef TEXTEDITOR_CONFIG
+#include TEXTEDITOR_CONFIG
+#endif
 
 
 //
@@ -642,6 +649,118 @@ public:
 	};
 
 	// language support
+
+	// see if any builtin language are selected
+#if defined(TEXTEDITOR_INCLUDE_ANGELSCRIPT) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_C) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_CPP) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_CS) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_GLSL) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_HLSL) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_JSON) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_LUA) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_MARKDOWN) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_PYTHON) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_SQL) && !defined(TEXTEDITOR_LANGUAGE_FILTER)
+#define TEXTEDITOR_LANGUAGE_FILTER
+#endif
+
+	// include all buildin languages (if required)
+#if !defined(TEXTEDITOR_LANGUAGE_FILTER) && !defined(TEXTEDITOR_EXCLUDE_ALL)
+#define TEXTEDITOR_INCLUDE_ANGELSCRIPT
+#define TEXTEDITOR_INCLUDE_C
+#define TEXTEDITOR_INCLUDE_CPP
+#define TEXTEDITOR_INCLUDE_CS
+#define TEXTEDITOR_INCLUDE_GLSL
+#define TEXTEDITOR_INCLUDE_HLSL
+#define TEXTEDITOR_INCLUDE_JSON
+#define TEXTEDITOR_INCLUDE_LUA
+#define TEXTEDITOR_INCLUDE_MARKDOWN
+#define TEXTEDITOR_INCLUDE_PYTHON
+#define TEXTEDITOR_INCLUDE_SQL
+#endif
+
+	// see if any builtin languages are specifically excluded
+#if defined(TEXTEDITOR_EXCLUDE_ANGELSCRIPT) && defined(TEXTEDITOR_INCLUDE_ANGELSCRIPT)
+#undef TEXTEDITOR_INCLUDE_ANGELSCRIPT
+#endif
+
+#if defined(TEXTEDITOR_EXCLUDE_C) && defined(TEXTEDITOR_INCLUDE_C)
+#undef TEXTEDITOR_INCLUDE_C
+#endif
+
+#if defined(TEXTEDITOR_EXCLUDE_CPP) && defined(TEXTEDITOR_INCLUDE_CPP)
+#undef TEXTEDITOR_INCLUDE_CPP
+#endif
+
+#if defined(TEXTEDITOR_EXCLUDE_CS) && defined(TEXTEDITOR_INCLUDE_CS)
+#undef TEXTEDITOR_INCLUDE_CS
+#endif
+
+#if defined(TEXTEDITOR_EXCLUDE_GLSL) && defined(TEXTEDITOR_INCLUDE_GLSL)
+#undef TEXTEDITOR_INCLUDE_GLSL
+#endif
+
+#if defined(TEXTEDITOR_EXCLUDE_HLSL) && defined(TEXTEDITOR_INCLUDE_HLSL)
+#undef TEXTEDITOR_INCLUDE_HLSL
+#endif
+
+#if defined(TEXTEDITOR_EXCLUDE_JSON) && defined(TEXTEDITOR_INCLUDE_JSON)
+#undef TEXTEDITOR_INCLUDE_JSON
+#endif
+
+#if defined(TEXTEDITOR_EXCLUDE_LUA) && defined(TEXTEDITOR_INCLUDE_LUA)
+#undef TEXTEDITOR_INCLUDE_LUA
+#endif
+
+#if defined(TEXTEDITOR_EXCLUDE_MARKDOWN) && defined(TEXTEDITOR_INCLUDE_MARKDOWN)
+#undef TEXTEDITOR_INCLUDE_MARKDOWN
+#endif
+
+#if defined(TEXTEDITOR_EXCLUDE_PYTHON) && defined(TEXTEDITOR_INCLUDE_PYTHON)
+#undef TEXTEDITOR_INCLUDE_PYTHON
+#endif
+
+#if defined(TEXTEDITOR_EXCLUDE_SQL) && defined(TEXTEDITOR_INCLUDE_SQL)
+#undef TEXTEDITOR_INCLUDE_SQL
+#endif
+
+	// ensure language dependencies are intact
+#if (defined(TEXTEDITOR_INCLUDE_ANGELSCRIPT) || defined(TEXTEDITOR_INCLUDE_CPP) || defined(TEXTEDITOR_INCLUDE_CS) || defined(TEXTEDITOR_INCLUDE_GLSL) || defined(TEXTEDITOR_INCLUDE_HLSL) || defined(TEXTEDITOR_INCLUDE_LUA) || defined(TEXTEDITOR_INCLUDE_PYTHON)) && !defined(TEXTEDITOR_INCLUDE_C)
+#define TEXTEDITOR_INCLUDE_C
+#endif
+
+	// language definition
 	struct Language {
 		// name of the language
 		std::string name;
@@ -720,18 +839,50 @@ public:
 		// if a token is found, function should return an iterator to the character after the token and set the color
 		std::function<Iterator(Iterator start, Iterator end, Color& color)> customTokenizer;
 
-		// predefined language definitions
-		static const Language* C();
-		static const Language* Cpp();
-		static const Language* Cs();
+		// builtin language definitions
+#if defined(TEXTEDITOR_INCLUDE_ANGELSCRIPT)
 		static const Language* AngelScript();
-		static const Language* Lua();
-		static const Language* Python();
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_C)
+		static const Language* C();
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_CPP)
+		static const Language* Cpp();
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_CS)
+		static const Language* Cs();
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_GLSL)
 		static const Language* Glsl();
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_HLSL)
 		static const Language* Hlsl();
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_JSON)
 		static const Language* Json();
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_LUA)
+		static const Language* Lua();
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_MARKDOWN)
 		static const Language* Markdown();
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_PYTHON)
+		static const Language* Python();
+#endif
+
+#if defined(TEXTEDITOR_INCLUDE_SQL)
 		static const Language* Sql();
+#endif
 	};
 
 	void SetLanguage(const Language* language);
@@ -739,6 +890,22 @@ public:
 	inline bool HasLanguage() const { return config.language != nullptr; }
 	inline std::string GetLanguageName() const { return config.language == nullptr ? "None" : config.language->name; }
 	inline void SetLanguageChangeCallback(std::function<void()> callback) { languageChangeCallback = callback; }
+
+	// access builtin languages
+	// by default all languages are compiled in and usage is a runtime choice
+	// you can remove code for unused languages using the preprocessor flags above
+
+	// add a builtin language definition for an externally defined language
+	static void RegisterBuiltinLanguage(const std::string name, std::function<const Language*()> creator, const std::vector<std::string> extensions);
+
+	// return the named builtin language definition or nullptr if name is unknown or not included
+	static const Language* GetBuiltinLanguage(const std::string& name);
+
+	// return the builtin language definition based on file extension or nullptr if extension is unknown or not included
+	static const Language* GetBuiltinLanguageByExtension(const std::string& extension);
+
+	// get sorted list of builtin language definitions
+	static const std::vector<std::string> GetBuiltinLanguages();
 
 	// iterate through identifiers detected by the colorizer (based on current language)
 	inline void IterateIdentifiers(std::function<void(const std::string& identifier)> callback) const { document.iterateIdentifiers(callback); }
@@ -2109,6 +2276,13 @@ protected:
 	std::chrono::system_clock::time_point delayedChangeReportTime;
 	bool delayedChangeDetected = false;
 	std::function<void()> languageChangeCallback;
+
+	// buildin language support
+	inline static std::vector<std::string> buildinLanguages;
+	inline static std::unordered_set<std::string> buildinLanguagesIndex;
+	inline static std::unordered_map<std::string, std::function<const Language*()>> buildinLanguageCreators;
+	inline static std::unordered_map<std::string, std::function<const Language*()>> buildinLanguageExtensions;
+	static void addBuiltinLanguages();
 
 	// color palette support
 	void updatePalettes();
