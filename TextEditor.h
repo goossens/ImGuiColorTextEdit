@@ -124,6 +124,11 @@ public:
 	inline bool IsShowScrollbarMiniMapEnabled() const { return config.showScrollbarMiniMap; }
 	inline void SetShowPanScrollIndicatorEnabled(bool value) { config.showPanScrollIndicator = value; }
 	inline bool IsShowPanScrollIndicatorEnabled() const { return config.showPanScrollIndicator; }
+	inline void SetMiddleMousePanMode() { config.panMode = true; }
+	inline void SetMiddleMouseScrollMode() { config.panMode = false; }
+	inline bool IsMiddleMousePanMode() const { return config.panMode; }
+	inline void SetSmoothScrollingEnabled(bool value) { config.smoothScrolling = value; } // ScrollToLine() glides there
+	inline bool IsSmoothScrollingEnabled() const { return config.smoothScrolling; }
 	inline void SetShowCurrentLineHighlightEnabled(bool value) { config.showCurrentLineHighlight = value; }
 	inline bool IsShowCurrentLineHighlightEnabled() const { return config.showCurrentLineHighlight; }
 	inline void SetShowMatchingBrackets(bool value) { config.showMatchingBrackets = value; if (!value) { config.lineFolding = false; } }
@@ -134,11 +139,8 @@ public:
 	inline bool IsLineFoldingEnabled() const { return config.lineFolding; }
 	inline void SetOverwriteEnabled(bool value) { config.overwrite = value; }
 	inline bool IsOverwriteEnabled() const { return config.overwrite; }
-	inline void SetMiddleMousePanMode() { config.panMode = true; }
-	inline void SetMiddleMouseScrollMode() { config.panMode = false; }
-	inline bool IsMiddleMousePanMode() const { return config.panMode; }
-	inline void SetLineNumberLeftMargin(size_t value) { config.leftMargin = value; } // margins are expressed in glyphs
-	inline size_t GetLineNumberLeftMargin() const { return config.leftMargin; }
+	inline void SetLeftMargin(size_t value) { config.leftMargin = value; } // margins are expressed in glyphs
+	inline size_t GetLeftMargin() const { return config.leftMargin; }
 	inline void SetDecorationLeftMargin(size_t value) { config.decorationMargin = value; }
 	inline size_t GetDecorationLeftMargin() const { return config.decorationMargin; }
 	inline void SetTextLeftMargin(size_t value) { config.textMargin = value; }
@@ -1022,6 +1024,7 @@ protected:
 		bool overwrite = false;
 		bool panMode = true;
 		bool showPanScrollIndicator = true;
+		bool smoothScrolling = false;
 		bool findReplaceEnabled = true;
 		size_t leftMargin = 1; // margins are expressed in number of glyphs
 		size_t decorationMargin = 1;
@@ -2078,6 +2081,9 @@ protected:
 	Scroll scrollToAlignment = Scroll::alignMiddle;
 	float scrollToFraction = 0.0f;
 	DocPos scrollToDocPos{invalidLine, 0};
+	float smoothScrollTargetY = -1.0f;
+	float smoothScrollTime = 0.0f;
+	static constexpr float smoothScrollDuration = 0.3f;
 	bool resetDearImGuiScrolling = false;
 
 	size_t decoratorWidth = 0;

@@ -2129,7 +2129,33 @@ void TextEditor::handlePossibleScrolling() {
 	}
 
 	if (scrollY >= 0.0f) {
-		ImGui::SetScrollY(scrollY);
+		if (config.smoothScrolling) {
+			smoothScrollTargetY = scrollY;
+			smoothScrollTime = 0.0f;
+
+		} else {
+			ImGui::SetScrollY(scrollY);
+			smoothScrollTargetY = -1.0f;
+		}
+	}
+
+	// running smooth scroll: a fast ease toward its target, which it reaches after smoothScrollDuration
+	// the user's own scrolling stops it
+	if (smoothScrollTargetY >= 0.0f) {
+		smoothScrollTime += ImGui::GetIO().DeltaTime;
+
+		if (ImGui::IsWindowHovered() && ImGui::GetIO().MouseWheel != 0.0f) {
+			smoothScrollTargetY = -1.0f;
+
+		} else if (smoothScrollTime >= smoothScrollDuration) {
+			ImGui::SetScrollY(smoothScrollTargetY);
+			smoothScrollTargetY = -1.0f;
+
+		} else {
+			const auto current = ImGui::GetScrollY();
+			const auto step = 1.0f - std::exp(-ImGui::GetIO().DeltaTime * 18.0f);
+			ImGui::SetScrollY(current + (smoothScrollTargetY - current) * step);
+		}
 	}
 }
 
