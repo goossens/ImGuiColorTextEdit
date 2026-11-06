@@ -4768,7 +4768,23 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(Line& line) {
 			if (size && matches(glyph, end, language->commentEnd)) {
 				setColor(glyph, glyph + size, Color::comment);
 				glyph += size;
-				state = LineState::inText;
+
+				// nested comments are closed one level at a time
+				if (language->nestedComments && state != LineState::inComment) {
+					state = static_cast<LineState>(static_cast<int>(state) - 1);
+
+				} else {
+					state = LineState::inText;
+				}
+
+			} else if (language->nestedComments && matches(glyph, end, language->commentStart)) {
+				size = language->commentStart.size();
+				setColor(glyph, glyph + size, Color::comment);
+				glyph += size;
+
+				if (state != LineState::inCommentLevel7) {
+					state = static_cast<LineState>(static_cast<int>(state) + 1);
+				}
 
 			} else if (language->commentLevelEnd) {
 				size_t level;
@@ -4786,7 +4802,7 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(Line& line) {
 				}
 			}
 
-			if (lineStateInComment(state)) {
+			if (glyph == start) {
 				(glyph++)->color = Color::comment;
 			}
 

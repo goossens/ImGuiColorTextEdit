@@ -663,6 +663,9 @@ public:
 		std::string commentStart;
 		std::string commentEnd;
 
+		// flag to specify whether multiline comments can be nested (up to 8 levels, can't be combined with commentLevelStart/End)
+		bool nestedComments = false;
+
 		// functions to help tokenize multilevel, multiline comments (can be nullptr if language doesn't have this feature)
 		// start and end refer to the characters being tokenized
 		// functions should return an iterator to the character after the detected token and set level
