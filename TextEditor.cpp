@@ -4615,7 +4615,7 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(Line& line) {
 	while (glyph < end) {
 		// start parsing glyphs
 		const auto start = glyph;
-		const Iterator tokenStart(&*glyph);
+		const Iterator tokenStart(&*glyph, line.data());
 
 		if (state == LineState::inText) {
 			// special handling for preprocessor lines

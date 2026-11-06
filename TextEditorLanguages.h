@@ -32,6 +32,7 @@
 #include "languages/TextEditorGlsl.h"
 #include "languages/TextEditorHlsl.h"
 #include "languages/TextEditorJson.h"
+#include "languages/TextEditorJulia.h"
 #include "languages/TextEditorLua.h"
 #include "languages/TextEditorMarkdown.h"
 #include "languages/TextEditorPython.h"
@@ -54,6 +55,7 @@ void TextEditor::registerLanguages() {
 	TextEditor::RegisterLanguage("GLSL", GetLanguageDefinitionGlsl, {".glsl"});
 	TextEditor::RegisterLanguage("HLSL", GetLanguageDefinitionHlsl, {".hlsl"});
 	TextEditor::RegisterLanguage("JSON", GetLanguageDefinitionJson, {".json"});
+	TextEditor::RegisterLanguage("Julia", GetLanguageDefinitionJulia, {".jl"});
 	TextEditor::RegisterLanguage("Lua", GetLanguageDefinitionLua, {".lua"});
 	TextEditor::RegisterLanguage("Markdown", GetLanguageDefinitionMarkdown, {".md"});
 	TextEditor::RegisterLanguage("Python", GetLanguageDefinitionPython, {".py"});

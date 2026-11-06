@@ -10,6 +10,7 @@ Currently the following languages are supported:
 - GLSL
 - HLSL
 - Json
+- Julia
 - Lua
 - Markdown
 - Python

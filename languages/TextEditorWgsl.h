@@ -5,6 +5,9 @@
 //	For a copy, see <https://opensource.org/licenses/MIT>.
 
 
+//	Contributed by Yan Pujante (https://github.com/ypujante)
+
+
 //
 //	GetLanguageDefinitionWgsl
 //

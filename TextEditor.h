@@ -617,7 +617,8 @@ public:
 	public:
 		// constructors
 		Iterator() = default;
-		Iterator(Glyph* g) : glyph(g) {}
+		Iterator(Glyph* glyph) : glyph(glyph) {}
+		Iterator(Glyph* glyph, Glyph* start) : glyph(glyph), lineStart(start) {}
 
 		using iterator_category = std::forward_iterator_tag;
 		using difference_type = std::ptrdiff_t;
@@ -637,9 +638,14 @@ public:
 		inline friend bool operator>(const Iterator& a, const Iterator& b) { return a.glyph > b.glyph; };
 		inline friend bool operator>=(const Iterator& a, const Iterator& b) { return a.glyph >= b.glyph; };
 
+		// codepoint before the iterator on the same line (only call previous() if hasPrevious() is true)
+		inline bool hasPrevious() const { return lineStart && glyph > lineStart; }
+		inline ImWchar previous() const { return (glyph - 1)->codepoint; }
+
 	private:
 		// properties
 		Glyph* glyph;
+		Glyph* lineStart = nullptr;
 	};
 
 	// language support
