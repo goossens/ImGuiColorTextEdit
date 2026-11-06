@@ -70,7 +70,7 @@ features are however included.
 - Is C++17 based (not unreasonable in 2026 I think) although Dear ImGui still uses C++11.
 - Has no runtime dependencies other than Dear ImGui and the C++17 Standard Template Library (STL).
 - Has full undo/redo capabilities and supports native clipboard with UTF-8 encoded strings.
-- Has extendable syntax highlighting for multiple builtin languages and API for custom languages.
+- Has extendable syntax highlighting for multiple builtin languages and APIs for custom languages.
 - Has support for limiting [builtin languages](docs/languages.md) at compile time.
 - Has customizable color palettes (a dark and light version that work with Dear ImGui defaults are included).
 - Has option to automatically insert spaces on tabs.
@@ -116,13 +116,12 @@ As explained above, the editor is developed and maintained as part of a larger p
 In that bigger project, the editor is spread out over multiple source files and some
 of those are automatically generated using tools or derived from datasets (like the
 unicode database). Every time the editor is updated in the bigger project, relevant
-files are concatenated into a simple 2 (or 5 if you also want to use TextDiff)
-distribution which is included here.
+files are concatenated into a simple distribution which is included here.
 
 This repository therefore provides a simple mechanism to reuse the editor in any
 Dear ImGui context by doing the following:
 
-- Include the TextEditor.cpp and TextEditor.h files in your project.
+- Include the TextEditor.cpp, TextEditor.h, TextEditorLanguages.h files and the languages folder in your project.
 - Instantiate a TextEditor object for each editor widget you need.
 - Use the public API to set editor options or interact with the editor's contents.
 - Call the TextEditor's Render member function every frame in your Dear ImGui loop.

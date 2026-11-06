@@ -215,7 +215,7 @@ void Editor::openFile(const std::filesystem::path& path) {
 		version = editor.GetUndoIndex();
 		filename = path;
 
-		setLanguage(TextEditor::GetBuiltinLanguageByExtension(filename.extension().string()));
+		setLanguage(TextEditor::LookupLanguageByExtension(filename.extension().string()));
 
 	} catch (std::exception& e) {
 		showError(e.what());
@@ -602,7 +602,7 @@ void Editor::renderStatusBar() {
 	if (ImGui::BeginCombo("##LanguageSelector", currentLanguage.c_str())) {
 		languageSelector("None");
 
-		for (auto language : editor.GetBuiltinLanguages()) {
+		for (auto language : editor.GetRegisteredLanguages()) {
 			languageSelector(language);
 		}
 
@@ -1122,7 +1122,7 @@ void Editor::setLanguage(const TextEditor::Language* language) {
 //
 
 void Editor::setLanguageByName(const std::string& name) {
-	setLanguage(TextEditor::GetBuiltinLanguage(name));
+	setLanguage(TextEditor::LookupLanguage(name));
 }
 
 
