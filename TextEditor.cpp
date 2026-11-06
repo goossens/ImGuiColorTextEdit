@@ -89,21 +89,18 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		cursorScreenPos = ImGui::GetCursorScreenPos();
 		visibleSize = ImGui::GetCurrentWindow()->InnerRect.GetSize();
 
-		// determine horizontal offsets for line numbers, decorations and text
+		// determine horizontal offsets for folding indicator, line numbers, decorations and text
+		foldIndicatorLeftOffset = config.leftMargin * glyphSize.x;
+		foldIndicatorRightOffset = config.lineFolding ? foldIndicatorLeftOffset + glyphSize.x : foldIndicatorLeftOffset;
+
+		lineNumberLeftOffset = foldIndicatorRightOffset;
+
 		if (config.showLineNumbers) {
 			const auto digits = static_cast<size_t>(std::log10(static_cast<float>(document.size() + 1)) + 1.0f);
-			lineNumberLeftOffset = config.leftMargin * glyphSize.x;
 			lineNumberRightOffset = lineNumberLeftOffset + digits * glyphSize.x;
 
 		} else {
-			lineNumberLeftOffset = 0.0f;
-			lineNumberRightOffset = 0.0f;
-		}
-
-		if (config.lineFolding) {
-			foldIndicatorOffset = lineNumberLeftOffset;
-			lineNumberLeftOffset += glyphSize.x;
-			lineNumberRightOffset += glyphSize.x;
+			lineNumberRightOffset = lineNumberLeftOffset;
 		}
 
 		if (decoratorWidth) {
@@ -833,7 +830,7 @@ void TextEditor::renderFoldIndicators() {
 			if (typeSetter[i].section == 0) {
 				if (foldingState == FoldingState::foldable || foldingState == FoldingState::folded) {
 					const auto center = ImVec2(
-						ImGui::GetWindowPos().x + foldIndicatorOffset,
+						ImGui::GetWindowPos().x + foldIndicatorLeftOffset,
 						cursorScreenPos.y + glyphSize.y * i + fontSize / 2.0f);
 
 					const auto topLeft = center - ImVec2(glyphSize.x / 2.0f, fontSize / 2.0f);

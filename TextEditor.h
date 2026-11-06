@@ -2043,10 +2043,11 @@ protected:
 	float fontScaleDpi;
 	ImVec2 glyphSize;
 
+	float foldIndicatorLeftOffset;
+	float foldIndicatorRightOffset;
 	float lineNumberLeftOffset;
 	float lineNumberRightOffset;
 	float decorationOffset;
-	float foldIndicatorOffset;
 	float textLeftOffset;
 	float textRightOffset;
 	float miniMapOffset;
