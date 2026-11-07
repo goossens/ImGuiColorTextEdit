@@ -1289,7 +1289,7 @@ void TextEditor::handleKeyboardInputs() {
 		// remove text
 		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat)) { handleDelete(false); }
 		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Delete, ImGuiInputFlags_Repeat)) { handleDelete(false); }
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_Delete, ImGuiInputFlags_Repeat)) { handleDelete(true); }
+		else if (!config.readOnly && ImGui::Shortcut((macOS ? ImGuiMod_Alt : ImGuiMod_Ctrl) | ImGuiKey_Delete, ImGuiInputFlags_Repeat)) { handleDelete(true); }
 
 		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_Backspace, ImGuiInputFlags_Repeat)) { handleBackspace(false); }
 		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Backspace, ImGuiInputFlags_Repeat)) { handleBackspace(false); }
@@ -2588,10 +2588,8 @@ void TextEditor::handleCharacter(ImWchar character) {
 
 	endTransaction(transaction);
 
-	if (CodePoint::isWord(character) || autocomplete.isTriggerCharacter(character)) {
-		if (!cursors.hasMultiple() && autocomplete.startTyping(cursors, character)) {
-			makeCursorVisible();
-		}
+	if (!cursors.hasMultiple() && autocomplete.startTyping(cursors, character)) {
+		makeCursorVisible();
 	}
 }
 
@@ -8485,10 +8483,21 @@ void TextEditor::AutoComplete::setConfig(const AutoCompleteConfig* config) {
 //
 
 bool TextEditor::AutoComplete::startTyping(Cursors& cursors, ImWchar character) {
-	// a trigger character that isn't part of the search term ends the active session, so start a new one
-	const auto restart = active && isTriggerCharacter(character) && !isWordCharacter(character);
+	const auto trigger = isTriggerCharacter(character);
 
-	if ((!active || restart) && !requestActivation && configured && configuration.triggerOnTyping) {
+	// a pending activation follows typing that continues the search term
+	if (requestActivation) {
+		if (trigger || isWordCharacter(character)) {
+			currentLocation = cursors.getMain().getSelectionEnd();
+		}
+
+		return false;
+	}
+
+	// a trigger character that isn't part of the search term ends the active session, so start a new one
+	const auto restart = active && trigger && !isWordCharacter(character);
+
+	if ((!active || restart) && (trigger || CodePoint::isWord(character)) && configured && configuration.triggerOnTyping) {
 		triggeredManually = false;
 		cancel();
 		start(cursors);
@@ -8588,8 +8597,12 @@ static bool renderSuggestion(const std::string_view& suggestion, const std::stri
 bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, TypeSetter& typesetter, const Language* language, float textOffset, ImVec2 glyphSize) {
 	// see if we need to activate autocomplete mode (after a previous session is closed)
 	if (requestActivation && !active) {
+		// drop the request if the cursor was moved by anything but typing a search term during the delay
+		if (cursors.getMain().getSelectionEnd() != currentLocation) {
+			requestActivation = false;
+
 		// apply popup delay
-		if (std::chrono::system_clock::now() > activationTime) {
+		} else if (std::chrono::system_clock::now() > activationTime) {
 			// reset activation flag
 			requestActivation = false;
 
