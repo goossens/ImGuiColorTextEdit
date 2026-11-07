@@ -39,6 +39,12 @@ public:
 	bool triggerInComments = false;
 	bool triggerInStrings = false;
 
+	// characters (UTF-8) that trigger autocomplete when typed in addition to word characters (e.g. "\\" or ".")
+	std::string triggerCharacters;
+
+	// characters (UTF-8) that are part of a search term in addition to word characters (e.g. "\\^:" for LaTeX-like completions)
+	std::string wordCharacters;
+
 	// manual trigger key sequence (default is Ctrl+space on all platforms, even MacOS)
 	// remember Dear ImGui reverses Ctrl and Command on MacOS
 #if __APPLE__
@@ -86,6 +92,12 @@ public:
 	DocPos searchTermStart;
 	DocPos searchTermEnd;
 
+	// section replaced by a picked suggestion (defaults to the search term start and the end of the word at the cursor)
+	// the callback can move these on the same line (start not after and end not before the cursor)
+	// e.g. back to a backslash for LaTeX-like completions or to the cursor to keep the text after it
+	DocPos replacementStart;
+	DocPos replacementEnd;
+
 	bool inIdentifier;
 	bool inNumber;
 	bool inComment;
@@ -104,9 +116,48 @@ public:
 	// a pointer to the current language definition is provided so callbacks have easy access
 	std::vector<std::string> suggestions;
 
+	// optional labels (UTF-8) shown in the popup instead of the suggestions (e.g. "\lambda  λ" for suggestion "λ")
+	// labels are only used if there is one for each suggestion and are cleared before each callback call
+	std::vector<std::string> labels;
+
 	// set this to true if you are building the suggestion list asynchronously and provide it later
 	// this way autocomplete is not cancelled if the suggestion list is empty and the user hits tab or enter
 	bool suggestionsPromise = false;
+};
+```
+
+Asynchronous suggestions (and optional labels) can be provided with
+**SetAutoCompleteSuggestions(suggestions)** or **SetAutoCompleteSuggestions(suggestions, labels)**.
+
+By default, a search term consists of word characters (letters, digits and underscores)
+and only typing those triggers autocomplete. The **triggerCharacters**, **wordCharacters**,
+movable **replacementStart**/**replacementEnd** and **labels** make other completion styles possible. As an example,
+LaTeX-like symbol input (typing **\lambda** and picking **λ**, like the Julia REPL) can be done with:
+
+```c++
+config.triggerCharacters = "\\";
+config.wordCharacters = "\\^";
+
+config.callback = [](TextEditor::AutoCompleteState& state) {
+	state.suggestions.clear();
+
+	// only complete from the last backslash (so x\alpha becomes xα)
+	const auto backslash = state.searchTerm.rfind('\\');
+
+	if (backslash != std::string::npos) {
+		// only replace from the backslash to the cursor (DocPos indices count codepoints, not bytes)
+		for (size_t i = 0; i < backslash; i++) {
+			if ((state.searchTerm[i] & 0xc0) != 0x80) {
+				state.replacementStart.index++;
+			}
+		}
+
+		state.replacementEnd = state.searchTermEnd;
+
+		// find symbols whose name starts with state.searchTerm.substr(backslash)
+		// and add them to state.suggestions (e.g. "λ") and state.labels (e.g. "\lambda  λ")
+		...
+	}
 };
 ```
 
