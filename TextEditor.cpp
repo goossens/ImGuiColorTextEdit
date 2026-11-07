@@ -1130,8 +1130,8 @@ void TextEditor::renderPopups() {
 	// render autocomplete popup
 	if (autocomplete.render(document, cursors, typeSetter, config.language, textLeftOffset, glyphSize)) {
 		// user picked a suggestion so insert it
-		const auto start = autocomplete.getStart();
-		const auto end = document.findWordEnd(start, true);
+		const auto start = autocomplete.getReplacementStart();
+		const auto end = autocomplete.getReplacementEnd(document);
 		const auto replacement = autocomplete.getReplacement();
 		replaceSectionText(start, end, replacement);
 	}
@@ -1296,7 +1296,7 @@ void TextEditor::handleKeyboardInputs() {
 
 		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_Backspace, ImGuiInputFlags_Repeat)) { handleBackspace(false); }
 		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Backspace, ImGuiInputFlags_Repeat)) { handleBackspace(false); }
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_Backspace, ImGuiInputFlags_Repeat)) { handleBackspace(true); }
+		else if (!config.readOnly && ImGui::Shortcut((macOS ? ImGuiMod_Alt : ImGuiMod_Ctrl) | ImGuiKey_Backspace, ImGuiInputFlags_Repeat)) { handleBackspace(true); }
 
 		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_K)) { removeSelectedLines(); }
 
@@ -2565,10 +2565,8 @@ void TextEditor::handleCharacter(ImWchar character) {
 
 	endTransaction(transaction);
 
-	if (CodePoint::isWord(character)) {
-		if (!cursors.hasMultiple() && autocomplete.startTyping(cursors)) {
-			makeCursorVisible();
-		}
+	if (!cursors.hasMultiple() && autocomplete.startTyping(cursors, character)) {
+		makeCursorVisible();
 	}
 }
 
@@ -3823,8 +3821,10 @@ TextEditor::Color TextEditor::Document::getColor(DocPos location)  const {
 
 TextEditor::DocPos TextEditor::Document::getLeft(DocPos from, bool wordMode) const {
 	if (wordMode) {
-		// first move left by one glyph
-		from = getLeft(from);
+		// move to the end of the previous line if we're at the start of a line
+		if (from.index == 0) {
+			from = getLeft(from);
+		}
 
 		// now skip all whitespaces
 		from = findPreviousNonWhiteSpace(from, false);
@@ -3850,8 +3850,10 @@ TextEditor::DocPos TextEditor::Document::getLeft(DocPos from, bool wordMode) con
 
 TextEditor::DocPos TextEditor::Document::getRight(DocPos from, bool wordMode) const {
 	if (wordMode) {
-		// first move right by one glyph
-		from = getRight(from);
+		// move to the start of the next line if we're at the end of a line
+		if (from.index == at(from.line).size()) {
+			from = getRight(from);
+		}
 
 		// now skip all whitespaces
 		from = findNextNonWhiteSpace(from, false);
@@ -4268,9 +4270,10 @@ TextEditor::DocPos TextEditor::Document::findPreviousNonWhiteSpace(DocPos from, 
 		auto index = from.index;
 
 		while (!done && index > 0) {
-			index--;
+			if (CodePoint::isWhiteSpace(line[index - 1].codepoint)) {
+				index--;
 
-			if (!CodePoint::isWhiteSpace(line[index].codepoint)) {
+			} else {
 				from.index = index;
 				done = true;
 			}
@@ -4628,7 +4631,7 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(Line& line) {
 	while (glyph < end) {
 		// start parsing glyphs
 		const auto start = glyph;
-		const Iterator tokenStart(&*glyph);
+		const Iterator tokenStart(&*glyph, line.data());
 
 		if (state == LineState::inText) {
 			// special handling for preprocessor lines
@@ -4781,7 +4784,23 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(Line& line) {
 			if (size && matches(glyph, end, language->commentEnd)) {
 				setColor(glyph, glyph + size, Color::comment);
 				glyph += size;
-				state = LineState::inText;
+
+				// nested comments are closed one level at a time
+				if (language->nestedComments && state != LineState::inComment) {
+					state = static_cast<LineState>(static_cast<int>(state) - 1);
+
+				} else {
+					state = LineState::inText;
+				}
+
+			} else if (language->nestedComments && matches(glyph, end, language->commentStart)) {
+				size = language->commentStart.size();
+				setColor(glyph, glyph + size, Color::comment);
+				glyph += size;
+
+				if (state != LineState::inCommentLevel7) {
+					state = static_cast<LineState>(static_cast<int>(state) + 1);
+				}
 
 			} else if (language->commentLevelEnd) {
 				size_t level;
@@ -4799,7 +4818,7 @@ TextEditor::LineState TextEditor::Colorizer::updateLine(Line& line) {
 				}
 			}
 
-			if (lineStateInComment(state)) {
+			if (glyph == start) {
 				(glyph++)->color = Color::comment;
 			}
 
@@ -8436,6 +8455,19 @@ void TextEditor::AutoComplete::setConfig(const AutoCompleteConfig* config) {
 		configured = false;
 	}
 
+	// decode extra trigger and word characters
+	auto decode = [](const std::string_view& text, std::vector<ImWchar>& codepoints) {
+		codepoints.clear();
+
+		for (auto i = text.begin(); i < text.end();) {
+			ImWchar codepoint;
+			i = CodePoint::read(i, text.end(), &codepoint);
+			codepoints.emplace_back(codepoint);
+		}
+	};
+
+	decode(configuration.triggerCharacters, triggerCodepoints);
+	decode(configuration.wordCharacters, wordCodepoints);
 	active = false;
 }
 
@@ -8444,9 +8476,24 @@ void TextEditor::AutoComplete::setConfig(const AutoCompleteConfig* config) {
 //	TextEditor::AutoComplete::startTyping
 //
 
-bool TextEditor::AutoComplete::startTyping(Cursors& cursors) {
-	if (!active && !requestActivation && configured && configuration.triggerOnTyping) {
+bool TextEditor::AutoComplete::startTyping(Cursors& cursors, ImWchar character) {
+	const auto trigger = isTriggerCharacter(character);
+
+	// a pending activation follows typing that continues the search term
+	if (requestActivation) {
+		if (trigger || isWordCharacter(character)) {
+			currentLocation = cursors.getMain().getSelectionEnd();
+		}
+
+		return false;
+	}
+
+	// a trigger character that isn't part of the search term ends the active session, so start a new one
+	const auto restart = active && trigger && !isWordCharacter(character);
+
+	if ((!active || restart) && (trigger || CodePoint::isWord(character)) && configured && configuration.triggerOnTyping) {
 		triggeredManually = false;
+		cancel();
 		start(cursors);
 		return true;
 
@@ -8542,15 +8589,20 @@ static bool renderSuggestion(const std::string_view& suggestion, const std::stri
 //
 
 bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, TypeSetter& typesetter, const Language* language, float textOffset, ImVec2 glyphSize) {
-	// see if we need to activate autocomplete mode
-	if (requestActivation) {
+	// see if we need to activate autocomplete mode (after a previous session is closed)
+	if (requestActivation && !active) {
+		// drop the request if the editor lost focus (e.g. a menu was opened)
+		// or the cursor was moved by anything but typing a search term during the delay
+		if (!ImGui::IsWindowFocused() || cursors.getMain().getSelectionEnd() != currentLocation) {
+			requestActivation = false;
+
 		// apply popup delay
-		if (std::chrono::system_clock::now() > activationTime) {
+		} else if (std::chrono::system_clock::now() > activationTime) {
 			// reset activation flag
 			requestActivation = false;
 
 			// capture locations
-			startLocation = document.findWordStart(currentLocation, true);
+			startLocation = findWordStart(document, currentLocation);
 
 			// update the autocomplete state
 			updateState(document, language);
@@ -8588,7 +8640,7 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 
 		} else {
 			// see if cursor moved away from current word
-			const auto newStart = document.findWordStart(newLocation, true);
+			const auto newStart = findWordStart(document, newLocation);
 
 			if (newStart == startLocation) {
 				currentLocation = newLocation;
@@ -8680,7 +8732,12 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 					result = true;
 				}
 
-				// render suggestions
+				// render suggestions (or their labels)
+				const auto& texts = state.labels.size() == items ? state.labels : state.suggestions;
+
+				// highlight the text that will be replaced (the callback could have moved its start)
+				const auto highlightTerm = document.getSectionText(getReplacementStart(), currentLocation);
+
 				for (size_t i = 0; i < items; i++) {
 					// ensure unique ID
 					ImGui::PushID(static_cast<int>(i));
@@ -8692,7 +8749,7 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 						ImGui::SetScrollHereY(0.5f);
 					}
 
-					if (renderSuggestion(state.suggestions[i].c_str(), state.searchTerm, ImGui::GetContentRegionAvail().x, selected)) {
+					if (renderSuggestion(texts[i], highlightTerm, ImGui::GetContentRegionAvail().x, selected)) {
 						// user clicked on a suggestion, use it
 						currentSelection = i;
 						requestDeactivation = true;
@@ -8722,9 +8779,53 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 //	TextEditor::AutoComplete::setSuggestions
 //
 
-void TextEditor::AutoComplete::setSuggestions(const std::vector<std::string>& suggestions) {
+void TextEditor::AutoComplete::setSuggestions(const std::vector<std::string>& suggestions, const std::vector<std::string>& labels) {
 	state.suggestions = suggestions;
+	state.labels = labels;
 	currentSelection = 0;
+}
+
+
+//
+//	TextEditor::AutoComplete::isTriggerCharacter
+//
+
+bool TextEditor::AutoComplete::isTriggerCharacter(ImWchar codepoint) const {
+	return std::find(triggerCodepoints.begin(), triggerCodepoints.end(), codepoint) != triggerCodepoints.end();
+}
+
+
+//
+//	TextEditor::AutoComplete::getReplacementStart
+//
+
+TextEditor::DocPos TextEditor::AutoComplete::getReplacementStart() const {
+	// use the replacement start (which could have been changed by the callback) if it is valid
+	const auto start = state.replacementStart;
+
+	if (start.line == currentLocation.line && start.index <= currentLocation.index) {
+		return start;
+
+	} else {
+		return startLocation;
+	}
+}
+
+
+//
+//	TextEditor::AutoComplete::getReplacementEnd
+//
+
+TextEditor::DocPos TextEditor::AutoComplete::getReplacementEnd(const Document& document) const {
+	// use the replacement end (which could have been changed by the callback) if it is valid
+	const auto end = state.replacementEnd;
+
+	if (end.line == currentLocation.line && end.index >= currentLocation.index && end.index <= document[end.line].size()) {
+		return end;
+
+	} else {
+		return findWordEnd(document, currentLocation);
+	}
 }
 
 
@@ -8780,6 +8881,8 @@ void TextEditor::AutoComplete::updateState(Document& document, const Language* l
 
 	state.searchTermStart = startLocation;
 	state.searchTermEnd = currentLocation;
+	state.replacementStart = startLocation;
+	state.replacementEnd = findWordEnd(document, currentLocation);
 
 	state.language = language;
 	state.userData = configuration.userData;
@@ -8791,6 +8894,9 @@ void TextEditor::AutoComplete::updateState(Document& document, const Language* l
 //
 
 void TextEditor::AutoComplete::refreshSuggestions() {
+	// labels only apply to the suggestions from the call that set them
+	state.labels.clear();
+
 	// populate suggestion list through callback (or clear it if there is none)
 	if (configuration.callback) {
 		configuration.callback(state);
@@ -8800,6 +8906,49 @@ void TextEditor::AutoComplete::refreshSuggestions() {
 	}
 
 	currentSelection = 0;
+}
+
+
+//
+//	TextEditor::AutoComplete::isWordCharacter
+//
+
+bool TextEditor::AutoComplete::isWordCharacter(ImWchar codepoint) const {
+	return CodePoint::isWord(codepoint) || std::find(wordCodepoints.begin(), wordCodepoints.end(), codepoint) != wordCodepoints.end();
+}
+
+
+//
+//	TextEditor::AutoComplete::findWordStart
+//
+
+TextEditor::DocPos TextEditor::AutoComplete::findWordStart(const Document& document, DocPos from) const {
+	// like Document::findWordStart but with the extra word characters
+	const auto& line = document[from.line];
+	auto index = from.index;
+
+	while (index > 0 && isWordCharacter(line[index - 1].codepoint)) {
+		index--;
+	}
+
+	return DocPos(from.line, index);
+}
+
+
+//
+//	TextEditor::AutoComplete::findWordEnd
+//
+
+TextEditor::DocPos TextEditor::AutoComplete::findWordEnd(const Document& document, DocPos from) const {
+	// like Document::findWordEnd but with the extra word characters
+	const auto& line = document[from.line];
+	auto index = from.index;
+
+	while (index < line.size() && isWordCharacter(line[index].codepoint)) {
+		index++;
+	}
+
+	return DocPos(from.line, index);
 }
 
 
@@ -13270,6 +13419,475 @@ const TextEditor::Language* TextEditor::Language::Python() {
 		language.isPunctuation = isCStylePunctuation;
 		language.getIdentifier = getCStyleIdentifier;
 		language.getNumber = getPythonStyleNumber;
+		initialized = true;
+	}
+
+	return &language;
+}
+
+
+//
+//	isJuliaIdentifierStart
+//
+
+static bool isJuliaIdentifierStart(ImWchar c) {
+	// see jl_id_start_char in Julia's src/flisp/julia_extensions.c
+	// (currency symbols, other symbols and emoji are not supported as we don't have their Unicode categories)
+#if defined(IMGUI_USE_WCHAR32)
+	if (c >= 0x10000) {
+		// variants of nabla and partial, bold and double-struck digits
+		return TextEditor::CodePoint::isXidStart(c) ||
+			c == 0x1d6c1 || c == 0x1d6db || c == 0x1d6fb || c == 0x1d715 || c == 0x1d735 ||
+			c == 0x1d74f || c == 0x1d76f || c == 0x1d789 || c == 0x1d7a9 || c == 0x1d7c3 ||
+			(c >= 0x1d7ce && c <= 0x1d7e1);
+	}
+#endif
+
+	return TextEditor::CodePoint::isXidStart(c) ||
+		// math symbols
+		(c >= 0x2140 && c <= 0x2144) || c == 0x2200 || (c >= 0x2202 && c <= 0x2207) ||
+		c == 0x220e || c == 0x220f || c == 0x2210 || c == 0x2211 ||
+		c == 0x221e || c == 0x221f || (c >= 0x222b && c <= 0x2233) || c == 0x223f ||
+		c == 0x22a4 || c == 0x22a5 || c == 0x22be || c == 0x22bf || (c >= 0x22c0 && c <= 0x22c3) ||
+		(c >= 0x25f8 && c <= 0x25ff) || c == 0x266f || c == 0x27c0 || c == 0x27c1 || c == 0x27d8 || c == 0x27d9 ||
+		(c >= 0x29b0 && c <= 0x29b4) || (c >= 0x2a00 && c <= 0x2a06) || (c >= 0x2a09 && c <= 0x2a16) ||
+		c == 0x2a1b || c == 0x2a1c ||
+		// super- and subscript +-=()
+		(c >= 0x207a && c <= 0x207e) || (c >= 0x208a && c <= 0x208e) ||
+		// angle symbols
+		(c >= 0x2220 && c <= 0x2222) || (c >= 0x299b && c <= 0x29af) ||
+		// katakana-hiragana sound marks (Other_ID_Start but not XID_Start)
+		c == 0x309b || c == 0x309c;
+}
+
+
+//
+//	isJuliaIdentifierChar
+//
+
+static bool isJuliaIdentifierChar(ImWchar c) {
+	// see jl_id_char in Julia's src/flisp/julia_extensions.c (adds primes and super/subscripts)
+	return TextEditor::CodePoint::isXidContinue(c) || isJuliaIdentifierStart(c) || c == '!' ||
+		c == 0xb2 || c == 0xb3 || c == 0xb9 || (c >= 0x2032 && c <= 0x2037) || c == 0x2057 ||
+		(c >= 0x2070 && c <= 0x209c) || (c >= 0x1d62 && c <= 0x1d6a);
+}
+
+
+//
+//	getJuliaIdentifier
+//
+
+static TextEditor::Iterator getJuliaIdentifier(TextEditor::Iterator start, TextEditor::Iterator end) {
+	TextEditor::Iterator i = start;
+
+	if (i < end && isJuliaIdentifierStart(*i)) {
+		i++;
+
+		while (i < end && isJuliaIdentifierChar(*i)) {
+			// a!=b is a != b
+			if (*i == '!') {
+				auto next = i;
+
+				if (++next < end && *next == '=') {
+					break;
+				}
+			}
+
+			i++;
+		}
+	}
+
+	return i;
+}
+
+
+//
+//	followsJuliaOperand
+//
+
+static bool followsJuliaOperand(TextEditor::Iterator start) {
+	// the previous character tells apart x' (adjoint) from 'x' (character) and 1:n (range) from :n (symbol)
+	if (start.hasPrevious()) {
+		const auto c = start.previous();
+		return isJuliaIdentifierChar(c) || c == ')' || c == ']' || c == '}' || c == '\'' || c == '.';
+	}
+
+	return false;
+}
+
+
+//
+//	isJuliaDigit
+//
+
+static bool isJuliaDigit(ImWchar c, int base) {
+	if (base == 16) {
+		return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+
+	} else {
+		return c >= '0' && c < static_cast<ImWchar>('0' + std::min(base, 10));
+	}
+}
+
+
+//
+//	skipJuliaDigits
+//
+
+static TextEditor::Iterator skipJuliaDigits(TextEditor::Iterator i, TextEditor::Iterator end, int base) {
+	// underscores are allowed between digits
+	while (i < end) {
+		if (isJuliaDigit(*i, base)) {
+			i++;
+
+		} else if (*i == '_') {
+			auto next = i;
+
+			if (++next < end && isJuliaDigit(*next, base)) {
+				i = next;
+
+			} else {
+				break;
+			}
+
+		} else {
+			break;
+		}
+	}
+
+	return i;
+}
+
+
+//
+//	skipJuliaExponent
+//
+
+static TextEditor::Iterator skipJuliaExponent(TextEditor::Iterator i, TextEditor::Iterator end, bool hex) {
+	// exponent is only consumed if digits follow (2e is 2 * e)
+	if (i < end && (hex ? (*i == 'p' || *i == 'P') : (*i == 'e' || *i == 'E' || *i == 'f'))) {
+		auto j = i;
+		j++;
+
+		if (j < end && (*j == '+' || *j == '-' || *j == 0x2212)) {
+			j++;
+		}
+
+		if (j < end && isJuliaDigit(*j, 10)) {
+			return skipJuliaDigits(j, end, 10);
+		}
+	}
+
+	return i;
+}
+
+
+//
+//	isJuliaDottableOperator
+//
+
+static bool isJuliaDottableOperator(ImWchar c) {
+	return c == '!' || c == '%' || c == '&' || c == '*' || c == '+' || c == '-' || c == '/' || c == '<' ||
+		c == '=' || c == '>' || c == '\\' || c == '^' || c == '|' || c == '~' || c == 0xf7 || c == 0x2212;
+}
+
+
+//
+//	getJuliaNumber
+//
+
+static TextEditor::Iterator getJuliaNumber(TextEditor::Iterator start, TextEditor::Iterator end) {
+	TextEditor::Iterator i = start;
+
+	if (*i == '.') {
+		// .5
+		i++;
+
+		if (i < end && isJuliaDigit(*i, 10)) {
+			i = skipJuliaExponent(skipJuliaDigits(i, end, 10), end, false);
+
+		} else {
+			return start;
+		}
+
+	} else if (isJuliaDigit(*i, 10)) {
+		auto next = i;
+		next++;
+
+		if (*i == '0' && next < end && (*next == 'x' || *next == 'b' || *next == 'o')) {
+			// 0x1f, 0b101, 0o17 or hex float 0x1.8p3
+			const int base = *next == 'x' ? 16 : (*next == 'b' ? 2 : 8);
+			auto digits = next;
+			digits++;
+
+			if (digits < end && isJuliaDigit(*digits, base)) {
+				i = skipJuliaDigits(digits, end, base);
+
+				if (base == 16) {
+					auto fraction = i;
+
+					if (fraction < end && *fraction == '.') {
+						fraction = skipJuliaDigits(++fraction, end, 16);
+					}
+
+					auto exponent = skipJuliaExponent(fraction, end, true);
+
+					if (exponent != fraction) {
+						i = exponent;
+					}
+				}
+
+			} else {
+				i = next;
+			}
+
+		} else {
+			i = skipJuliaDigits(i, end, 10);
+
+			// 1..2 and 1.+x don't have a fraction
+			if (i < end && *i == '.') {
+				next = i;
+				next++;
+
+				if (next >= end || (*next != '.' && !isJuliaDottableOperator(*next))) {
+					i = skipJuliaDigits(next, end, 10);
+				}
+			}
+
+			i = skipJuliaExponent(i, end, false);
+		}
+
+	} else {
+		return start;
+	}
+
+	return i;
+}
+
+
+//
+//	isJuliaStylePunctuation
+//	!$%&'()*+,-./:;<=>?@[\]^{|}~ and Unicode operators
+//
+
+static bool isJuliaStylePunctuation(ImWchar character) {
+	static const bool punctuation[128] = {
+		false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+		false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+		false,  true, false, false,  true,  true,  true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
+		false, false, false, false, false, false, false, false, false, false,  true,  true,  true,  true,  true,  true,
+		 true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+		false, false, false, false, false, false, false, false, false, false, false,  true,  true,  true,  true, false,
+		false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+		false, false, false, false, false, false, false, false, false, false, false,  true,  true,  true,  true, false,
+	};
+
+	if (character < 127) {
+		return punctuation[character];
+
+	} else {
+		return character == 0xac || character == 0xb1 || character == 0xd7 || character == 0xf7 || character == 0x2212 ||
+			(character >= 0x2190 && character <= 0x2bff);
+	}
+}
+
+
+//
+//	matchesJuliaWord
+//
+
+static bool matchesJuliaWord(TextEditor::Iterator start, TextEditor::Iterator end, const char* word) {
+	auto i = start;
+
+	while (*word) {
+		if (i >= end || *i != static_cast<ImWchar>(*word)) {
+			return false;
+		}
+
+		i++;
+		word++;
+	}
+
+	return i == end;
+}
+
+
+//
+//	tokenizeJulia
+//
+
+static TextEditor::Iterator tokenizeJulia(TextEditor::Iterator start, TextEditor::Iterator end, TextEditor::Color& color) {
+	auto i = start;
+	const auto c = *i++;
+
+	if (c == '@') {
+		// macro call (@foo, @foo!, @.)
+		if (i < end && *i == '.') {
+			i++;
+
+		} else {
+			i = getJuliaIdentifier(i, end);
+		}
+
+		if (i - start > 1) {
+			color = TextEditor::Color::preprocessor;
+			return i;
+		}
+
+	} else if (c == ':') {
+		if (i < end && *i == ':') {
+			// type annotation
+			color = TextEditor::Color::punctuation;
+			return ++i;
+
+		} else if (!followsJuliaOperand(start)) {
+			// symbol (but not the range in 1:n)
+			i = getJuliaIdentifier(i, end);
+
+			if (i - start > 1) {
+				color = TextEditor::Color::string;
+				return i;
+			}
+		}
+
+	} else if ((c == '<' || c == '>') && i < end && *i == ':') {
+		// subtype operators (so T<:Real isn't seen as a symbol)
+		color = TextEditor::Color::punctuation;
+		return ++i;
+
+	} else if (c == '\'') {
+		if (followsJuliaOperand(start)) {
+			// adjoint operator
+			color = TextEditor::Color::punctuation;
+			return i;
+
+		} else if (i < end && *i == '\\') {
+			// character literal with escape sequence ('\n', '\'')
+			if (++i < end) {
+				i++;
+			}
+
+			while (i < end && *i != '\'') {
+				i++;
+			}
+
+			if (i < end) {
+				color = TextEditor::Color::string;
+				return ++i;
+			}
+
+		} else if (i < end && *i != '\'') {
+			// character literal ('a')
+			if (++i < end && *i == '\'') {
+				color = TextEditor::Color::string;
+				return ++i;
+			}
+		}
+
+		color = TextEditor::Color::punctuation;
+		return ++start;
+
+	} else if (c == '`') {
+		// single line command (``` commands are handled as strings)
+		while (i < end && *i != '`') {
+			if (*i++ == '\\' && i < end) {
+				i++;
+			}
+		}
+
+		color = TextEditor::Color::string;
+		return i < end ? ++i : i;
+
+	} else if (c == 'a' || c == 'p' || c == 'm') {
+		// contextual keywords (abstract type, primitive type, mutable struct)
+		auto wordEnd = getJuliaIdentifier(start, end);
+		const char* second = nullptr;
+
+		if (matchesJuliaWord(start, wordEnd, "abstract") || matchesJuliaWord(start, wordEnd, "primitive")) {
+			second = "type";
+
+		} else if (matchesJuliaWord(start, wordEnd, "mutable")) {
+			second = "struct";
+		}
+
+		if (second) {
+			i = wordEnd;
+
+			while (i < end && (*i == ' ' || *i == '\t')) {
+				i++;
+			}
+
+			if (i != wordEnd) {
+				auto secondEnd = getJuliaIdentifier(i, end);
+
+				if (matchesJuliaWord(i, secondEnd, second)) {
+					color = TextEditor::Color::declaration;
+					return secondEnd;
+				}
+			}
+		}
+	}
+
+	return start;
+}
+
+
+//
+//	TextEditor::Language::Julia
+//
+
+const TextEditor::Language* TextEditor::Language::Julia() {
+	static bool initialized = false;
+	static TextEditor::Language language;
+
+	if (!initialized) {
+		language.name = "Julia";
+		language.singleLineComment = "#";
+		language.commentStart = "#=";
+		language.commentEnd = "=#";
+		language.nestedComments = true;
+		language.hasDoubleQuotedStrings = true;
+		language.otherStringStart = "\"\"\"";
+		language.otherStringEnd = "\"\"\"";
+		language.otherStringAltStart = "```";
+		language.otherStringAltEnd = "```";
+		language.stringEscape = '\\';
+
+		static const char* const keywords[] = {
+			"begin", "break", "catch", "continue", "do", "else", "elseif", "end", "export", "false", "finally", "for",
+			"if", "import", "in", "isa", "let", "quote", "return", "true", "try", "using", "where", "while"
+		};
+
+		static const char* const declarations[] = {
+			"baremodule", "const", "function", "global", "local", "macro", "module", "struct",
+			"AbstractArray", "AbstractChar", "AbstractDict", "AbstractFloat", "AbstractMatrix", "AbstractRange",
+			"AbstractSet", "AbstractString", "AbstractVector", "Any", "Array", "BigFloat", "BigInt", "Bool", "Char",
+			"Complex", "ComplexF32", "ComplexF64", "DataType", "Dict", "Exception", "Expr", "Float16", "Float32",
+			"Float64", "Function", "Int", "Int128", "Int16", "Int32", "Int64", "Int8", "Integer", "IO", "Matrix",
+			"Missing", "Module", "NamedTuple", "Nothing", "Number", "Pair", "Ptr", "Rational", "Real", "Ref", "Set",
+			"Signed", "String", "Symbol", "Tuple", "Type", "UInt", "UInt128", "UInt16", "UInt32", "UInt64", "UInt8",
+			"Union", "UnionAll", "Unsigned", "Vector", "Val"
+		};
+
+		static const char* const identifiers[] = {
+			"ARGS", "C_NULL", "ENV", "Inf", "Inf16", "Inf32", "Inf64", "NaN", "NaN16", "NaN32", "NaN64", "VERSION",
+			"im", "missing", "nothing", "pi", "stderr", "stdin", "stdout", "π", "ℯ",
+			"abs", "all", "any", "append!", "collect", "convert", "copy", "deepcopy", "delete!", "eachindex", "eltype",
+			"empty!", "enumerate", "error", "filter", "findall", "findfirst", "first", "get", "getfield", "getindex",
+			"haskey", "isempty", "isnothing", "keys", "last", "length", "map", "max", "maximum", "min", "minimum",
+			"ndims", "pairs", "pop!", "print", "println", "promote", "push!", "reduce", "repr", "resize!", "reverse",
+			"setfield!", "setindex!", "show", "similar", "size", "sort", "sort!", "string", "sum", "throw", "typeof",
+			"values", "zeros", "ones", "zip"
+		};
+
+		for (auto& keyword : keywords) { language.keywords.insert(keyword); }
+		for (auto& declaration : declarations) { language.declarations.insert(declaration); }
+		for (auto& identifier : identifiers) { language.identifiers.insert(identifier); }
+
+		language.isPunctuation = isJuliaStylePunctuation;
+		language.getIdentifier = getJuliaIdentifier;
+		language.getNumber = getJuliaNumber;
+		language.customTokenizer = tokenizeJulia;
 		initialized = true;
 	}
 

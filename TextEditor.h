@@ -617,6 +617,11 @@ public:
 		// constructors
 		Iterator() = default;
 		Iterator(Glyph* g) : glyph(g) {}
+		Iterator(Glyph* g, Glyph* start) : glyph(g), lineStart(start) {}
+
+		// codepoint before the iterator on the same line (only call previous() if hasPrevious() is true)
+		inline bool hasPrevious() const { return lineStart && glyph > lineStart; }
+		inline ImWchar previous() const { return (glyph - 1)->codepoint; }
 
 		using iterator_category = std::forward_iterator_tag;
 		using difference_type = std::ptrdiff_t;
@@ -639,6 +644,7 @@ public:
 	private:
 		// properties
 		Glyph* glyph;
+		Glyph* lineStart = nullptr;
 	};
 
 	// language support
@@ -661,6 +667,9 @@ public:
 		// the start and end character sequence for multiline comments (can be blank language doesn't have this feature)
 		std::string commentStart;
 		std::string commentEnd;
+
+		// flag to specify whether multiline comments can be nested (up to 8 levels, can't be combined with commentLevelStart/End)
+		bool nestedComments = false;
 
 		// functions to help tokenize multilevel, multiline comments (can be nullptr if language doesn't have this feature)
 		// start and end refer to the characters being tokenized
@@ -727,6 +736,7 @@ public:
 		static const Language* AngelScript();
 		static const Language* Lua();
 		static const Language* Python();
+		static const Language* Julia();
 		static const Language* Glsl();
 		static const Language* Hlsl();
 		static const Language* Json();
@@ -750,6 +760,12 @@ public:
 		DocPos searchTermStart;
 		DocPos searchTermEnd;
 
+		// section replaced by a picked suggestion (defaults to the search term start and the end of the word at the cursor)
+		// the callback can move these on the same line (start not after and end not before the cursor)
+		// e.g. back to a backslash for LaTeX-like completions or to the cursor to keep the text after it
+		DocPos replacementStart;
+		DocPos replacementEnd;
+
 		bool inIdentifier;
 		bool inNumber;
 		bool inComment;
@@ -768,6 +784,10 @@ public:
 		// a pointer to the current language definition is provided so callbacks have easy access
 		std::vector<std::string> suggestions;
 
+		// optional labels (UTF-8) shown in the popup instead of the suggestions (e.g. "\lambda  λ" for suggestion "λ")
+		// labels are only used if there is one for each suggestion and are cleared before each callback call
+		std::vector<std::string> labels;
+
 		// set this to true if you are building the suggestion list asynchronously and provide it later
 		// this way autocomplete is not cancelled if the suggestion list is empty and the user hits tab or enter
 		bool suggestionsPromise = false;
@@ -784,6 +804,12 @@ public:
 		// specifies whether typing (or shortcut) in comments or strings triggers autocomplete
 		bool triggerInComments = false;
 		bool triggerInStrings = false;
+
+		// characters (UTF-8) that trigger autocomplete when typed in addition to word characters (e.g. "\\" or ".")
+		std::string triggerCharacters;
+
+		// characters (UTF-8) that are part of a search term in addition to word characters (e.g. "\\^:" for LaTeX-like completions)
+		std::string wordCharacters;
 
 		// manual trigger key sequence (default is Ctrl+space on all platforms, even MacOS)
 		// remember Dear ImGui reverses Ctrl and Command on MacOS
@@ -825,7 +851,7 @@ public:
 
 	// provide autocomplete suggestions asynchronously (in case a callback takes to long and lookup is handled in a separate thread/process)
 	// this call is not threadsafe and must be called from the rendering thread (you must synchronize with your lookup thread yourself)
-	inline void SetAutoCompleteSuggestions(const std::vector<std::string>& suggestions) { autocomplete.setSuggestions(suggestions); }
+	inline void SetAutoCompleteSuggestions(const std::vector<std::string>& suggestions, const std::vector<std::string>& labels={}) { autocomplete.setSuggestions(suggestions, labels); }
 
 	// support functions for unicode codepoints
 	struct CodePoint {
@@ -1814,7 +1840,7 @@ protected:
 
 		// request autocomplete mode based on triggers (and if allowed by current state)
 		// return value indicates whether autocomplete was initiated
-		bool startTyping(Cursors& cursors);
+		bool startTyping(Cursors& cursors, ImWchar character);
 		bool startShortcut(Cursors& cursors);
 
 		// cancel autocomplete mode (if required)
@@ -1823,15 +1849,17 @@ protected:
 		// update autocomplete state and render (if required)
 		bool render(Document& document, Cursors& cursors, TypeSetter& typesetter, const Language* language, float textOffset, ImVec2 glyphSize);
 
-		// specify a new set of suggestions
-		void setSuggestions(const std::vector<std::string>& suggestions);
+		// specify a new set of suggestions (labels are optional)
+		void setSuggestions(const std::vector<std::string>& suggestions, const std::vector<std::string>& labels);
 
 		// get information
 		inline bool isActive() const { return active; }
 		inline bool hasSuggestions() const { return state.suggestions.size() > 0 || state.suggestionsPromise; }
 		static bool isSpecialKeyPressed();
 		inline ImGuiKeyChord getTriggerShortcut() const { return configuration.triggerShortcut; }
-		inline DocPos getStart() const { return startLocation; }
+		bool isTriggerCharacter(ImWchar codepoint) const;
+		DocPos getReplacementStart() const;
+		DocPos getReplacementEnd(const Document& document) const;
 		inline std::string getReplacement() { return currentSelection < state.suggestions.size() ? state.suggestions[currentSelection] : ""; }
 
 	private:
@@ -1847,11 +1875,16 @@ protected:
 		AutoCompleteState state;
 		bool triggeredManually = false;
 		size_t currentSelection = 0;
+		std::vector<ImWchar> triggerCodepoints;
+		std::vector<ImWchar> wordCodepoints;
 
 		// support functions
 		void start(Cursors& cursors);
 		void updateState(Document& document, const Language* language);
 		void refreshSuggestions();
+		bool isWordCharacter(ImWchar codepoint) const;
+		DocPos findWordStart(const Document& document, DocPos from) const;
+		DocPos findWordEnd(const Document& document, DocPos from) const;
 	} autocomplete;
 
 	// reset the editor's state

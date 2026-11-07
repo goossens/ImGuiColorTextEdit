@@ -579,7 +579,7 @@ void Editor::renderMenuBar() {
 
 void Editor::renderStatusBar() {
 	// language support
-	static const char* languages[] = {"None", "C", "C++", "Cs", "AngelScript", "Lua", "Python", "GLSL", "HLSL",  "JSON", "Markdown", "SQL"};
+	static const char* languages[] = {"None", "C", "C++", "Cs", "AngelScript", "Lua", "Python", "Julia", "GLSL", "HLSL",  "JSON", "Markdown", "SQL"};
 	std::string language = editor.GetLanguageName();
 
 	// create a statusbar window
@@ -1135,6 +1135,9 @@ void Editor::setLanguageByName(const std::string& name) {
 	} else if (name == "Python") {
 		setLanguage(TextEditor::Language::Python());
 
+	} else if (name == "Julia") {
+		setLanguage(TextEditor::Language::Julia());
+
 	} else if (name == "GLSL") {
 		setLanguage(TextEditor::Language::Glsl());
 
@@ -1180,6 +1183,9 @@ void Editor::setLanguageByExtention(const std::filesystem::path& path) {
 
 	} else if (extension == ".py") {
 		setLanguage(TextEditor::Language::Python());
+
+	} else if (extension == ".jl") {
+		setLanguage(TextEditor::Language::Julia());
 
 	} else if (extension == ".glsl") {
 		setLanguage(TextEditor::Language::Glsl());
