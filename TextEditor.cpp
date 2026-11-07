@@ -8597,8 +8597,9 @@ static bool renderSuggestion(const std::string_view& suggestion, const std::stri
 bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, TypeSetter& typesetter, const Language* language, float textOffset, ImVec2 glyphSize) {
 	// see if we need to activate autocomplete mode (after a previous session is closed)
 	if (requestActivation && !active) {
-		// drop the request if the cursor was moved by anything but typing a search term during the delay
-		if (cursors.getMain().getSelectionEnd() != currentLocation) {
+		// drop the request if the editor lost focus (e.g. a menu was opened)
+		// or the cursor was moved by anything but typing a search term during the delay
+		if (!ImGui::IsWindowFocused() || cursors.getMain().getSelectionEnd() != currentLocation) {
 			requestActivation = false;
 
 		// apply popup delay
