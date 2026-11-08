@@ -5,40 +5,52 @@
 //	For a copy, see <https://opensource.org/licenses/MIT>.
 
 
+#pragma once
+
+
 //
-//	GetLanguageDefinitionAngelScript
+//	Include files
 //
 
-static const TextEditor::Language* GetLanguageDefinitionAngelScript() {
-	static bool initialized = false;
-	static TextEditor::Language language;
+#include "TextEditorC.h"
 
-	if (!initialized) {
-		language.name = "AngelScript";
-		language.preprocess = '#';
-		language.singleLineComment = "//";
-		language.commentStart = "/*";
-		language.commentEnd = "*/";
-		language.hasSingleQuotedStrings = true;
-		language.hasDoubleQuotedStrings = true;
-		language.stringEscape = '\\';
 
-		static const char* const keywords[] = {
-			"and", "abstract", "auto", "bool", "break", "case", "cast", "class", "const", "continue", "default",
-			"do", "double", "else", "enum", "false", "final", "float", "for", "from", "funcdef", "function", "get",
-			"if", "import", "in", "inout", "int", "interface", "int8", "int16", "int32", "int64", "is", "mixin",
-			"namespace", "not", "null", "or", "out", "override", "private", "protected", "return", "set", "shared",
-			"super", "switch", "this ", "true", "typedef", "uint", "uint8", "uint16", "uint32", "uint64", "void",
-			"while", "xor"
-		};
+//
+//	TextEditorAngelScript
+//
 
-		for (auto& keyword : keywords) { language.keywords.insert(keyword); }
+struct TextEditorAngelScript {
+	static const TextEditor::Language* getDefinition() {
+		static bool initialized = false;
+		static TextEditor::Language language;
 
-		language.isPunctuation = isCStylePunctuation;
-		language.getIdentifier = getCStyleIdentifier;
-		language.getNumber = getCStyleNumber;
-		initialized = true;
+		if (!initialized) {
+			language.name = "AngelScript";
+			language.preprocess = '#';
+			language.singleLineComment = "//";
+			language.commentStart = "/*";
+			language.commentEnd = "*/";
+			language.hasSingleQuotedStrings = true;
+			language.hasDoubleQuotedStrings = true;
+			language.stringEscape = '\\';
+
+			static const char* const keywords[] = {
+				"and", "abstract", "auto", "bool", "break", "case", "cast", "class", "const", "continue", "default",
+				"do", "double", "else", "enum", "false", "final", "float", "for", "from", "funcdef", "function", "get",
+				"if", "import", "in", "inout", "int", "interface", "int8", "int16", "int32", "int64", "is", "mixin",
+				"namespace", "not", "null", "or", "out", "override", "private", "protected", "return", "set", "shared",
+				"super", "switch", "this ", "true", "typedef", "uint", "uint8", "uint16", "uint32", "uint64", "void",
+				"while", "xor"
+			};
+
+			for (auto& keyword : keywords) { language.keywords.insert(keyword); }
+
+			language.isPunctuation = TextEditorC::isPunctuation;
+			language.getIdentifier = TextEditorC::getIdentifier;
+			language.getNumber = TextEditorC::getNumber;
+			initialized = true;
+		}
+
+		return &language;
 	}
-
-	return &language;
-}
+};

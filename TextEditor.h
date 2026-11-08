@@ -2157,7 +2157,6 @@ protected:
 	static inline std::unordered_map<std::string, std::function<const Language*()>> builtinLanguageCreators;
 	static inline std::unordered_map<std::string, std::function<const Language*()>> builtinLanguageExtensions;
 	static inline bool languagesRegistered = false;
-	static void registerLanguages();
 
 	// color palette support
 	void updatePalettes();

@@ -38,8 +38,8 @@ You can deactivate/remove unwanted/unused definitions in the TextEditorLanguages
 or removing the corresponding include and RegisterLanguage statements.
 
 One important note is that some languages reuse parts of the C language definition so although you
-might not need C directly, if you use AngelScript, C++, C#, GLSL, HLSL, Lua, Python, SQL or Wgsl, you
-must also include the C definition to avoid link errors.
+might not need C directly, if you use AngelScript, C++, C#, GLSL, HLSL, Lua, Python, SQL or Wgsl,
+the C definition is automatically included.
 
 # Define language definitions outside the core
 

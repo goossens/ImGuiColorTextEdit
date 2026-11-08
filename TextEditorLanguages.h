@@ -8,25 +8,20 @@
 #pragma once
 
 
-//
 //	This file configures the language definitions. By default, all provided languages are included.
 //	If you want to save space, you can deactivate/remove unwanted/unused definitions from this file
 //	by commenting out or removing the corresponding include and RegisterLanguage statements.
 //
 //	One important note is that some languages reuse parts of the C language definition so although you
-//	might not need C directly, if you use AngelScript, C++, C#, GLSL, HLSL, Lua, Python, SQL or Wgsl, you
-//	must also include the C definition to avoid link errors.
+//	might not need C directly, if you use AngelScript, C++, C#, GLSL, HLSL, Lua, Python, SQL or Wgsl,
+//	the C definition is automatically included.
 //
 //	If you want to add your own languages, you must create new language definition files in a place where
 //	the compiler can find them and add an include and RegisterLanguage statement below below for each
 //	language. Any of the language definitions in the languages folder can be used as a template.
 
-
-// don't remove this if you include AngelScript, C++, C#, GLSL, HLSL, Lua, Python, SQL or Wgsl
-#include "languages/TextEditorC.h"
-
-// these are all optional
 #include "languages/TextEditorAngelScript.h"
+#include "languages/TextEditorC.h"
 #include "languages/TextEditorCpp.h"
 #include "languages/TextEditorCs.h"
 #include "languages/TextEditorGlsl.h"
@@ -41,25 +36,23 @@
 
 
 //
-//	TextEditor::registerLanguages
+//	TextEditorLanguages
 //
 
-void TextEditor::registerLanguages() {
-	// don't remove this if you include AngelScript, C++, C#, GLSL, HLSL, Lua, Python, SQL or Wgsl
-	TextEditor::RegisterLanguage("C", GetLanguageDefinitionC, {".c"});
-
-	// these are all optional
-	TextEditor::RegisterLanguage("AngelScript", GetLanguageDefinitionAngelScript, {".as"});
-	TextEditor::RegisterLanguage("C++", GetLanguageDefinitionCpp, {".cpp", ".h", ".hpp"});
-	TextEditor::RegisterLanguage("C#", GetLanguageDefinitionCs, {".cs"});
-	TextEditor::RegisterLanguage("GLSL", GetLanguageDefinitionGlsl, {".glsl"});
-	TextEditor::RegisterLanguage("HLSL", GetLanguageDefinitionHlsl, {".hlsl"});
-	TextEditor::RegisterLanguage("JSON", GetLanguageDefinitionJson, {".json"});
-	TextEditor::RegisterLanguage("Julia", GetLanguageDefinitionJulia, {".jl"});
-	TextEditor::RegisterLanguage("Lua", GetLanguageDefinitionLua, {".lua"});
-	TextEditor::RegisterLanguage("Markdown", GetLanguageDefinitionMarkdown, {".md"});
-	TextEditor::RegisterLanguage("Python", GetLanguageDefinitionPython, {".py"});
-	TextEditor::RegisterLanguage("SQL", GetLanguageDefinitionSql, {".sql"});
-	TextEditor::RegisterLanguage("WGSL", GetLanguageDefinitionWgsl, {".wgsl"});
-}
-
+struct TextEditorLanguages {
+	static void registerLanguages() {
+		TextEditor::RegisterLanguage("AngelScript", TextEditorAngelScript::getDefinition, {".as"});
+		TextEditor::RegisterLanguage("C", TextEditorC::getDefinition, {".c"});
+		TextEditor::RegisterLanguage("C++", TextEditorCpp::getDefinition, {".cpp", ".h", ".hpp"});
+		TextEditor::RegisterLanguage("C#", TextEditorCs::getDefinition, {".cs"});
+		TextEditor::RegisterLanguage("GLSL", TextEditorGlsl::getDefinition, {".glsl"});
+		TextEditor::RegisterLanguage("HLSL", TextEditorHlsl::getDefinition, {".hlsl"});
+		TextEditor::RegisterLanguage("JSON", TextEditorJson::getDefinition, {".json"});
+		TextEditor::RegisterLanguage("Julia", TextEditorJulia::getDefinition, {".jl"});
+		TextEditor::RegisterLanguage("Lua", TextEditorLua::getDefinition, {".lua"});
+		TextEditor::RegisterLanguage("Markdown", TextEditorMarkdown::getDefinition, {".md"});
+		TextEditor::RegisterLanguage("Python", TextEditorPython::getDefinition, {".py"});
+		TextEditor::RegisterLanguage("SQL", TextEditorSql::getDefinition, {".sql"});
+		TextEditor::RegisterLanguage("WGSL", TextEditorWgsl::getDefinition, {".wgsl"});
+	}
+};
