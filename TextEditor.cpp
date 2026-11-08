@@ -1274,7 +1274,6 @@ void TextEditor::handleKeyboardInputs() {
 
 		// clipboard operations
 		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_X)) { cut(); }
-		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Delete)) { cut(); }
 
 		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C)) { copy(); }
 		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Insert)) { copy(); }

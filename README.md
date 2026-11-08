@@ -197,7 +197,7 @@ See GImGui documentation in imgui.cpp for more details.
 	- When multiple cursors are active, hitting the ESC key cancels them.
 
 - Clipboard Operations:
-	- Ctrl-X or Shift-Delete cuts selected text or current line if no selection.
+	- Ctrl-X cuts selected text or current line if no selection.
 	- Ctrl-C or Ctrl-Insert copies selected text or current line if no selection.
 	- Ctrl-V or Shift-Insert pastes clipboard content.
 	- Ctrl-Z undoes the last action.
