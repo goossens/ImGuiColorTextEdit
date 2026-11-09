@@ -3235,9 +3235,17 @@ void TextEditor::autoIndentAllCursors(std::shared_ptr<Transaction> transaction) 
 
 		// handle special cases
 		if (previousChar == CodePoint::openCurlyBracket || previousChar == CodePoint::openSquareBracket) {
-			// add to an existing block
-			insert += "\t";
-			newCursorIndex++;
+			if (config.insertSpacesOnTabs) {
+				for (size_t i = 0; i < config.tabSize; i++) {
+					insert += " ";
+				}
+
+				newCursorIndex += config.tabSize;
+
+			} else {
+				insert += "\t";
+				newCursorIndex++;
+			}
 
 			if ((previousChar == CodePoint::openCurlyBracket && nextChar == CodePoint::closeCurlyBracket) ||
 				(previousChar == CodePoint::openSquareBracket && nextChar == CodePoint::closeSquareBracket)) {
