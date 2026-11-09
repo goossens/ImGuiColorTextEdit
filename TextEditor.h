@@ -27,15 +27,80 @@
 
 #include "imgui.h"
 
+// A standalone editor must not inherit ImGui's DLL ownership (Geogram gives
+// IMGUI_API its own export macro). Applications embedding the sources may
+// override TEXTEDITOR_API before including this header.
+#ifndef TEXTEDITOR_API
+#if defined(_WIN32) && defined(TEXTEDITOR_SHARED)
+#ifdef TEXTEDITOR_BUILD
+#define TEXTEDITOR_API __declspec(dllexport)
+#else
+#define TEXTEDITOR_API __declspec(dllimport)
+#endif
+#else
+#define TEXTEDITOR_API
+#endif
+#endif
+
+#ifdef __GEOGRAM__
+// Optional application actions from Bruno Levy's Geogram fork. No Geogram
+// headers, types or libraries are needed by this interface.
+enum TextEditorAction {
+	TEXT_EDITOR_RUN,
+	TEXT_EDITOR_SAVE,
+	TEXT_EDITOR_STOP,
+	TEXT_EDITOR_TOOLTIP,
+	TEXT_EDITOR_COMPLETION,
+	TEXT_EDITOR_TEXT_CHANGED
+};
+using TextEditorCallback = void (*)(TextEditorAction action, void* client_data);
+#endif
+
 
 //
 //	TextEditor
 //
 
-class IMGUI_API TextEditor {
+class TEXTEDITOR_API TextEditor {
 public:
 	// constructor
 	TextEditor();
+
+#ifdef __BALAZS__
+	// From BalazsJako's historical dev branch: choose the full tab span or
+	// a one-cell whitespace arrow without changing the underlying tab width.
+	void SetShowShortTabGlyphs(bool value) { showShortTabGlyphs = value; }
+	bool IsShowingShortTabGlyphs() const { return showShortTabGlyphs; }
+#endif
+
+#ifdef __GEOGRAM__
+	void set_callback(TextEditorCallback callback, void* client_data = nullptr) {
+		geogramCallback = callback;
+		geogramClientData = client_data;
+	}
+
+	const std::string& GetWordContext() const { return geogramWordContext; }
+	std::string GetWordContextAtScreenPos(const ImVec2& screenPos) const;
+
+	// Compatibility helpers retained from the Geogram fork.
+	struct CursorPosition {
+		int line = 0;
+		int column = 0;
+		CursorPosition() = default;
+		CursorPosition(int line, int column) : line(line), column(column) {}
+	};
+	void SetCursorPosition(const CursorPosition& pos);
+	CursorPosition GetMousePosition() const;
+	CursorPosition GetSelectionStart() const;
+	bool HasSelection() const { return AnyCursorHasSelection(); }
+	std::string GetSelection() const { return GetCursorText(cursors.getMainIndex()); }
+	std::string GetLine(int line) const { return line < 0 ? "" : GetLineText(static_cast<size_t>(line)); }
+	void InsertText(const std::string& text);
+	void ShowFindAndReplaceDialog() { OpenFindReplaceWindow(); }
+	// Optional UI resources belong to the application, never to this library.
+	void SetGeogramFindFont(ImFont* font) { geogramFindFont = font; }
+	void SetGeogramCloseButtonLabel(const std::string& label) { geogramCloseLabel = label; }
+#endif
 
 	//
 	// Below is the public API
@@ -153,24 +218,84 @@ public:
 	// Dear ImGui also uses UTF-8 encoding across the board for all internal string processing, text rendering, and widgets
 
 	// load UTF-8 encoded string(s)
-	inline void SetText(const std::string_view& text) { reset(); document.setUtf8Text(config, text); }
-	inline void SetText(const std::vector<std::string_view>& lines) { reset(); document.setUtf8Text(config, lines); }
+	inline void SetText(const std::string_view& text) {
+		reset();
+		document.setUtf8Text(config, text);
+#ifdef __GEOGRAM__
+		notifyGeogramTextChanged();
+#endif
+	}
+	inline void SetText(const std::vector<std::string_view>& lines) {
+		reset();
+		document.setUtf8Text(config, lines);
+#ifdef __GEOGRAM__
+		notifyGeogramTextChanged();
+#endif
+	}
 
 #if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || (__cplusplus >= 202002L)
-	inline void SetText(const std::u8string_view& text) { reset(); document.setUtf8Text(config, text); }
-	inline void SetText(const std::vector<std::u8string_view>& lines) { reset(); document.setUtf8Text(config, lines); }
+	inline void SetText(const std::u8string_view& text) {
+		reset();
+		document.setUtf8Text(config, text);
+#ifdef __GEOGRAM__
+		notifyGeogramTextChanged();
+#endif
+	}
+	inline void SetText(const std::vector<std::u8string_view>& lines) {
+		reset();
+		document.setUtf8Text(config, lines);
+#ifdef __GEOGRAM__
+		notifyGeogramTextChanged();
+#endif
+	}
 #endif
 
 	// load unicode encoded string(s)
-	inline void SetText(const std::wstring_view& text) { reset(); document.setUnicodeText(config, text); }
-	inline void SetText(const std::vector<std::wstring_view>& lines) { reset(); document.setUnicodeText(config, lines); }
+	inline void SetText(const std::wstring_view& text) {
+		reset();
+		document.setUnicodeText(config, text);
+#ifdef __GEOGRAM__
+		notifyGeogramTextChanged();
+#endif
+	}
+	inline void SetText(const std::vector<std::wstring_view>& lines) {
+		reset();
+		document.setUnicodeText(config, lines);
+#ifdef __GEOGRAM__
+		notifyGeogramTextChanged();
+#endif
+	}
 
-	inline void SetText(const std::u16string_view& text) { reset(); document.setUnicodeText(config, text); }
-	inline void SetText(const std::vector<std::u16string_view>& lines) { reset(); document.setUnicodeText(config, lines); }
+	inline void SetText(const std::u16string_view& text) {
+		reset();
+		document.setUnicodeText(config, text);
+#ifdef __GEOGRAM__
+		notifyGeogramTextChanged();
+#endif
+	}
+	inline void SetText(const std::vector<std::u16string_view>& lines) {
+		reset();
+		document.setUnicodeText(config, lines);
+#ifdef __GEOGRAM__
+		notifyGeogramTextChanged();
+#endif
+	}
 
 #ifdef IMGUI_USE_WCHAR32
-	inline void SetText(const std::u32string_view& text) { reset(); document.setUnicodeText(config, text); }
-	inline void SetText(const std::vector<std::u32string_view>& lines) { reset(); document.setUnicodeText(config, lines); }
+	inline void SetText(const std::u32string_view& text) {
+		reset();
+		document.setUnicodeText(config, text);
+#ifdef __GEOGRAM__
+		notifyGeogramTextChanged();
+#endif
+	}
+	inline void SetText(const std::vector<std::u32string_view>& lines) {
+		reset();
+		document.setUnicodeText(config, lines);
+#ifdef __GEOGRAM__
+		notifyGeogramTextChanged();
+#endif
+	}
 #endif
 
 	// get text from editor as UTF-8 encoded strings
@@ -2165,4 +2290,21 @@ protected:
 	Palette palette;
 	Palette miniMapPalette;
 	float paletteAlpha;
+
+#ifdef __BALAZS__
+	bool showShortTabGlyphs = false;
+#endif
+#ifdef __GEOGRAM__
+private:
+	void notifyGeogramTextChanged() {
+		if (geogramCallback) { geogramCallback(TEXT_EDITOR_TEXT_CHANGED, geogramClientData); }
+	}
+	CursorPosition geogramCursorPosition(DocPos pos) const;
+	TextEditorCallback geogramCallback = nullptr;
+	void* geogramClientData = nullptr;
+	std::string geogramWordContext;
+	ImFont* geogramFindFont = nullptr;
+	std::string geogramCloseLabel = "x";
+#endif
+
 };
