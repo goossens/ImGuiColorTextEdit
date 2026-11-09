@@ -145,6 +145,36 @@ you set the current ImGui context with TextEditor::SetImGuiContext(ImGuiContext*
 This ensures that global ImGui variables are correctly shared across the DLL boundary.
 See GImGui documentation in imgui.cpp for more details.
 
+### Standalone CMake library
+
+This fork also installs `TextEditor`, `TextDiff`, the language headers and a CMake
+package. It requires C++17 and a compatible Dear ImGui package or an existing
+`imgui::imgui`/`imgui` target. The editor and application must share the same ImGui
+library and configuration, including `IMGUI_USE_WCHAR32`.
+
+| CMake option | Default | Additional interface |
+| --- | --- | --- |
+| `ENABLE_GEOGRAM` | `OFF` | `__GEOGRAM__`: application callbacks for run/save/stop, completion, tooltips and text changes, word context and legacy cursor helpers from Bruno Levy's fork. No Geogram headers or libraries are required. |
+| `ENABLE_BALAZS` | `OFF` | `__BALAZS__`: `SetShowShortTabGlyphs()` selects a one-cell tab arrow instead of the full tab span, from BalazsJako's historical editor. |
+
+The CMake target propagates the enabled definitions to consumers. Both switches
+can be enabled together. `BUILD_SHARED_LIBS` defaults to `ON`;
+`BUILD_TESTING` defaults to `OFF`.
+
+```sh
+cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/imgui \
+    -DCMAKE_INSTALL_PREFIX=/path/to/install -DENABLE_GEOGRAM=ON -DBUILD_TESTING=ON
+cmake --build build
+ctest --test-dir build --output-on-failure
+cmake --install build
+```
+
+Consumers use `find_package(ImGuiColorTextEdit CONFIG REQUIRED)` and link
+`ImGuiColorTextEdit::ImGuiColorTextEdit`. The companion
+[Geogram branch](https://github.com/malbajun/geogram/tree/feature/external-text-editor)
+uses this library with `GEOGRAM_USE_SYSTEM_TEXT_EDITOR=ON`; that integration
+requires `ENABLE_GEOGRAM=ON` and an ImGui docking build.
+
 ## Default Keyboard and Mouse Mappings
 
 - In the mappings listed below, the following modifier keys are used:
