@@ -30,6 +30,21 @@ else()
     endif()
 endif()
 
+# Older ALT packages export include paths as variables rather than target
+# usage requirements. Normalize the imported dependency without baking its
+# build-machine paths into this library's installed target.
+if(imgui_INCLUDE_DIRS)
+    get_target_property(_imgui_real_target ${_imgui_target} ALIASED_TARGET)
+    if(NOT _imgui_real_target)
+        set(_imgui_real_target ${_imgui_target})
+    endif()
+    get_target_property(_imgui_includes ${_imgui_real_target} INTERFACE_INCLUDE_DIRECTORIES)
+    if(NOT _imgui_includes)
+        set_property(TARGET ${_imgui_real_target} APPEND PROPERTY
+            INTERFACE_INCLUDE_DIRECTORIES "${imgui_INCLUDE_DIRS}")
+    endif()
+endif()
+
 add_library(ImGuiColorTextEdit TextEditor.cpp TextDiff.cpp)
 add_library(ImGuiColorTextEdit::ImGuiColorTextEdit ALIAS ImGuiColorTextEdit)
 target_compile_features(ImGuiColorTextEdit PUBLIC cxx_std_17)

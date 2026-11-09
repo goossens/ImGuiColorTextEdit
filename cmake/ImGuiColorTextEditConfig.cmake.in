@@ -12,6 +12,17 @@ if(NOT TARGET imgui::imgui AND NOT TARGET imgui)
         INTERFACE_INCLUDE_DIRECTORIES "${imgui_INCLUDE_DIRS}"
         INTERFACE_LINK_LIBRARIES "${imgui_LIBRARIES}")
 endif()
+if(imgui_INCLUDE_DIRS)
+    get_target_property(_imgui_real_target imgui::imgui ALIASED_TARGET)
+    if(NOT _imgui_real_target)
+        set(_imgui_real_target imgui::imgui)
+    endif()
+    get_target_property(_imgui_includes ${_imgui_real_target} INTERFACE_INCLUDE_DIRECTORIES)
+    if(NOT _imgui_includes)
+        set_property(TARGET ${_imgui_real_target} APPEND PROPERTY
+            INTERFACE_INCLUDE_DIRECTORIES "${imgui_INCLUDE_DIRS}")
+    endif()
+endif()
 include("${CMAKE_CURRENT_LIST_DIR}/ImGuiColorTextEdit-targets.cmake")
 # Keep compatibility with ALT's original variable-based package interface.
 set(ImGuiColorTextEdit_LIBRARIES ImGuiColorTextEdit::ImGuiColorTextEdit)
