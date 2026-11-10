@@ -428,26 +428,26 @@ void TextEditor::renderTextMarkers() {
 void TextEditor::renderMatchingBracketLines() {
 	if (config.showMatchingBrackets && bracketeer.size()) {
 		const auto active = bracketeer.getEnclosingBrackets(cursors.getMain().getInteractiveEnd());
+
 		// render bracket pair lines
 		for (auto bracket = bracketeer.begin(); bracket < bracketeer.end(); bracket++) {
-			if (bracket->visible && bracket->end.line - bracket->start.line > 1) {
-				if (document[bracket->start.line].foldingState == FoldingState::hidden ||
-				    document[bracket->end.line].foldingState == FoldingState::hidden) {
-					continue;
-				}
-				const auto column = std::min(docPos2VisPos(bracket->start).column, docPos2VisPos(bracket->end).column);
+			if (bracket->visible &&
+				document[bracket->start.line].foldingState != FoldingState::folded &&
+				document[bracket->start.line].foldingState != FoldingState::hidden &&
+				bracket->end.line - bracket->start.line > 1) {
 
-				for (size_t i = bracket->start.line + 1; i < bracket->end.line; i++) {
-					const auto& line = document[i];
+				const auto startVisPos = docPos2VisPos(bracket->start);
+				const auto endVisPos = docPos2VisPos(bracket->end);
 
-					if (line.foldingState != FoldingState::hidden) {
-						const auto lineX = cursorScreenPos.x + textLeftOffset + column * glyphSize.x;
-						const auto startY = cursorScreenPos.y + line.row * glyphSize.y;
-						const auto endY = startY +  line.rows * glyphSize.y;
+				if (startVisPos.row <= lastVisibleRow && endVisPos.row >= firstVisibleRow) {
+					const auto column = std::min(startVisPos.column,endVisPos.column);
 
-						const auto color = palette.get(bracket == active ? Color::matchingBracketActive : Color::whitespace);
-						drawList->AddLine(ImVec2(lineX, startY), ImVec2(lineX, endY), color);
-					}
+					const auto lineX = cursorScreenPos.x + textLeftOffset + column * glyphSize.x;
+					const auto startY = cursorScreenPos.y + (startVisPos.row + 1) * glyphSize.y;
+					const auto endY = cursorScreenPos.y + endVisPos.row * glyphSize.y;
+
+					const auto color = palette.get(bracket == active ? Color::matchingBracketActive : Color::whitespace);
+					drawList->AddLine(ImVec2(lineX, startY), ImVec2(lineX, endY), color);
 				}
 			}
 		}

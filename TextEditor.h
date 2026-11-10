@@ -1632,7 +1632,7 @@ protected:
 
 		BracketPair(DocPos start, DocPos end) : startChar(0), start(start), endChar(0), end(end), level(0), visible(false) {}
 
-			ImWchar startChar;
+		ImWchar startChar;
 		DocPos start;
 		ImWchar endChar;
 		DocPos end;
@@ -1646,7 +1646,7 @@ protected:
 	};
 
 	// overlay for matching brackets (visible and invisible)
-	// invisible brackets are for languages who's blocks are indent based (e.h. Python)
+	// invisible brackets are for languages who's blocks are indent based (e.g. Python)
 	class Bracketeer : public std::vector<BracketPair> {
 	public:
 		// update state (if required)
