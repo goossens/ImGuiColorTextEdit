@@ -10877,8 +10877,18 @@ const TextEditor::Palette& TextEditor::GetDarkPalette() {
 		IM_COL32(128, 128, 144, 255),	// line number
 		IM_COL32(224, 224, 240, 255),	// current line number
 		IM_COL32(255, 255, 255,   8),	// current line highlight
-		IM_COL32(255, 255, 255,  16)	// current line highlight border
-	}};
+		IM_COL32(255, 255, 255,  16),	// current line highlight border
+
+		IM_COL32(255,   0,   0, 255),	// custom color 1
+		IM_COL32(245, 140,   0, 255),	// custom color 2
+		IM_COL32(255, 255,  40, 255),	// custom color 3
+		IM_COL32(  0, 255,   0, 255),	// custom color 4
+		IM_COL32( 63, 255, 205, 255),	// custom color 5
+		IM_COL32( 70, 240, 240, 255),	// custom color 6
+		IM_COL32(  0,   0, 255, 255),	// custom color 7
+		IM_COL32(145,   0, 224, 255),	// custom color 8
+		IM_COL32(240,  50, 230, 255)	// custom color 9
+}};
 
 	return palette;
 }
@@ -10908,7 +10918,17 @@ const TextEditor::Palette& TextEditor::GetLightPalette() {
 		IM_COL32(  0,  80,  80, 255),	// line number
 		IM_COL32(  0,   0,   0, 255),	// current line number
 		IM_COL32(  0,   0,   0,   8),	// current line highlight
-		IM_COL32(  0,   0,   0,  16)	// current line highlight border
+		IM_COL32(  0,   0,   0,  16),	// current line highlight border
+
+		IM_COL32(255,   0,   0, 255),	// custom color 1
+		IM_COL32(245, 140,   0, 255),	// custom color 2
+		IM_COL32(255, 255,  40, 255),	// custom color 3
+		IM_COL32(  0, 255,   0, 255),	// custom color 4
+		IM_COL32( 63, 255, 205, 255),	// custom color 5
+		IM_COL32( 70, 240, 240, 255),	// custom color 6
+		IM_COL32(  0,   0, 255, 255),	// custom color 7
+		IM_COL32(145,   0, 224, 255),	// custom color 8
+		IM_COL32(240,  50, 230, 255)	// custom color 9
 	}};
 
 	return palette;

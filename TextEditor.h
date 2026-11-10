@@ -568,6 +568,15 @@ public:
 		currentLineNumber,
 		currentLineHighlight,
 		currentLineHighlightBorder,
+		customColor1,
+		customColor2,
+		customColor3,
+		customColor4,
+		customColor5,
+		customColor6,
+		customColor7,
+		customColor8,
+		customColor9,
 		count
 	};
 

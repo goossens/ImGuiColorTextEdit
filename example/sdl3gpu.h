@@ -112,7 +112,6 @@ int example() {
 	notoSansConfig.MergeMode = true;
 	io.Fonts->AddFontFromMemoryCompressedTTF(static_cast<const void*>(&notosans), notosansSize, 15.0f, &notoSansConfig);
 
-
 	// main loop
 	Editor editor;
 	SDL_Event event;
