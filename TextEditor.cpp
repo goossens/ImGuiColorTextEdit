@@ -431,6 +431,10 @@ void TextEditor::renderMatchingBracketLines() {
 		// render bracket pair lines
 		for (auto bracket = bracketeer.begin(); bracket < bracketeer.end(); bracket++) {
 			if (bracket->visible && bracket->end.line - bracket->start.line > 1) {
+				if (document[bracket->start.line].foldingState == FoldingState::hidden ||
+				    document[bracket->end.line].foldingState == FoldingState::hidden) {
+					continue;
+				}
 				const auto column = std::min(docPos2VisPos(bracket->start).column, docPos2VisPos(bracket->end).column);
 
 				for (size_t i = bracket->start.line + 1; i < bracket->end.line; i++) {
