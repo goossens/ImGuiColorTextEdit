@@ -433,18 +433,19 @@ void TextEditor::renderMatchingBracketLines() {
 		for (auto bracket = bracketeer.begin(); bracket < bracketeer.end(); bracket++) {
 			if (bracket->visible &&
 				document[bracket->start.line].foldingState != FoldingState::folded &&
-				document[bracket->start.line].foldingState != FoldingState::hidden &&
-				bracket->end.line - bracket->start.line > 1) {
+				document[bracket->start.line].foldingState != FoldingState::hidden) {
 
 				const auto startVisPos = docPos2VisPos(bracket->start);
 				const auto endVisPos = docPos2VisPos(bracket->end);
 
-				if (startVisPos.row <= lastVisibleRow && endVisPos.row >= firstVisibleRow) {
-					const auto column = std::min(startVisPos.column,endVisPos.column);
+				if (startVisPos.row <= lastVisibleRow &&
+					endVisPos.row >= firstVisibleRow &&
+					endVisPos.row - startVisPos.row > 1) {
 
+					const auto column = std::min(startVisPos.column, endVisPos.column);
 					const auto lineX = cursorScreenPos.x + textLeftOffset + column * glyphSize.x;
-					const auto startY = cursorScreenPos.y + (startVisPos.row + 1) * glyphSize.y;
-					const auto endY = cursorScreenPos.y + endVisPos.row * glyphSize.y;
+					const auto startY = cursorScreenPos.y + std::max(startVisPos.row + 1, firstVisibleRow) * glyphSize.y;
+					const auto endY = cursorScreenPos.y + std::min(endVisPos.row, lastVisibleRow) * glyphSize.y;
 
 					const auto color = palette.get(bracket == active ? Color::matchingBracketActive : Color::whitespace);
 					drawList->AddLine(ImVec2(lineX, startY), ImVec2(lineX, endY), color);
