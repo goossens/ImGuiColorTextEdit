@@ -18,7 +18,7 @@ help but in the future other services could be used.
 To use the language server solution, do the following:
 
 - Ensure your project uses C++20.
-- Add the [LSP Framework](https://github.com/leon-bckl/lsp-framework).
+- Add the [LSP Framework](https://github.com/leon-bckl/lsp-framework) (version 2.0.0 or better).
 - Include the **LspBridge.cpp** and **LspBridge.h** files in your project. Both are in the **extras** folder.
 - Instantiate a **LspBridge** object.
 - Use the **Start** and **Stop** methods to launch your desired language server (the example app launches **clangd** for C++).

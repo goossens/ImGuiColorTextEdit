@@ -21,8 +21,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "lsp/messagehandler.h"
-#include "lsp/types.h"
+#include <lsp/client_endpoint.h>
 #include "lsp/process.h"
 
 #include "../TextEditor.h"
@@ -65,8 +64,7 @@ private:
 	lsp::Process process;
 	std::string errorMessage;
 
-	std::unique_ptr<lsp::Connection> connection;
-	std::unique_ptr<lsp::MessageHandler> messageHandler;
+	std::unique_ptr<lsp::ClientEndpoint> endpoint;
 	lsp::ServerCapabilities serverCapabilities;
 
 	std::atomic_bool running = false;
@@ -100,7 +98,4 @@ private:
 
 	// all documents currently open
 	std::unordered_map<std::filesystem::path, Document> documents;
-
-	// support functions
-	void messageLoop();
 };

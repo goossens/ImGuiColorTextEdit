@@ -6,5 +6,5 @@
 
 set(LSP_INSTALL OFF CACHE BOOL "" FORCE)
 
-FetchContent_Populate(lsp QUIET GIT_REPOSITORY "https://github.com/leon-bckl/lsp-framework" GIT_TAG "f2c374d")
+FetchContent_Populate(lsp QUIET GIT_REPOSITORY "https://github.com/leon-bckl/lsp-framework" GIT_TAG "2.0.0")
 add_subdirectory(${lsp_SOURCE_DIR} ${lsp_BINARY_DIR} EXCLUDE_FROM_ALL)

@@ -44,20 +44,19 @@ LspBridge::~LspBridge() {
 bool LspBridge::Start(const std::string& rootPath, const std::string& executable, const std::vector<std::string>& args) {
 	try {
 		// start a new language server
-		process = lsp::Process(executable, args);
-		connection = std::make_unique<lsp::Connection>(process.stdIO());
-		messageHandler = std::make_unique<lsp::MessageHandler>(*connection);
+		process = lsp::Process::start(executable, args);
+		endpoint = std::make_unique<lsp::ClientEndpoint>(process.stdIO());
 		running.store(true);
 
 		// start a thread to handle message exchanges
 		messageThread = std::thread([this](){
-			messageLoop();
+			endpoint->runMessageLoop();
 		});
 
 		// setup initialize params with client capabilities
-		auto initializeParams = lsp::requests::Initialize::Params();
+		auto initializeParams = lsp::InitializeParams();
 		initializeParams.processId = lsp::Process::currentProcessId();
-		initializeParams.rootUri = lsp::DocumentUri::fromPath(rootPath);
+		initializeParams.rootUri = lsp::Uri::fileUriFromPath(rootPath);
 
 		initializeParams.capabilities = {
 			.textDocument = lsp::TextDocumentClientCapabilities {
@@ -84,13 +83,11 @@ bool LspBridge::Start(const std::string& rootPath, const std::string& executable
 		};
 
 		// send initialize request to the server and wait for the response
-		auto initializeRequest = messageHandler->sendRequest<lsp::requests::Initialize>(std::move(initializeParams));
-		auto initializeResult = initializeRequest.result.get();
-
+		auto initializeResult = endpoint->initialize(initializeParams).get();
 		serverCapabilities = std::move(initializeResult.capabilities);
 
 		// send the 'initialized' notification to let the server know that the client is ready
-		messageHandler->sendNotification<lsp::notifications::Initialized>({});
+		endpoint->initialized({});
 		return true;
 
 	} catch(const std::exception& e) {
@@ -112,35 +109,12 @@ void LspBridge::Stop() {
 		documents.clear();
 
 		// send a shutdown request and wait for response
-		messageHandler->sendRequest<lsp::requests::Shutdown>(
-			[this](const lsp::requests::Shutdown::Result&) {
-				// send an exit notification
-				messageHandler->sendNotification<lsp::notifications::Exit>();
-				running.store(false);
-			},
-			[](const lsp::ResponseError& error) {
-				std::cerr << "Error: " << error.code() << " - " << error.what() << std::endl;
-			});
+		(void) endpoint->shutdown().get();
+		endpoint->exit();
 
 		// wait for message handling thread to finish
 		if (messageThread.joinable()) {
 			messageThread.join();
-		}
-	}
-}
-
-
-//
-//	LspBridge::messageLoop
-//
-
-void LspBridge::messageLoop() {
-	while (IsRunning()) {
-		try {
-			messageHandler->processIncomingMessages();
-
-		} catch(const std::exception& e) {
-			std::cerr << "================================ Error: " << e.what() << std::endl;
 		}
 	}
 }
@@ -209,9 +183,9 @@ LspBridge::Document::Document(LspBridge& bridge, const std::filesystem::path& pa
 	}
 
 	// open document in language server
-	bridge.messageHandler->sendNotification<lsp::notifications::TextDocument_DidOpen>({
+	bridge.endpoint->textDocumentDidOpen({
 		.textDocument = {
-			.uri = lsp::DocumentUri::fromPath(path.string()),
+			.uri = lsp::Uri::fileUriFromPath(path.string()),
 			.languageId = editor.GetLanguageName(),
 			.version = version++,
 			.text = editor.GetText()
@@ -221,15 +195,15 @@ LspBridge::Document::Document(LspBridge& bridge, const std::filesystem::path& pa
 	// provide document text to language server
 	lsp::Array<lsp::TextDocumentContentChangeEvent> contentChanges;
 
-	contentChanges.emplace_back(lsp::TextDocumentContentChangeEvent_Text({
+	contentChanges.emplace_back(lsp::TextDocumentContentChangeWholeDocument({
 		.text = editor.GetText()
 	}));
 
 	lsp::DidChangeTextDocumentParams params;
-	params.textDocument.uri = lsp::DocumentUri::fromPath(path.string());
+	params.textDocument.uri = lsp::Uri::fileUriFromPath(path.string());
 	params.textDocument.version = version++;
 	params.contentChanges = std::move(contentChanges);
-	bridge.messageHandler->sendNotification<lsp::notifications::TextDocument_DidChange>(std::move(params));
+	bridge.endpoint->textDocumentDidChange(std::move(params));
 
 	// track changes in document from now on and pass them to the language server
 	editor.SetTransactionCallback([&](const std::vector<TextEditor::Change>& changes) {
@@ -237,30 +211,30 @@ LspBridge::Document::Document(LspBridge& bridge, const std::filesystem::path& pa
 
 		for (auto& change : changes) {
 			if (change.insert) {
-				contentChanges.emplace_back(lsp::TextDocumentContentChangeEvent_Range_Text({
+				contentChanges.emplace_back(lsp::TextDocumentContentChangePartial({
 					.range = lsp::Range({
 						.start = lsp::Position({
-							.line = static_cast<lsp::uint>(change.start.line),
-							.character = static_cast<lsp::uint>(change.start.index)
+							.line = static_cast<lsp::Uint>(change.start.line),
+							.character = static_cast<lsp::Uint>(change.start.index)
 						}),
 						.end = lsp::Position({
-							.line = static_cast<lsp::uint>(change.start.line),
-							.character = static_cast<lsp::uint>(change.start.index)
+							.line = static_cast<lsp::Uint>(change.start.line),
+							.character = static_cast<lsp::Uint>(change.start.index)
 						})
 					}),
 					.text = change.text
 				}));
 
 			} else {
-				contentChanges.emplace_back(lsp::TextDocumentContentChangeEvent_Range_Text({
+				contentChanges.emplace_back(lsp::TextDocumentContentChangePartial({
 					.range = lsp::Range({
 						.start = lsp::Position({
-							.line = static_cast<lsp::uint>(change.start.line),
-							.character = static_cast<lsp::uint>(change.start.index)
+							.line = static_cast<lsp::Uint>(change.start.line),
+							.character = static_cast<lsp::Uint>(change.start.index)
 						}),
 						.end = lsp::Position({
-							.line = static_cast<lsp::uint>(change.end.line),
-							.character = static_cast<lsp::uint>(change.end.index)
+							.line = static_cast<lsp::Uint>(change.end.line),
+							.character = static_cast<lsp::Uint>(change.end.index)
 						})
 					}),
 					.text = ""
@@ -269,29 +243,29 @@ LspBridge::Document::Document(LspBridge& bridge, const std::filesystem::path& pa
 		}
 
 		lsp::DidChangeTextDocumentParams params;
-		params.textDocument.uri = lsp::DocumentUri::fromPath(path.string());
+		params.textDocument.uri = lsp::Uri::fileUriFromPath(path.string());
 		params.textDocument.version = version++;
 		params.contentChanges = std::move(contentChanges);
-		bridge.messageHandler->sendNotification<lsp::notifications::TextDocument_DidChange>(std::move(params));
+		bridge.endpoint->textDocumentDidChange(std::move(params));
 	});
 
 	if (options & autocomplete) {
 		TextEditor::AutoCompleteConfig config;
 
 		config.callback = [&](TextEditor::AutoCompleteState& state) {
-			bridge.messageHandler->sendRequest<lsp::requests::TextDocument_Completion>(
+			const auto result = bridge.endpoint->textDocumentCompletion(
 				{
 					{
 						.textDocument = {
-							.uri = lsp::DocumentUri::fromPath(path.string())
+							.uri = lsp::Uri::fileUriFromPath(path.string())
 						},
 						.position = lsp::Position {
-							.line = static_cast<lsp::uint>(state.searchTermEnd.line),
-							.character = static_cast<lsp::uint>(state.searchTermEnd.index)
+							.line = static_cast<lsp::Uint>(state.searchTermEnd.line),
+							.character = static_cast<lsp::Uint>(state.searchTermEnd.index)
 						}
 					}
 				},
-				[&](const lsp::requests::TextDocument_Completion::Result& result) {
+				[&](const lsp::TextDocumentCompletionResult& result) {
 					// if (result.holdsAlternative<lsp::CompletionList>()) {
 					if (!result.isNull()) {
 						const std::scoped_lock lock(mutex);
@@ -323,9 +297,9 @@ LspBridge::Document::Document(LspBridge& bridge, const std::filesystem::path& pa
 
 LspBridge::Document::~Document() {
 	// close document in language server
-	bridge.messageHandler->sendNotification<lsp::notifications::TextDocument_DidClose>({
+	bridge.endpoint->textDocumentDidClose({
 		.textDocument = {
-			.uri = lsp::DocumentUri::fromPath(path.string())
+			.uri = lsp::Uri::fileUriFromPath(path.string())
 		}
 	});
 
@@ -357,19 +331,19 @@ void LspBridge::Document::update() {
 			mouseDocPos = docPos;
 
 			if (options & showSignature) {
-				bridge.messageHandler->sendRequest<lsp::requests::TextDocument_SignatureHelp>(
+				bridge.endpoint->textDocumentSignatureHelp(
 					{
 						{
 							.textDocument = {
-								.uri = lsp::DocumentUri::fromPath(path.string())
+								.uri = lsp::Uri::fileUriFromPath(path.string())
 							},
 							.position = lsp::Position {
-								.line = static_cast<lsp::uint>(docPos.line),
-								.character = static_cast<lsp::uint>(docPos.index)
+								.line = static_cast<lsp::Uint>(docPos.line),
+								.character = static_cast<lsp::Uint>(docPos.index)
 							}
 						}
 					},
-					[&](const lsp::requests::TextDocument_SignatureHelp::Result& result) {
+					[&](const lsp::TextDocumentSignatureHelpResult& result) {
 						if (!result.isNull()) {
 							signatures.clear();
 
@@ -383,19 +357,19 @@ void LspBridge::Document::update() {
 					});
 
 			} else if (options & showHoverHelp) {
-				bridge.messageHandler->sendRequest<lsp::requests::TextDocument_Hover>(
+				bridge.endpoint->textDocumentHover(
 					{
 						{
 							.textDocument = {
-								.uri = lsp::DocumentUri::fromPath(path.string())
+								.uri = lsp::Uri::fileUriFromPath(path.string())
 							},
 							.position = lsp::Position {
-								.line = static_cast<lsp::uint>(docPos.line),
-								.character = static_cast<lsp::uint>(docPos.index)
+								.line = static_cast<lsp::Uint>(docPos.line),
+								.character = static_cast<lsp::Uint>(docPos.index)
 							}
 						}
 					},
-					[this](const lsp::requests::TextDocument_Hover::Result& result) {
+					[this](const lsp::TextDocumentHoverResult& result) {
 						if (!result.isNull()) {
 							const std::scoped_lock lock(mutex);
 
