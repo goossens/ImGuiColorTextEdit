@@ -32,7 +32,11 @@
 //	TextEditor
 //
 
-class IMGUI_API TextEditor {
+#ifndef TEXTEDITOR_API
+#define TEXTEDITOR_API IMGUI_API
+#endif
+
+class TEXTEDITOR_API TextEditor {
 public:
 	// constructor
 	TextEditor();
