@@ -5623,6 +5623,19 @@ void TextEditor::replaceSectionText(const DocPos& start, const DocPos& end, cons
 
 
 //
+//	TextEditor::insertSectionText
+//
+
+void TextEditor::insertSectionText(DocPos pos, const std::string_view& text) {
+	const auto transaction = startTransaction();
+	const auto newEnd = insertText(transaction, pos, text);
+	cursors.clearAdditional();
+	cursors.getMain().update(newEnd, newEnd);
+	endTransaction(transaction);
+}
+
+
+//
 //	TextEditor::openFindReplace
 //
 

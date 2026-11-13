@@ -205,6 +205,7 @@ public:
 	inline void ReplaceAllText(const std::string_view& text) { replaceSectionText(document.getTop(), document.getBottom(), text); }
 	inline void ReplaceSectionText(DocPos start, DocPos end, const std::string_view& text) { replaceSectionText(normalizePos(start), normalizePos(end), text); }
 	inline void ReplaceSectionText(const DocSelection& selection, const std::string_view& text) { ReplaceSectionText(selection.start, selection.end, text); }
+	inline void InsertSectionText(DocPos pos, const std::string_view& text) { insertSectionText(normalizePos(pos), text); }
 
 	// clear the editor
 	inline void ClearText() { SetText(""); }
@@ -2001,6 +2002,7 @@ protected:
 	void replaceTextInCurrentCursor(const std::string_view& text);
 	void replaceTextInAllCursors(const std::string_view& text);
 	void replaceSectionText(const DocPos& start, const DocPos& end, const std::string_view& text);
+	void insertSectionText(DocPos pos, const std::string_view& text);
 
 	void openFindReplace();
 	void closeFindReplace();
