@@ -5337,7 +5337,12 @@ void TextEditor::renderFindReplace() {
 
 		auto button1Width = ImGui::CalcTextSize(findButtonLabel.c_str()).x + style.ItemSpacing.x * 2.0f;
 		auto button2Width = ImGui::CalcTextSize(findAllButtonLabel.c_str()).x + style.ItemSpacing.x * 2.0f;
-		const auto optionWidth = ImGui::CalcTextSize("Aa").x + style.ItemSpacing.x * 2.0f;
+
+		auto optionWidth = 0.0f;
+		optionWidth = std::max(optionWidth, ImGui::CalcTextSize(findCapsButtonLabel.c_str()).x);
+		optionWidth = std::max(optionWidth, ImGui::CalcTextSize(findWholeWordButtonLabel.c_str()).x);
+		optionWidth = std::max(optionWidth, ImGui::CalcTextSize(findCloseButtonLabel.c_str()).x);
+		optionWidth += style.ItemSpacing.x * 2.0f;
 
 		if (!config.readOnly) {
 			button1Width = std::max(button1Width, ImGui::CalcTextSize(replaceButtonLabel.c_str()).x + style.ItemSpacing.x * 2.0f);
@@ -5426,19 +5431,19 @@ void TextEditor::renderFindReplace() {
 
 		ImGui::SameLine();
 
-		if (latchButton("Aa", &caseSensitiveFind, ImVec2(optionWidth, 0.0f))) {
+		if (latchButton(findCapsButtonLabel.c_str(), &caseSensitiveFind, ImVec2(optionWidth, 0.0f))) {
 			find();
 		}
 
 		ImGui::SameLine();
 
-		if (latchButton("[]", &wholeWordFind, ImVec2(optionWidth, 0.0f))) {
+		if (latchButton(findWholeWordButtonLabel.c_str(), &wholeWordFind, ImVec2(optionWidth, 0.0f))) {
 			find();
 		}
 
 		ImGui::SameLine();
 
-		if (ImGui::Button("x", ImVec2(optionWidth, 0.0f))) {
+		if (ImGui::Button(findCloseButtonLabel.c_str(), ImVec2(optionWidth, 0.0f))) {
 			closeFindReplace();
 		}
 

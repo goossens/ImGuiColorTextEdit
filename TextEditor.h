@@ -350,6 +350,9 @@ public:
 	// internationalize find window labels (strings must be UTF-8 encoded)
 	inline void SetFindButtonLabel(const std::string_view& label) { findButtonLabel = label; }
 	inline void SetFindAllButtonLabel(const std::string_view& label) { findAllButtonLabel = label; }
+	inline void SetFindCapsButtonLabel(const std::string_view& label) { findCapsButtonLabel = label; }
+	inline void SetFindWholeWordButtonLabel(const std::string_view& label) { findWholeWordButtonLabel = label; }
+	inline void SetFindCloseButtonLabel(const std::string_view& label) { findCloseButtonLabel = label; }
 	inline void SetReplaceButtonLabel(const std::string_view& label) { replaceButtonLabel = label; }
 	inline void SetReplaceAllButtonLabel(const std::string_view& label) { replaceAllButtonLabel = label; }
 
@@ -2157,6 +2160,10 @@ protected:
 	std::string findAllButtonLabel = "Find All";
 	std::string replaceButtonLabel = "Replace";
 	std::string replaceAllButtonLabel = "Replace All";
+	std::string findCapsButtonLabel = "Aa";
+	std::string findWholeWordButtonLabel = "[]";
+	std::string findCloseButtonLabel = "x";
+
 	bool findReplaceVisible = false;
 	bool focusOnEditor = false;
 	bool focusOnFind = false;
