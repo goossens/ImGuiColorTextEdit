@@ -32,6 +32,10 @@ TextEditor::TextEditor() {
 }
 
 
+//
+//	TextEditor::reset
+//
+
 void TextEditor::reset() {
 	document.clear();
 	transactions.reset();
@@ -619,8 +623,8 @@ void TextEditor::renderText() {
 			if (codepoint == '\t') {
 				if (config.showTabs && column >= firstRenderableColumn) {
 					const auto x1 = glyphPos.x + glyphSize.x * 0.3f;
+					const auto x2 = glyphPos.x + (config.showShortTabs ? glyphSize.x : glyphSize.x * static_cast<float>(glyph.columns) - 1.0f);
 					const auto y = glyphPos.y + fontSize * 0.5f;
-					const auto x2 = glyphPos.x + glyphSize.x;
 
 					ImVec2 p1, p2, p3, p4;
 					p1 = ImVec2(x1, y);

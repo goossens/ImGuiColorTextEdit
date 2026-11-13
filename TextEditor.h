@@ -114,6 +114,8 @@ public:
 	inline bool IsShowSpacesEnabled() const { return config.showSpaces; }
 	inline void SetShowTabsEnabled(bool value) { config.showTabs = value; }
 	inline bool IsShowTabsEnabled() const { return config.showTabs; }
+	inline void SetShortTabsEnabled(bool value) { config.showShortTabs = value; }
+	inline bool IsShortTabsEnabled() const { return config.showShortTabs; }
 	inline void SetShowLineNumbersEnabled(bool value) { config.showLineNumbers = value; }
 	inline bool IsShowLineNumbersEnabled() const { return config.showLineNumbers; }
 	inline void SetShowMiniMapEnabled(bool value) { config.showMiniMap = value; }
@@ -147,6 +149,9 @@ public:
 	inline size_t GetTextLeftMargin() const { return config.textMargin; }
 
 	// load new text into editor (see note below on cursor and scroll manipulation after setting new text)
+	// none of the SetText create transactions or generate configured change callbacks
+	// in fact, the SetText functions do a full reset of the entire editors state
+	// in you want it to be transactional and/or have callbacks, use the ReplaceAllText or ReplaceSectionText API calls instead
 	//
 	// API calls to set/get text are available for all standard C++ UTF-8 and unicode string formats to support fast file en/de-coding
 	// other API calls use UTF-8 encoded std::strings
@@ -195,6 +200,8 @@ public:
 	inline std::string GetLineText(size_t line) const { return line < document.size() ? document.getSectionText(DocPos(line, 0), document.getEndOfLine(DocPos(line, 0))) : ""; }
 
 	// replace text in editor (new text must be UTF-8 encoded)
+	// replace functions do create undoable transactions and execute configured callbacks
+	inline void ReplaceAllText(const std::string_view& text) { replaceSectionText(document.getTop(), document.getBottom(), text); }
 	inline void ReplaceSectionText(DocPos start, DocPos end, const std::string_view& text) { replaceSectionText(normalizePos(start), normalizePos(end), text); }
 	inline void ReplaceSectionText(const DocSelection& selection, const std::string_view& text) { ReplaceSectionText(selection.start, selection.end, text); }
 
@@ -496,7 +503,7 @@ public:
 	// the editor sets up a popup menu in the right location
 	// the callback has to populate it
 	// context callbacks activate on a right click
-	// hover callbacks are just based on position (no mouse buttons required)
+	// hover callbacks active when mouse is over a glyph (no mouse buttons required)
 	struct PopupData {
 		DocPos pos;
 		void* userData;
@@ -1038,6 +1045,7 @@ protected:
 		bool autoIndent = true;
 		bool showSpaces = true;
 		bool showTabs = true;
+		bool showShortTabs = true;
 		bool showLineNumbers = true;
 		bool showMiniMap = false;
 		size_t miniMapColumns = 0;
