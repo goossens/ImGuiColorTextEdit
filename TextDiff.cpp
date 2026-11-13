@@ -293,12 +293,12 @@ void TextDiff::IntegratedView::renderLine(float x, float y, const TextEditor::Li
 			if (diff.config.showTabs && column >= firstRenderableColumn) {
 				const auto x1 = glyphPos.x + glyphSize.x * 0.3f;
 				const auto x2 = glyphPos.x + (diff.config.showShortTabs ? glyphSize.x : glyphSize.x * static_cast<float>(glyph.columns) - 1.0f);
-				const auto y = glyphPos.y + fontSize * 0.5f;
+				const auto y1 = glyphPos.y + fontSize * 0.5f;
 
-				const auto p1 = ImVec2(x1, y);
-				const auto p2 = ImVec2(x2, y);
-				const auto p3 = ImVec2(x2 - fontSize * 0.16f, y - fontSize * 0.16f);
-				const auto p4 = ImVec2(x2 - fontSize * 0.16f, y + fontSize * 0.16f);
+				const auto p1 = ImVec2(x1, y1);
+				const auto p2 = ImVec2(x2, y1);
+				const auto p3 = ImVec2(x2 - fontSize * 0.16f, y1 - fontSize * 0.16f);
+				const auto p4 = ImVec2(x2 - fontSize * 0.16f, y1 + fontSize * 0.16f);
 
 				drawList->AddLine(p1, p2, diff.palette.get(TextEditor::Color::whitespace));
 				drawList->AddLine(p2, p3, diff.palette.get(TextEditor::Color::whitespace));
@@ -651,12 +651,12 @@ void TextDiff::SideBySideView::renderLine(float x, float y, const TextEditor::Li
 			if (diff.config.showTabs && column >= firstRenderableColumn) {
 				const auto x1 = glyphPos.x + glyphSize.x * 0.3f;
 				const auto x2 = glyphPos.x + (diff.config.showShortTabs ? glyphSize.x : glyphSize.x * static_cast<float>(glyph.columns) - 1.0f);
-				const auto y = glyphPos.y + fontSize * 0.5f;
+				const auto y1 = glyphPos.y + fontSize * 0.5f;
 
-				const auto p1 = ImVec2(x1, y);
-				const auto p2 = ImVec2(x2, y);
-				const auto p3 = ImVec2(x2 - fontSize * 0.16f, y - fontSize * 0.16f);
-				const auto p4 = ImVec2(x2 - fontSize * 0.16f, y + fontSize * 0.16f);
+				const auto p1 = ImVec2(x1, y1);
+				const auto p2 = ImVec2(x2, y1);
+				const auto p3 = ImVec2(x2 - fontSize * 0.16f, y1 - fontSize * 0.16f);
+				const auto p4 = ImVec2(x2 - fontSize * 0.16f, y1 + fontSize * 0.16f);
 
 				drawList->AddLine(p1, p2, diff.palette.get(TextEditor::Color::whitespace));
 				drawList->AddLine(p2, p3, diff.palette.get(TextEditor::Color::whitespace));
