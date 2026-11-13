@@ -4391,6 +4391,31 @@ TextEditor::DocPos TextEditor::Document::normalizePos(DocPos pos) const {
 
 
 //
+//	TextEditor::Document::getContext
+//
+
+std::string TextEditor::Document::getContext(DocPos pos, std::function<bool(ImWchar)> isContext) const {
+	const auto& line = at(pos.line);
+	auto start = pos;
+	auto end = pos;
+
+	if (isContext(line[end.index].codepoint)) {
+		end.index++;
+
+		while (end.index < line.size() && isContext(line[end.index].codepoint)) {
+			end.index++;
+		}
+
+		while (start.index > 0 && isContext(line[start.index - 1].codepoint)) {
+			start.index--;
+		}
+	}
+
+	return (start == end) ? "" : getSectionText(start, end);
+}
+
+
+//
 //	TextEditor::Document::getLeftBeforeHiddenLines
 //
 

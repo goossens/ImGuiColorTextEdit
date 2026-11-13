@@ -323,6 +323,10 @@ public:
 	inline DocPos FindWordStart(DocPos pos, bool wordOnly=false) const { return document.findWordStart(normalizePos(pos), wordOnly); }
 	inline DocPos FindWordEnd(DocPos pos, bool wordOnly=false) const { return document.findWordEnd(normalizePos(pos), wordOnly); }
 
+	// given a specified document location, match codepoints left and right on that line and return discovered context as a string
+	// a callback function must be provided that determines if a codepoint meets the intended context requirements
+	inline std::string GetContext(DocPos pos, std::function<bool(ImWchar)> isContext) const { return document.getContext(normalizePos(pos), isContext); }
+
 	// find/replace support (strings must be UTF-8 encoded)
 	inline void SelectFirstOccurrenceOf(const std::string_view& text, bool caseSensitive=true, bool wholeWord=false) { selectFirstOccurrenceOf(text, caseSensitive, wholeWord); }
 	inline void SelectNextOccurrenceOf(const std::string_view& text, bool caseSensitive=true, bool wholeWord=false) { selectNextOccurrenceOf(text, caseSensitive, wholeWord); }
@@ -1406,6 +1410,8 @@ protected:
 		DocPos findNextNonWhiteSpace(DocPos from, bool includeEndOfLine=true) const;
 		DocPos normalizePos(DocPos pos) const;
 		inline size_t normalizeLine(size_t line) const { return line >= size() ? size() - 1 : line; }
+
+		std::string getContext(DocPos pos, std::function<bool(ImWchar)> isContext) const;
 
 		DocPos getLeftBeforeHiddenLines(DocPos pos) const;
 		DocPos getRightAfterHiddenLines(DocPos pos) const;
