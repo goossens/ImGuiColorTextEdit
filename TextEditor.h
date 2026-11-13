@@ -149,9 +149,9 @@ public:
 	inline size_t GetTextLeftMargin() const { return config.textMargin; }
 
 	// load new text into editor (see note below on cursor and scroll manipulation after setting new text)
-	// none of the SetText create transactions or generate configured change callbacks
+	// none of the SetText create transactions or call configured change callbacks
 	// in fact, the SetText functions do a full reset of the entire editors state
-	// in you want it to be transactional and/or have callbacks, use the ReplaceAllText or ReplaceSectionText API calls instead
+	// if you want it to be transactional and/or have callbacks, use the ReplaceAllText or ReplaceSectionText API calls instead
 	//
 	// API calls to set/get text are available for all standard C++ UTF-8 and unicode string formats to support fast file en/de-coding
 	// other API calls use UTF-8 encoded std::strings
@@ -198,6 +198,7 @@ public:
 	inline std::string GetSectionText(const DocSelection& selection) const { return GetSectionText(selection.start, selection.end); }
 	inline std::string GetCursorText(size_t cursor) const { return cursor < cursors.size() ? document.getSectionText(cursors[cursor].getSelectionStart(), cursors[cursor].getSelectionEnd()) : ""; }
 	inline std::string GetLineText(size_t line) const { return line < document.size() ? document.getSectionText(DocPos(line, 0), document.getEndOfLine(DocPos(line, 0))) : ""; }
+	inline std::vector<ImWchar> GetLineCodePoints(size_t line) const { return line < document.size() ? document.getLineCodePoints(line) : std::vector<ImWchar>(); }
 
 	// replace text in editor (new text must be UTF-8 encoded)
 	// replace functions do create undoable transactions and execute configured callbacks
@@ -1347,6 +1348,7 @@ protected:
 		// get part of document text (returned strings are UTF-8 encoded)
 		std::string getSectionText(DocPos start, DocPos end) const;
 		inline std::string getLineText(size_t line) const { return getSectionText(DocPos(line, 0), DocPos(line, at(line).size())); }
+		std::vector<ImWchar> getLineCodePoints(size_t line) const;
 		ImWchar getCodePoint(DocPos location) const;
 
 		// iterate through glyphs between two positions

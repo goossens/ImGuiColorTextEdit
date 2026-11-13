@@ -3778,6 +3778,23 @@ std::string TextEditor::Document::getSectionText(DocPos start, DocPos end) const
 
 
 //
+//	TextEditor::Document::getLineCodePoints
+//
+
+std::vector<ImWchar> TextEditor::Document::getLineCodePoints(size_t lineNo) const {
+	auto& line = at(lineNo);
+	std::vector<ImWchar> result;
+	result.reserve(line.size());
+
+	for (auto& glyph : line) {
+		result.emplace_back(glyph.codepoint);
+	}
+
+	return result;
+}
+
+
+//
 //	TextEditor::Document::getCodePoint
 //
 
