@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <cmath>
+#include <exception>
 #include <set>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
@@ -3150,11 +3151,15 @@ std::shared_ptr<TextEditor::Transaction> TextEditor::startTransaction(bool cance
 //	TextEditor::endTransaction
 //
 
-bool TextEditor::endTransaction(std::shared_ptr<Transaction> transaction) {
+bool TextEditor::endTransaction(std::shared_ptr<Transaction> transaction, bool* registered) {
+	if (registered) {
+		*registered = false;
+	}
+
 	if (transaction->size() > 0) {
 		cursors.update(document);
 		transaction->setAfterState(cursors);
-		transactions.add(transaction);
+		transactions.add(transaction, registered);
 		return true;
 
 	} else {
@@ -4566,11 +4571,21 @@ void TextEditor::Transactions::reset() {
 //	TextEditor::Transactions::add
 //
 
-void TextEditor::Transactions::add(std::shared_ptr<Transaction> transaction) {
+void TextEditor::Transactions::add(std::shared_ptr<Transaction> transaction, bool* registered) {
+	if (registered) {
+		*registered = false;
+	}
+
+	// Allocate before discarding the redo branch. Once resize starts, registration cannot throw.
+	reserve(size() + 1);
 	resize(undoIndex);
 	push_back(transaction);
 	undoIndex++;
 	version++;
+
+	if (registered) {
+		*registered = true;
+	}
 
 	if (callback) {
 		std::vector<Change> changes;
@@ -5637,6 +5652,232 @@ void TextEditor::insertSectionText(DocPos pos, const std::string_view& text) {
 	cursors.clearAdditional();
 	cursors.getMain().update(newEnd, newEnd);
 	endTransaction(transaction);
+}
+
+
+//
+//	TextEditor::ApplyEdits
+//
+
+bool TextEditor::ApplyEdits(const std::vector<Edit>& edits, std::optional<DocPos> finalCursor) {
+	auto isValidPosition = [this](DocPos pos) {
+		return pos.line < document.size() && pos.index <= document[pos.line].size();
+	};
+
+	std::vector<const Edit*> orderedEdits;
+	orderedEdits.reserve(edits.size());
+
+	for (const auto& edit : edits) {
+		if (!isValidPosition(edit.start) || !isValidPosition(edit.end) || edit.end < edit.start) {
+			return false;
+		}
+
+		if (edit.start != edit.end || !edit.text.empty()) {
+			orderedEdits.push_back(&edit);
+		}
+	}
+
+	if (orderedEdits.empty()) {
+		if (finalCursor) {
+			cursors.setCursor(normalizePos(*finalCursor));
+		}
+
+		return true;
+	}
+
+	if (config.readOnly) {
+		return false;
+	}
+
+	std::sort(orderedEdits.begin(), orderedEdits.end(), [](const Edit* lhs, const Edit* rhs) {
+		return lhs->start != rhs->start ? lhs->start < rhs->start : lhs->end < rhs->end;
+	});
+
+	for (size_t i = 1; i < orderedEdits.size(); i++) {
+		const auto& previous = *orderedEdits[i - 1];
+		const auto& current = *orderedEdits[i];
+
+		if (current.start < previous.end || current.start == previous.start) {
+			return false;
+		}
+	}
+
+	auto adjustForDelete = [](DocPos pos, DocPos start, DocPos end) {
+		if (pos <= start) {
+			return pos;
+		}
+
+		if (pos < end) {
+			return start;
+		}
+
+		if (start.line == end.line) {
+			if (pos.line == end.line) {
+				pos.index -= end.index - start.index;
+			}
+
+		} else if (pos.line == end.line) {
+			pos.line = start.line;
+			pos.index = start.index + pos.index - end.index;
+
+		} else {
+			pos.line -= end.line - start.line;
+		}
+
+		return pos;
+	};
+
+	auto adjustForInsert = [](DocPos pos, DocPos start, DocPos end) {
+		if (pos < start) {
+			return pos;
+		}
+
+		if (start.line == end.line) {
+			if (pos.line == start.line) {
+				pos.index += end.index - start.index;
+			}
+
+		} else if (pos.line == start.line) {
+			pos.line = end.line;
+			pos.index = end.index + pos.index - start.index;
+
+		} else {
+			pos.line += end.line - start.line;
+		}
+
+		return pos;
+	};
+
+	auto adjustCursors = [this](const auto& adjust) {
+		for (auto& cursor : cursors) {
+			cursor.update(adjust(cursor.getInteractiveStart()), adjust(cursor.getInteractiveEnd()));
+		}
+	};
+
+	// The document's line callbacks can have external side effects that cannot be rolled back generically. Without
+	// them, retain a complete snapshot and provide the strong exception guarantee. With them, snapshot each primitive
+	// mutation so a failing primitive is restored, while completed primitives remain an accurate undoable transaction.
+	const auto hasLineCallbacks = document.hasInsertor() || document.hasDeletor();
+	const auto documentWasUpdated = document.isUpdated();
+	const auto deletesHadHappened = deletesHappened;
+	const auto animationTimer = cursorAnimationTimer;
+	std::vector<Line> documentBefore;
+	Cursors cursorsBefore;
+
+	if (!hasLineCallbacks) {
+		documentBefore.assign(document.begin(), document.end());
+		cursorsBefore = cursors;
+	}
+
+	const auto transaction = startTransaction(false);
+	// Reserve every allocation needed before registration while rollback is still possible. Cursor finalization only
+	// sorts, merges or removes cursors, so the preallocated after-state remains large enough for the finished batch.
+	transaction->reserve(orderedEdits.size() * 2);
+	transaction->setAfterState(cursors);
+	transactions.reserve(transactions.size() + 1);
+	std::exception_ptr mutationFailure;
+	auto restoreUncommittedState = [&]() {
+		document.restore(documentBefore, documentWasUpdated);
+		cursors = cursorsBefore;
+		deletesHappened = deletesHadHappened;
+		cursorAnimationTimer = animationTimer;
+	};
+
+	auto mutateDocument = [&](const auto& mutation) {
+		if (!hasLineCallbacks) {
+			mutation();
+			return;
+		}
+
+		const auto primitiveWasUpdated = document.isUpdated();
+		std::vector<Line> primitiveBefore(document.begin(), document.end());
+
+		try {
+			mutation();
+
+		} catch (...) {
+			document.restore(primitiveBefore, primitiveWasUpdated);
+			throw;
+		}
+	};
+
+	try {
+		for (auto edit = orderedEdits.rbegin(); edit != orderedEdits.rend(); edit++) {
+			const auto& value = **edit;
+			std::string deletedText;
+
+			if (value.start != value.end) {
+				deletedText = document.getSectionText(value.start, value.end);
+				mutateDocument([&]() { document.deleteText(config, value.start, value.end); });
+				transaction->addDelete(value.start, value.end, std::move(deletedText));
+				resetCursorAnimationTimer();
+				deletesHappened = true;
+				adjustCursors([&](DocPos pos) { return adjustForDelete(pos, value.start, value.end); });
+			}
+
+			if (!value.text.empty()) {
+				DocPos end;
+				std::string insertedText;
+				mutateDocument([&]() {
+					end = document.insertText(config, value.start, value.text);
+					insertedText = document.getSectionText(value.start, end);
+				});
+
+				if (end != value.start) {
+					transaction->addInsert(value.start, end, std::move(insertedText));
+					adjustCursors([&](DocPos pos) { return adjustForInsert(pos, value.start, end); });
+				}
+			}
+		}
+
+		if (finalCursor) {
+			cursors.setCursor(normalizePos(*finalCursor));
+		}
+
+	} catch (...) {
+		mutationFailure = std::current_exception();
+	}
+
+	if (mutationFailure) {
+		if (!hasLineCallbacks) {
+			restoreUncommittedState();
+
+		} else if (!transaction->empty()) {
+			autocomplete.cancel();
+			endTransaction(transaction);
+		}
+
+		std::rethrow_exception(mutationFailure);
+	}
+
+	if (transaction->empty()) {
+		return true;
+	}
+
+	bool transactionRegistered = false;
+	bool changed;
+
+	try {
+		changed = endTransaction(transaction, &transactionRegistered);
+
+	} catch (...) {
+		if (transactionRegistered) {
+			autocomplete.cancel();
+			makeCursorVisible();
+
+		} else if (!hasLineCallbacks) {
+			restoreUncommittedState();
+		}
+
+		throw;
+	}
+
+	if (changed) {
+		autocomplete.cancel();
+		makeCursorVisible();
+	}
+
+	return changed;
 }
 
 

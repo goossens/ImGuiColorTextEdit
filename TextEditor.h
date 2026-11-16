@@ -19,10 +19,12 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "imgui.h"
@@ -71,6 +73,12 @@ public:
 		DocSelection(DocPos start, DocPos end) : start(start), end(end) {}
 		DocPos start;
 		DocPos end;
+	};
+
+	struct Edit {
+		DocPos start;
+		DocPos end;
+		std::string text;
 	};
 
 	struct VisPos {
@@ -210,6 +218,12 @@ public:
 	inline void ReplaceSectionText(DocPos start, DocPos end, const std::string_view& text) { replaceSectionText(normalizePos(start), normalizePos(end), text); }
 	inline void ReplaceSectionText(const DocSelection& selection, const std::string_view& text) { ReplaceSectionText(selection.start, selection.end, text); }
 	inline void InsertSectionText(DocPos pos, const std::string_view& text) { insertSectionText(normalizePos(pos), text); }
+	// apply non-overlapping edits whose ranges refer to the current document as one undo transaction
+	// returns false without changing editor state if the ranges are invalid, ambiguous, overlapping or read-only
+	// finalCursor refers to the resulting document and is normalized like SetCursor
+	// mutation failures roll back fully unless line callbacks are installed; then completed primitives remain undoable
+	// external side effects from line callbacks cannot be rolled back, so those callbacks must not throw
+	bool ApplyEdits(const std::vector<Edit>& edits, std::optional<DocPos> finalCursor=std::nullopt);
 
 	// clear the editor
 	inline void ClearText() { SetText(""); }
@@ -1390,6 +1404,7 @@ protected:
 		// see if document was updated this frame
 		inline bool isUpdated() const { return updated; }
 		inline void resetUpdated() { updated = false; }
+		inline void restore(std::vector<Line>& lines, bool wasUpdated) { swap(lines); updated = wasUpdated; }
 
 		// line-based callbacks
 		inline void setInsertor(std::function<void*(size_t line)> callback) { insertor = callback; }
@@ -1575,6 +1590,7 @@ protected:
 		// constructors
 		Action() = default;
 		Action(Type t, DocPos s, DocPos e, const std::string_view& txt) : type(t), start(s), end(e), text(txt) {}
+		Action(Type t, DocPos s, DocPos e, std::string&& txt) : type(t), start(s), end(e), text(std::move(txt)) {}
 
 		// properties
 		Type type;
@@ -1595,6 +1611,13 @@ protected:
 		// add actions by type
 		void addInsert(DocPos start, DocPos end, std::string_view text) { emplace_back(Action::Type::insertText, start, end, text); };
 		void addDelete(DocPos start, DocPos end, std::string_view text) { emplace_back(Action::Type::deleteText, start, end, text); };
+		void addInsert(DocPos start, DocPos end, std::string&& text) {
+			emplace_back(Action::Type::insertText, start, end, std::move(text));
+		};
+
+		void addDelete(DocPos start, DocPos end, std::string&& text) {
+			emplace_back(Action::Type::deleteText, start, end, std::move(text));
+		};
 
 	private:
 		// properties
@@ -1612,7 +1635,7 @@ protected:
 		static inline std::shared_ptr<Transaction> create() { return std::make_shared<Transaction>(); }
 
 		// add a transaction to the list and make it undoable
-		void add(std::shared_ptr<Transaction> transaction);
+		void add(std::shared_ptr<Transaction> transaction, bool* registered=nullptr);
 
 		// undo the last transaction
 		void undo(const Config& config, Document& document, Cursors& cursors);
@@ -2073,7 +2096,7 @@ protected:
 	// transaction functions
 	// note that strings must be UTF-8 encoded
 	std::shared_ptr<Transaction> startTransaction(bool cancelsAutoComplete=true);
-	bool endTransaction(std::shared_ptr<Transaction> transaction);
+	bool endTransaction(std::shared_ptr<Transaction> transaction, bool* registered=nullptr);
 
 	void insertTextIntoAllCursors(std::shared_ptr<Transaction> transaction, const std::string_view& text);
 	void deleteTextFromAllCursors(std::shared_ptr<Transaction> transaction);
