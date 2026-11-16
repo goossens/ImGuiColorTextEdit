@@ -54,6 +54,8 @@ void TextEditor::reset() {
 bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags) {
 	// track content state changes
 	bool documentChanged = false;
+	const auto currentExternallyHandledKeys = externallyHandledKeys;
+	externallyHandledKeys = ExternalKey::none;
 
 	// special handling for first frame as we can't use SetNextWindowFocus during it
 	if (!firstFrame) {
@@ -147,7 +149,7 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		handlePossibleScrolling();
 
 		// handle keyboard inputs
-		handleKeyboardInputs();
+		handleKeyboardInputs(currentExternallyHandledKeys);
 		documentChanged = updateState();
 
 		// handle mouse inputs
@@ -201,7 +203,7 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		renderScrollbarMiniMap();
 		renderPanScrollIndicator();
 		renderFindReplace();
-		renderPopups();
+		renderPopups(currentExternallyHandledKeys);
 
 		// handle scrolling caused by actions in this frame
 		handlePossibleScrolling();
@@ -1091,7 +1093,7 @@ void TextEditor::renderPanScrollIndicator() {
 //	TextEditor::renderPopups
 //
 
-void TextEditor::renderPopups() {
+void TextEditor::renderPopups(ExternalKey externallyHandledKeys) {
 	PopupData popupData;
 	popupData.pos = popupDocPos;
 	popupData.userData = document.getUserData(popupDocPos.line);
@@ -1135,7 +1137,8 @@ void TextEditor::renderPopups() {
 	}
 
 	// render autocomplete popup
-	if (autocomplete.render(document, cursors, typeSetter, config.language, textLeftOffset, glyphSize)) {
+	if (autocomplete.render(document, cursors, typeSetter, config.language, textLeftOffset, glyphSize,
+		externallyHandledKeys)) {
 		// user picked a suggestion so insert it
 		const auto start = autocomplete.getReplacementStart();
 		const auto end = autocomplete.getReplacementEnd(document);
@@ -1219,13 +1222,18 @@ bool TextEditor::updateState() {
 //	TextEditor::handleKeyboardInputs
 //
 
-void TextEditor::handleKeyboardInputs() {
+void TextEditor::handleKeyboardInputs(ExternalKey externallyHandledKeys) {
 	if (ImGui::IsWindowFocused()) {
 		auto& io = ImGui::GetIO();
 		const auto macOS = io.ConfigMacOSXBehaviors;
+		const auto handlesUpDown = isExternallyHandled(externallyHandledKeys, ExternalKey::upDown);
+		const auto handlesEnter = isExternallyHandled(externallyHandledKeys, ExternalKey::enter);
+		const auto handlesTab = isExternallyHandled(externallyHandledKeys, ExternalKey::tab);
+		const auto handlesEscape = isExternallyHandled(externallyHandledKeys, ExternalKey::escape);
+		const auto handlesAutocomplete = isExternallyHandled(externallyHandledKeys, ExternalKey::autocomplete);
 
 		// ignore specific keys when autocomplete is active, they will be handled later
-		if (autocomplete.isActive() && autocomplete.isSpecialKeyPressed()) {
+		if (autocomplete.isActive() && autocomplete.isSpecialKeyPressed(externallyHandledKeys)) {
 			if (autocomplete.hasSuggestions()) {
 				return;
 
@@ -1236,10 +1244,14 @@ void TextEditor::handleKeyboardInputs() {
 		}
 
 		// cursor movements and selections
-		if (ImGui::Shortcut(ImGuiKey_UpArrow, ImGuiInputFlags_Repeat)) { moveUp(1, false); }
-		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_UpArrow, ImGuiInputFlags_Repeat)) { moveUp(1, true); }
-		else if (ImGui::Shortcut(ImGuiKey_DownArrow, ImGuiInputFlags_Repeat)) { moveDown(1, false); }
-		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_DownArrow, ImGuiInputFlags_Repeat)) { moveDown(1, true); }
+		if (!handlesUpDown && ImGui::Shortcut(ImGuiKey_UpArrow, ImGuiInputFlags_Repeat)) { moveUp(1, false); }
+		else if (!handlesUpDown && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_UpArrow, ImGuiInputFlags_Repeat)) {
+			moveUp(1, true);
+		}
+		else if (!handlesUpDown && ImGui::Shortcut(ImGuiKey_DownArrow, ImGuiInputFlags_Repeat)) { moveDown(1, false); }
+		else if (!handlesUpDown && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_DownArrow, ImGuiInputFlags_Repeat)) {
+			moveDown(1, true);
+		}
 
 		else if (ImGui::Shortcut((macOS ? ImGuiMod_Super : ImGuiMod_Alt) | ImGuiMod_Shift | ImGuiKey_LeftArrow)) { shrinkSelections(); }
 		else if (ImGui::Shortcut((macOS ? ImGuiMod_Super : ImGuiMod_Alt) | ImGuiMod_Shift | ImGuiKey_RightArrow)) { growSelections(); }
@@ -1259,14 +1271,16 @@ void TextEditor::handleKeyboardInputs() {
 		else if (ImGui::Shortcut(ImGuiKey_PageDown, ImGuiInputFlags_Repeat)) { moveDown(lastVisibleRow - firstVisibleRow - 2, false); }
 		else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_PageDown, ImGuiInputFlags_Repeat)) { moveDown(lastVisibleRow - firstVisibleRow - 2, true); }
 
-		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_UpArrow)) { moveToTop(false); }
+		else if (!handlesUpDown && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_UpArrow)) { moveToTop(false); }
 		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Home)) { moveToTop(false); }
-		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_UpArrow)) { moveToTop(true); }
+		else if (!handlesUpDown && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_UpArrow)) { moveToTop(true); }
 		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Home)) { moveToTop(true); }
 
-		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_DownArrow)) { moveToBottom(false); }
+		else if (!handlesUpDown && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_DownArrow)) { moveToBottom(false); }
 		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_End)) { moveToBottom(false); }
-		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_DownArrow)) { moveToBottom(true); }
+		else if (!handlesUpDown && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_DownArrow)) {
+			moveToBottom(true);
+		}
 		else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_End)) { moveToBottom(true); }
 
 		else if (ImGui::Shortcut(ImGuiKey_Home)) { moveToStartOfLine(false); }
@@ -1310,8 +1324,12 @@ void TextEditor::handleKeyboardInputs() {
 		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_LeftBracket, ImGuiInputFlags_Repeat)) { deindentLines(); }
 		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_RightBracket, ImGuiInputFlags_Repeat)) { indentLines(); }
 
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_UpArrow)) { moveUpLines(); }
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_DownArrow)) { moveDownLines(); }
+		else if (!handlesUpDown && !config.readOnly && ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_UpArrow)) {
+			moveUpLines();
+		}
+		else if (!handlesUpDown && !config.readOnly && ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_DownArrow)) {
+			moveDownLines();
+		}
 
 		else if (!config.readOnly && config.language && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Slash)) { toggleComments(); }
 		else if (!config.readOnly && config.language && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_L)) { toggleComments(); }
@@ -1330,7 +1348,7 @@ void TextEditor::handleKeyboardInputs() {
 		else if (config.findReplaceEnabled && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_G, ImGuiInputFlags_Repeat)) { findNext(); }
 
 		// autocomplete support
-		else if (!config.readOnly && ImGui::Shortcut(autocomplete.getTriggerShortcut())) {
+		else if (!handlesAutocomplete && !config.readOnly && ImGui::Shortcut(autocomplete.getTriggerShortcut())) {
 			// don't activate if we have multiple cursors active
 			if (cursors.hasMultiple()) {
 				// TODO: inform user
@@ -1346,17 +1364,33 @@ void TextEditor::handleKeyboardInputs() {
 		else if (ImGui::Shortcut(ImGuiKey_Insert)) { config.overwrite = !config.overwrite; }
 
 		// handle new line
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_Enter, ImGuiInputFlags_Repeat) ) { handleCharacter('\n'); }
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_KeypadEnter, ImGuiInputFlags_Repeat)) { handleCharacter('\n'); }
+		else if (!handlesEnter && !config.readOnly && ImGui::Shortcut(ImGuiKey_Enter, ImGuiInputFlags_Repeat) ) {
+			handleCharacter('\n');
+		}
+		else if (!handlesEnter && !config.readOnly && ImGui::Shortcut(ImGuiKey_KeypadEnter, ImGuiInputFlags_Repeat)) {
+			handleCharacter('\n');
+		}
 
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Enter, ImGuiInputFlags_Repeat)) { insertLineBelow(); }
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadEnter, ImGuiInputFlags_Repeat)) { insertLineBelow(); }
+		else if (!handlesEnter && !config.readOnly &&
+			ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Enter, ImGuiInputFlags_Repeat)) {
+			insertLineBelow();
+		}
+		else if (!handlesEnter && !config.readOnly &&
+			ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_KeypadEnter, ImGuiInputFlags_Repeat)) {
+			insertLineBelow();
+		}
 
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Enter, ImGuiInputFlags_Repeat)) { insertLineAbove(); }
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_KeypadEnter, ImGuiInputFlags_Repeat)) { insertLineAbove(); }
+		else if (!handlesEnter && !config.readOnly &&
+			ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Enter, ImGuiInputFlags_Repeat)) {
+			insertLineAbove();
+		}
+		else if (!handlesEnter && !config.readOnly &&
+			ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_KeypadEnter, ImGuiInputFlags_Repeat)) {
+			insertLineAbove();
+		}
 
 		// handle tabs
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiKey_Tab, ImGuiInputFlags_Repeat)) {
+		else if (!handlesTab && !config.readOnly && ImGui::Shortcut(ImGuiKey_Tab, ImGuiInputFlags_Repeat)) {
 			if (cursors.anyHasSelection()) {
 				indentLines();
 
@@ -1365,12 +1399,13 @@ void TextEditor::handleKeyboardInputs() {
 			}
 		}
 
-		else if (!config.readOnly && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Tab, ImGuiInputFlags_Repeat)) {
+		else if (!handlesTab && !config.readOnly && ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Tab, ImGuiInputFlags_Repeat)) {
 				deindentLines();
 		}
 
 		// handle escape key
-		else if ((autocomplete.isActive() || findReplaceVisible || cursors.hasMultiple()) && ImGui::Shortcut(ImGuiKey_Escape)) {
+		else if (!handlesEscape && (autocomplete.isActive() || findReplaceVisible || cursors.hasMultiple()) &&
+			ImGui::Shortcut(ImGuiKey_Escape)) {
 			if (autocomplete.isActive()) {
 				autocomplete.cancel();
 
@@ -1389,7 +1424,7 @@ void TextEditor::handleKeyboardInputs() {
 				for (auto i = 0; i < io.InputQueueCharacters.size(); i++) {
 					const auto character = io.InputQueueCharacters[i];
 
-					if (character == '\n' || character >= 32) {
+					if ((!handlesEnter && character == '\n') || character >= 32) {
 						handleCharacter(character);
 					}
 				}
@@ -8916,7 +8951,8 @@ static bool renderSuggestion(const std::string_view& suggestion, const std::stri
 //	TextEditor::AutoComplete::render
 //
 
-bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, TypeSetter& typesetter, const Language* language, float textOffset, ImVec2 glyphSize) {
+bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, TypeSetter& typesetter,
+	const Language* language, float textOffset, ImVec2 glyphSize, ExternalKey externallyHandledKeys) {
 	// see if we need to activate autocomplete mode (after a previous session is closed)
 	if (requestActivation && !active) {
 		// drop the request if the editor lost focus (e.g. a menu was opened)
@@ -9028,9 +9064,12 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 			if (suggestions) {
 				const auto items = state.suggestions.size();
 				auto scroll = false;
+				const auto handlesUpDown = TextEditor::isExternallyHandled(externallyHandledKeys, ExternalKey::upDown);
+				const auto handlesEnter = TextEditor::isExternallyHandled(externallyHandledKeys, ExternalKey::enter);
+				const auto handlesTab = TextEditor::isExternallyHandled(externallyHandledKeys, ExternalKey::tab);
 
 				// apply arrow keys to selected suggestion
-				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+				if (!handlesUpDown && ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
 					scroll = true;
 
 					if (currentSelection == 0) {
@@ -9040,7 +9079,7 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 						currentSelection--;
 					}
 
-				} else if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+				} else if (!handlesUpDown && ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
 					scroll = true;
 
 					if (currentSelection == items - 1) {
@@ -9051,7 +9090,8 @@ bool TextEditor::AutoComplete::render(Document& document, Cursors& cursors, Type
 					}
 
 				// use selected suggestion if user hit tab of return
-				} else if (ImGui::IsKeyPressed(ImGuiKey_Tab) || ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)) {
+				} else if ((!handlesTab && ImGui::IsKeyPressed(ImGuiKey_Tab)) ||
+					(!handlesEnter && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)))) {
 					requestDeactivation = true;
 					result = true;
 
@@ -9161,14 +9201,14 @@ TextEditor::DocPos TextEditor::AutoComplete::getReplacementEnd(const Document& d
 //	TextEditor::AutoComplete::isSpecialKeyPressed
 //
 
-bool TextEditor::AutoComplete::isSpecialKeyPressed() {
-	for (const auto key : {ImGuiKey_Tab, ImGuiKey_Enter, ImGuiKey_KeypadEnter, ImGuiKey_UpArrow, ImGuiKey_DownArrow}) {
-		if (ImGui::IsKeyPressed(key)) {
-			return true;
-		}
-	}
+bool TextEditor::AutoComplete::isSpecialKeyPressed(ExternalKey externallyHandledKeys) {
+	const auto handlesUpDown = TextEditor::isExternallyHandled(externallyHandledKeys, ExternalKey::upDown);
+	const auto handlesEnter = TextEditor::isExternallyHandled(externallyHandledKeys, ExternalKey::enter);
+	const auto handlesTab = TextEditor::isExternallyHandled(externallyHandledKeys, ExternalKey::tab);
 
-	return false;
+	return (!handlesTab && ImGui::IsKeyPressed(ImGuiKey_Tab)) ||
+		(!handlesEnter && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter))) ||
+		(!handlesUpDown && (ImGui::IsKeyPressed(ImGuiKey_UpArrow) || ImGui::IsKeyPressed(ImGuiKey_DownArrow)));
 }
 
 

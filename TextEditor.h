@@ -103,6 +103,24 @@ public:
 		size_t column = 0;
 	};
 
+	enum class ExternalKey : unsigned char {
+		none = 0,
+		upDown = 1 << 0,
+		enter = 1 << 1,
+		tab = 1 << 2,
+		escape = 1 << 3,
+		autocomplete = 1 << 4
+	};
+
+	friend constexpr ExternalKey operator |(ExternalKey lhs, ExternalKey rhs) {
+		return static_cast<ExternalKey>(static_cast<unsigned char>(lhs) | static_cast<unsigned char>(rhs));
+	}
+
+	friend constexpr ExternalKey& operator |=(ExternalKey& lhs, ExternalKey rhs) {
+		lhs = lhs | rhs;
+		return lhs;
+	}
+
 	// access editor's configuration options
 	inline void SetTabSize(size_t value) { config.tabSize = value; }
 	inline size_t GetTabSize() const { return config.tabSize; }
@@ -241,6 +259,9 @@ public:
 
 	// programmatically set focus on the editor
 	inline void SetFocus() { focusOnEditor = true; }
+
+	// reserve selected keyboard actions for an external component during the next Render call only
+	inline void SetExternallyHandledKeys(ExternalKey keys) { externallyHandledKeys = keys; }
 
 	// clipboard actions
 	inline void Cut() { if (!config.readOnly) cut(); }
@@ -1907,7 +1928,8 @@ protected:
 		void cancel();
 
 		// update autocomplete state and render (if required)
-		bool render(Document& document, Cursors& cursors, TypeSetter& typesetter, const Language* language, float textOffset, ImVec2 glyphSize);
+		bool render(Document& document, Cursors& cursors, TypeSetter& typesetter, const Language* language, float textOffset,
+			ImVec2 glyphSize, ExternalKey externallyHandledKeys);
 
 		// specify a new set of suggestions (labels are optional)
 		void setSuggestions(const std::vector<std::string>& suggestions, const std::vector<std::string>& labels);
@@ -1915,7 +1937,7 @@ protected:
 		// get information
 		inline bool isActive() const { return active; }
 		inline bool hasSuggestions() const { return state.suggestions.size() > 0 || state.suggestionsPromise; }
-		static bool isSpecialKeyPressed();
+		static bool isSpecialKeyPressed(ExternalKey externallyHandledKeys);
 		inline ImGuiKeyChord getTriggerShortcut() const { return configuration.triggerShortcut; }
 		bool isTriggerCharacter(ImWchar codepoint) const;
 		DocPos getReplacementStart() const;
@@ -1952,6 +1974,9 @@ protected:
 
 	// render (parts of) the text editor
 	bool render(const char* title, const ImVec2& size, ImGuiChildFlags childFlags, ImGuiWindowFlags windowFlags);
+	static constexpr bool isExternallyHandled(ExternalKey keys, ExternalKey key) {
+		return (static_cast<unsigned char>(keys) & static_cast<unsigned char>(key)) != 0;
+	}
 	void renderCurrentLineHighlight();
 	void renderActiveBracketBackground();
 	void renderSelections();
@@ -1968,13 +1993,13 @@ protected:
 	void renderScrollbarMiniMap();
 	void renderPanScrollIndicator();
 	void renderFindReplace();
-	void renderPopups();
+	void renderPopups(ExternalKey externallyHandledKeys);
 
 	// update editor state after changes caused by API calls or user interactions
 	bool updateState();
 
 	// keyboard and mouse interactions
-	void handleKeyboardInputs();
+	void handleKeyboardInputs(ExternalKey externallyHandledKeys);
 	void handleMouseInteractions();
 
 	// check visibility of a document position
@@ -2197,6 +2222,7 @@ protected:
 	bool wholeWordFind = false;
 
 	// interaction context
+	ExternalKey externallyHandledKeys = ExternalKey::none;
 	bool navigatingVertically = false;
 	float lastClickTime = -1.0f;
 	ImWchar completePairCloser = 0;
