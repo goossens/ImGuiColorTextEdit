@@ -77,6 +77,45 @@ int main(int, char**) {
 
 
 //
+//	Rainbow (dummy language)
+//
+
+struct Rainbow {
+	static TextEditor::Iterator tokenize(TextEditor::Iterator start, TextEditor::Iterator, TextEditor::Color& color) {
+		static size_t offset = static_cast<size_t>(TextEditor::Color::customColor1);
+		static size_t token = 0;
+		static size_t index = 0;
+
+		color = static_cast<TextEditor::Color>(offset + token);
+
+		if (++index == 2) {
+			index = 0;
+
+			if (++token == 9) {
+				token = 0;
+			}
+		}
+
+		return ++start;
+	}
+
+	static const TextEditor::Language* getDefinition() {
+		static bool initialized = false;
+		static TextEditor::Language language;
+
+		if (!initialized) {
+			language.name = "Rainbow";
+
+			language.customTokenizer = tokenize;
+			initialized = true;
+		}
+
+		return &language;
+	}
+};
+
+
+//
 //	getDocumentDirectory
 //
 
@@ -120,6 +159,7 @@ Editor::Editor() {
 
 	setLanguageByName("C++");
 
+	editor.RegisterLanguage("Rainbow", Rainbow::getDefinition, {".rainbow"});
 	editor.SetShowMiniMapEnabled(true);
 	editor.SetFocus();
 

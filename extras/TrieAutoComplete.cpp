@@ -46,7 +46,7 @@ void TrieAutoComplete::Connect(TextEditor* newEditor) {
 	editor->SetAutoCompleteConfig(&config);
 
 	// enable tracking of language changes
-	editor->SetLanguageChangeCallback([this]() {
+	editor->SetLanguageChangedCallback([this]() {
 		buildTrie();
 	});
 
@@ -67,7 +67,7 @@ void TrieAutoComplete::Disconnect() {
 	// disconnect from text editor (if required)
 	if (editor) {
 		editor->SetAutoCompleteConfig(nullptr);
-		editor->SetLanguageChangeCallback(nullptr);
+		editor->SetLanguageChangedCallback(nullptr);
 		editor->SetChangeCallback(nullptr);
 		editor = nullptr;
 	}

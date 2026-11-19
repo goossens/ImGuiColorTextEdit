@@ -795,7 +795,7 @@ public:
 	inline const Language* GetLanguage() const { return config.language; };
 	inline bool HasLanguage() const { return config.language != nullptr; }
 	inline std::string GetLanguageName() const { return config.language == nullptr ? "None" : config.language->name; }
-	inline void SetLanguageChangeCallback(std::function<void()> callback) { languageChangeCallback = callback; }
+	inline void SetLanguageChangedCallback(std::function<void()> callback) { languageChangedCallback = callback; }
 
 	// access language registry
 
@@ -2226,7 +2226,7 @@ protected:
 	std::chrono::milliseconds delayedChangeDelay;
 	std::chrono::system_clock::time_point delayedChangeReportTime;
 	bool delayedChangeDetected = false;
-	std::function<void()> languageChangeCallback;
+	std::function<void()> languageChangedCallback;
 
 	// buildin language support
 	static inline std::vector<std::string> builtinLanguages;
