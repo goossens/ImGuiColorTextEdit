@@ -116,6 +116,7 @@ private:
 	void toggleTrieAutoComplete();
 	void toggleLspBridge();
 	void toggleShowWordAtMouse();
+	void toggleShowQualifiedIdentifierAtMouse();
 	void toggleShowDocPosAtMouse();
 	void toggleLineMarkers();
 	void toggleLineDecorator();
@@ -155,6 +156,7 @@ private:
 	bool demoTrieAutoComplete = false;
 	bool demoLspBridge = false;
 	bool showWordAtMouse = false;
+	bool showQualifiedIdentifierAtMouse = false;
 	bool showDocPosAtMouse = false;
 	bool showLineMarkers = false;
 	bool showLineDecorator = false;

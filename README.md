@@ -60,6 +60,11 @@ integrators have maximum flexibility to wrap the editor in their own context
 in the way they see fit. Public API calls to externally implement these
 features are however included.
 
+Note: This editor tries to use consistent terminology across all of its subsystems, so
+please have a look at the [terminology definitions](docs/terminology.md). This is important
+since the editor has built-in support for a number of languages and offers the opportunity
+to register other language definitions.
+
 ## Features
 
 - Works on MacOS, Linux and Windows.
@@ -71,7 +76,7 @@ features are however included.
 - Has no runtime dependencies other than Dear ImGui and the C++17 Standard Template Library (STL).
 - Has full undo/redo capabilities and supports native clipboard with UTF-8 encoded strings.
 - Has extendable syntax highlighting for multiple builtin languages and APIs for custom languages.
-- Has support for limiting [builtin languages](docs/languages.md) at compile time.
+- Has support for filtering [builtin languages](docs/languages.md) at compile time and API to register more languages.
 - Has customizable color palettes (a dark and light version that work with Dear ImGui defaults are included).
 - Has option to automatically insert spaces on tabs.
 - Has find/replace user interface and API with full undo/redo (the user interface can be disabled when the application provides its own search).
@@ -126,7 +131,7 @@ Dear ImGui context by doing the following:
 - Use the public API to set editor options or interact with the editor's contents.
 - Call the TextEditor's Render member function every frame in your Dear ImGui loop.
 - If you plan to use non-ASCII characters in your text, see the Unicode section below.
-- Configure Dear ImGui's clipboard functions since that is what this editor uses.
+- Configure Dear ImGui's clipboard functions since that is what this editor uses. This automatic if you use one of the backends provided by Dear ImGui.
 
 If you also want to use the TextDiff widget, you must:
 
@@ -140,7 +145,7 @@ For a complete example of both widgets, please see the [example folder](example/
 
 **Note**: Like ImGui, it is recommended that you compile and link TextEditor and TextDiff
 as a static library or directly as part of your sources (as suggested above).
-However, if you must and are compiling TextEditor and/or TextDiff as separate DLLs, make sure
+However, if you must and are compiling TextEditor and TextDiff as a DLL, make sure
 you set the current ImGui context with TextEditor::SetImGuiContext(ImGuiContext* ctx).
 This ensures that global ImGui variables are correctly shared across the DLL boundary.
 See GImGui documentation in imgui.cpp for more details.
@@ -208,8 +213,8 @@ See GImGui documentation in imgui.cpp for more details.
 	- Ctrl-Shift-Enter adds line above.
 
 - Delete Text:
-	- (shift-)Backspace key deletes character to the left of cursor or deletes selection(s).
-	- (shift-)Delete key deletes character to the right of cursor or deletes selection(s).
+	- (shift-)Backspace key deletes glyph to the left of cursor or deletes selection(s).
+	- (shift-)Delete key deletes glyph to the right of cursor or deletes selection(s).
 	- Ctrl-Backspace (Alt-Backspace on MacOS) deletes the word to left of the cursor.
 	- Ctrl-Delete (Alt-Delete on MacOS) deletes the word to right of the cursor.
 	- Ctrl-Shift-K deletes all selected lines.
@@ -233,7 +238,7 @@ See GImGui documentation in imgui.cpp for more details.
 	- When the find and replace window is disabled (see SetFindReplaceEnabled), these shortcuts are left to the application.
 
 - AutoComplete:
-	- Once configured, Ctrl-space (or a custom key combination) triggers a manual autocomplete (even on MacOS as Cmd-space globally triggers Spotlight searching on that platform).
+	- Once configured, Ctrl-space (or custom key combination(s)) triggers a manual autocomplete (even on MacOS as Cmd-space globally triggers Spotlight searching on that platform).
 	- Typing also triggers autocomplete (based on context).
 	- You can configure which triggers you want (the default is for both manual and automatic (by just typing) to be active).
 	- AutoComplete does not work when multiple cursors are active.
@@ -243,7 +248,7 @@ See GImGui documentation in imgui.cpp for more details.
 
 ## Unicode and UTF-8
 
-This rewrite of TextEditor uses UTF-8 encoded strings for the public API
+This rewrite of TextEditor uses UTF-8 encoded strings for most of the public API
 and to interact with the clipboard like the original TextEditor versions.
 The original and most of its forks use UTF-8 on the private side as well
 which is effective from a storage perspective but it makes all the
@@ -287,8 +292,9 @@ TextDiff is a separate widget that allows you to show the differences between
 two versions of some text while preserving color highlighting. The code for this
 widget is in separate files (see integration above) so it is optional. TextDiff
 is not a standalone widget as it "borrows" code and algorithms from TextEditor.
-If you use TextDiff, you must also include TextEditor.h and TextEditor.cpp in
-your project. TextDiff is readonly and has two modes:
+If you use TextDiff, you must also include TextEditor.h, TextEditor.cpp,
+TextEditorLanguages anf the languages folder in your project. TextDiff is
+readonly and has two modes:
 
 - **Integrated view** where differences are depicted vertically using the standard "diff" look and feel. This is the default view.
 

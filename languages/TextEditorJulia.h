@@ -76,7 +76,7 @@ struct TextEditorJulia {
 	}
 
 	static bool followsOperand(TextEditor::Iterator start) {
-		// the previous character tells apart x' (adjoint) from 'x' (character) and 1:n (range) from :n (symbol)
+		// the previous codepoint tells apart x' (adjoint) from 'x' (codepoint) and 1:n (range) from :n (symbol)
 		if (start.hasPrevious()) {
 			const auto c = start.previous();
 			return isIdentifierChar(c) || c == ')' || c == ']' || c == '}' || c == '\'' || c == '.';
@@ -209,7 +209,7 @@ struct TextEditorJulia {
 		return i;
 	}
 
-	static bool isPunctuation(ImWchar character) {
+	static bool isPunctuation(ImWchar codepoint) {
 		// !$%&'()*+,-./:;<=>?@[\]^{|}~ and Unicode operators
 		static const bool punctuation[128] = {
 			false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
@@ -222,12 +222,12 @@ struct TextEditorJulia {
 			false, false, false, false, false, false, false, false, false, false, false,  true,  true,  true,  true, false,
 		};
 
-		if (character < 127) {
-			return punctuation[character];
+		if (codepoint < 127) {
+			return punctuation[codepoint];
 
 		} else {
-			return character == 0xac || character == 0xb1 || character == 0xd7 || character == 0xf7 || character == 0x2212 ||
-				(character >= 0x2190 && character <= 0x2bff);
+			return codepoint == 0xac || codepoint == 0xb1 || codepoint == 0xd7 || codepoint == 0xf7 || codepoint == 0x2212 ||
+				(codepoint >= 0x2190 && codepoint <= 0x2bff);
 		}
 	}
 
@@ -409,6 +409,7 @@ struct TextEditorJulia {
 			for (auto& declaration : declarations) { language.declarations.insert(declaration); }
 			for (auto& identifier : identifiers) { language.identifiers.insert(identifier); }
 
+			language.isWord = isIdentifierChar;
 			language.isPunctuation = isPunctuation;
 			language.getIdentifier = getIdentifier;
 			language.getNumber = getNumber;

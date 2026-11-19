@@ -513,6 +513,7 @@ void Editor::renderMenuBar() {
 			if (ImGui::MenuItem("Trie-based AutoComplete", nullptr, &demoTrieAutoComplete)) { toggleTrieAutoComplete(); }
 			if (ImGui::MenuItem("Language Server Protocol Bridge", nullptr, &demoLspBridge)) { toggleLspBridge(); }
 			if (ImGui::MenuItem("Show Word at Mouse", nullptr, &showWordAtMouse)) { toggleShowWordAtMouse(); }
+			if (ImGui::MenuItem("Show Qualified Identifier at Mouse", nullptr, &showQualifiedIdentifierAtMouse)) { toggleShowQualifiedIdentifierAtMouse(); }
 			if (ImGui::MenuItem("Show DocPos at Mouse", nullptr, &showDocPosAtMouse)) { toggleShowDocPosAtMouse(); }
 			if (ImGui::MenuItem("Show Line Markers", nullptr, &showLineMarkers)) { toggleLineMarkers(); }
 			if (ImGui::MenuItem("Show Line Decorator", nullptr, &showLineDecorator)) { toggleLineDecorator(); }
@@ -632,13 +633,20 @@ void Editor::renderStatusBar() {
 	}
 
 	// support show word at mouse
-	std::string wordStatus;
+	std::string atMouseStatus;
 
 	if (showWordAtMouse) {
 		auto word = editor.GetWordAtMousePos(ImGui::GetMousePos());
 
 		if (word.size()) {
-			wordStatus = std::format("Word: {}  ", word);
+			atMouseStatus = std::format("Word: {}  ", word);
+		}
+
+	} else if (showQualifiedIdentifierAtMouse) {
+		const auto name = editor.GetQualifiedIdentifier(editor.GetDocPosAtMousePos(ImGui::GetMousePos()));
+
+		if (name.size()) {
+			atMouseStatus = std::format("Qualified name: {}  ", name);
 		}
 	}
 
@@ -650,7 +658,7 @@ void Editor::renderStatusBar() {
 	auto status = std::format(
 		"{}{}Ln {}, Col {}  Tab Size: {}  File: {}",
 		docPosStatus,
-		wordStatus,
+		atMouseStatus,
 		cursorPos.row + 1,
 		cursorPos.column + 1,
 		tabSize,
@@ -1217,12 +1225,39 @@ void Editor::toggleLspBridge() {
 //
 
 void Editor::toggleShowWordAtMouse() {
+	// word and qualified name at mouse are mutually exclusive
+	if (showQualifiedIdentifierAtMouse) {
+		showQualifiedIdentifierAtMouse = false;
+		Toastr::Instance().Info("Show qualified identifier at mouse deactivated");
+	}
+
 	// see if we are turning it on or off
 	if (showWordAtMouse) {
 		Toastr::Instance().Info("Show word at mouse activated");
 
 	} else {
 		Toastr::Instance().Info("Show word at mouse deactivated");
+	}
+}
+
+
+//
+//	Editor::toggleShowQualifiedIdentifierAtMouse
+//
+
+void Editor::toggleShowQualifiedIdentifierAtMouse() {
+	// word and qualified name at mouse are mutually exclusive
+	if (showWordAtMouse) {
+		showWordAtMouse = false;
+		Toastr::Instance().Info("Show word at mouse deactivated");
+	}
+
+	// see if we are turning it on or off
+	if (showQualifiedIdentifierAtMouse) {
+		Toastr::Instance().Info("Show qualified identifier at mouse activated");
+
+	} else {
+		Toastr::Instance().Info("Show qualified identifier at mouse deactivated");
 	}
 }
 
