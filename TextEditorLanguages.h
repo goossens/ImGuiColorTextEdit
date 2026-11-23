@@ -24,6 +24,7 @@
 #include "languages/TextEditorC.h"
 #include "languages/TextEditorCpp.h"
 #include "languages/TextEditorCs.h"
+#include "languages/TextEditorGcode.h"
 #include "languages/TextEditorGlsl.h"
 #include "languages/TextEditorHlsl.h"
 #include "languages/TextEditorJson.h"
@@ -46,6 +47,7 @@ struct TextEditorLanguages {
 		TextEditor::RegisterLanguage("C++", TextEditorCpp::getDefinition, {".cpp", ".h", ".hpp"});
 		TextEditor::RegisterLanguage("C#", TextEditorCs::getDefinition, {".cs"});
 		TextEditor::RegisterLanguage("GLSL", TextEditorGlsl::getDefinition, {".glsl"});
+		TextEditor::RegisterLanguage("G-code", TextEditorGcode::getDefinition, {".gcode", ".nc"});
 		TextEditor::RegisterLanguage("HLSL", TextEditorHlsl::getDefinition, {".hlsl"});
 		TextEditor::RegisterLanguage("JSON", TextEditorJson::getDefinition, {".json"});
 		TextEditor::RegisterLanguage("Julia", TextEditorJulia::getDefinition, {".jl"});
