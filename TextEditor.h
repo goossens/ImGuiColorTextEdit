@@ -789,6 +789,20 @@ public:
 		// function to implement custom tokenizer (can be nullptr if language doesn't have this feature)
 		// if a token is found, function should return an iterator to the codepoint after the token and set the color
 		std::function<Iterator(Iterator start, Iterator end, Color& color)> customTokenizer;
+
+		// predefined language definitions (shortcuts for LookupLanguage, kept for compatibility)
+		// they return nullptr if the language was removed from TextEditorLanguages.h
+		static inline const Language* C() { return LookupLanguage("C"); }
+		static inline const Language* Cpp() { return LookupLanguage("C++"); }
+		static inline const Language* Cs() { return LookupLanguage("C#"); }
+		static inline const Language* AngelScript() { return LookupLanguage("AngelScript"); }
+		static inline const Language* Lua() { return LookupLanguage("Lua"); }
+		static inline const Language* Python() { return LookupLanguage("Python"); }
+		static inline const Language* Glsl() { return LookupLanguage("GLSL"); }
+		static inline const Language* Hlsl() { return LookupLanguage("HLSL"); }
+		static inline const Language* Json() { return LookupLanguage("JSON"); }
+		static inline const Language* Markdown() { return LookupLanguage("Markdown"); }
+		static inline const Language* Sql() { return LookupLanguage("SQL"); }
 	};
 
 	void SetLanguage(const Language* language);
